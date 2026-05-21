@@ -71,13 +71,23 @@ VG.render.overview = function() {
   const balColor = bal >= 0 ? 'var(--neg)' : 'var(--pos)';
   const balSign = bal >= 0 ? '+' : '';
 
-  return `<div class="grid-2">
+  const hasChanges = VG.getChanges().length > 0;
+  const introCard = hasChanges ? '' : `<div class="onboarding-card">
+    <div class="onboarding-steps">
+      <div class="onboarding-step"><div class="step-num">1</div><div><strong>⭐ Mit Parti</strong><p>Tag stilling til 40 politiske spørgsmål og se dit partis placering på det politiske kompas.</p></div></div>
+      <div class="onboarding-step"><div class="step-num">2</div><div><strong>Økonomi & Politik</strong><p>Justér skatter, pensionsalder og velfærdsniveau. Se øjeblikkelig budgeteffekt + MAKRO-dynamik.</p></div></div>
+      <div class="onboarding-step"><div class="step-num">3</div><div><strong>🗳 Borgerstemmer</strong><p>Stem på fælles politikker og se hvad andre danskere mener i realtid.</p></div></div>
+      <div class="onboarding-step"><div class="step-num">4</div><div><strong>Demografi</strong><p>Forstå befolkningsudviklingen og det demografiske pres på statsbudgettet frem mod 2070.</p></div></div>
+    </div>
+  </div>`;
+
+  return `${introCard}<div class="grid-2">
     <div class="card"><h2>Hvor pengene bruges</h2><p class="intro">Statslige, regionale og kommunale udgifter — i alt ${VG.fmt(totalExp)} kr/år</p>${expRows}</div>
     <div class="card"><h2>Hvor pengene kommer fra</h2><p class="intro">Skatter, afgifter og andre offentlige indtægter — i alt ${VG.fmt(totalRev)} kr/år</p>${revRows}</div>
   </div>
   <div class="overview-balance-bar" style="border-left-color:${balColor}">
     Budgetsaldo: <strong style="color:${balColor}">${balSign}${VG.fmt(bal)} (${balSign}${balPct}% af BNP)</strong>
-    — Gå til <em>Fremskrivning</em> for gælds-prognose · <em>🗳 VirtuelPartiet</em> for at stemme på partiets politik
+    — Gå til <em>Fremskrivning</em> for gælds-prognose og <strong>DREAM holdbarhedsindikator</strong>
   </div>`;
 };
 
@@ -122,6 +132,50 @@ VG.render.policy = function() {
       impactStr = `${impact > 0 ? '+' : ''}${impact.toFixed(1)} mia til ${direction}`;
       impactClass = p.direction === 'revenue' ? (impact > 0 ? 'neg' : 'pos') : (impact > 0 ? 'pos' : 'neg');
     }
+
+    // SMILE distribution badge (shown on all changed policies)
+    let smileHtml = '';
+    if (p.smile && Math.abs(diff) > 0) {
+      const isRaised = diff > 0;
+      let effectiveType = p.smile.type;
+      // For regressive policies, raising makes things more unequal; lowering more equal
+      if (p.direction === 'expense') {
+        // Expense reduction: flip the distributional direction
+        if (diff < 0) effectiveType = effectiveType === 'progressive' ? 'regressive' : effectiveType === 'regressive' ? 'progressive' : 'neutral';
+      } else {
+        // Revenue reduction: flip
+        if (diff < 0) effectiveType = effectiveType === 'progressive' ? 'regressive' : effectiveType === 'regressive' ? 'progressive' : 'neutral';
+      }
+      const icons = { progressive: '↑ Progressiv', regressive: '↓ Regressiv', neutral: '→ Neutral' };
+      smileHtml = `<div class="smile-badge smile-${effectiveType}" title="${p.smile.note}">
+        <span class="smile-icon">${icons[effectiveType]}</span>
+        <span class="smile-note">${p.smile.note}</span>
+      </div>`;
+    }
+
+    // MAKRO dynamic effects box (only shown when slider is moved and makro data exists)
+    let makroHtml = '';
+    if (p.makro && Math.abs(diff) > 0) {
+      // Normalise to "budget balance improvement" (+= better for budget)
+      const staticBudget = p.direction === 'revenue' ? impact : -impact;
+      const dynamicAdj   = staticBudget * (-p.makro.sfr);
+      const netBudget    = staticBudget + dynamicAdj;
+      const fmt = v => `${v >= 0 ? '+' : ''}${Math.abs(v) < 0.05 ? '0,0' : v.toFixed(1)} mia`;
+      const dynClass = dynamicAdj >= 0 ? 'makro-positive' : 'makro-negative';
+      const sfrPct = Math.round(Math.abs(p.makro.sfr) * 100);
+      const sfrLabel = p.makro.sfr > 0 ? 'selvfinansieringsgrad' : 'forstærkningseffekt';
+      makroHtml = `<div class="makro-impact">
+        <div class="makro-header">⚡ MAKRO-dynamiske effekter</div>
+        <div class="makro-rows">
+          <div class="makro-row"><span>Statisk (1. orden)</span><span class="makro-num">${fmt(staticBudget)} budgetforbedring</span></div>
+          <div class="makro-row ${dynClass}"><span>Adfærd/dynamik</span><span class="makro-num">${fmt(dynamicAdj)} (${sfrPct}% ${sfrLabel})</span></div>
+          <div class="makro-row makro-net"><span>≈ Netto</span><span class="makro-num">${fmt(netBudget)}</span></div>
+        </div>
+        <p class="makro-note">${p.makro.note}</p>
+        <p class="makro-source">Kilde: <a href="https://github.com/DREAM-DK/MAKRO" target="_blank" rel="noopener">DREAM MAKRO-modellen</a> · ${p.makro.source}</p>
+      </div>`;
+    }
+
     const step = p.unit === 'pers' ? 100 : 0.1;
     return `<div class="policy-card">
       <div class="policy-head">
@@ -133,9 +187,22 @@ VG.render.policy = function() {
         <input type="range" min="${p.min}" max="${p.max}" step="${step}" value="${p.val}" data-policy="${pk}" aria-label="${p.name}">
         <div class="policy-impact ${impactClass}">${impactStr}</div>
       </div>
+      ${smileHtml}
+      ${makroHtml}
     </div>`;
   }).join('');
-  return `<div><p class="intro" style="color:var(--text-2);font-size:13px;margin-bottom:16px">Træk sliderne for at ændre politiske parametre. Modellen omregner automatisk til budgetimpact via offentliggjorte elasticiteter.</p>${html}</div>`;
+
+  return `<div>
+    <div class="makro-banner">
+      <span class="makro-banner-icon">⚡</span>
+      <div><strong>MAKRO-kalibreret</strong> — Elasticiteterne er kalibreret mod
+        <a href="https://github.com/DREAM-DK/MAKRO" target="_blank" rel="noopener">DREAM's åbne MAKRO-model</a>.
+        Flyt en slider for at se statiske og dynamiske adfærdseffekter side om side.
+      </div>
+    </div>
+    <p class="intro" style="color:var(--text-2);font-size:13px;margin-bottom:16px">Træk sliderne for at ændre politiske parametre. Modellen viser både første-ordensestimater og MAKRO-baserede dynamiske effekter.</p>
+    ${html}
+  </div>`;
 };
 
 VG.render.projection = function() {
@@ -171,6 +238,25 @@ VG.render.projection = function() {
     </tr>`;
   }).join('');
 
+  // DREAM OLG-inspired fiscal sustainability (holdbarhed)
+  // Required: structural surplus > demographic pressure (~2.5% of GDP by 2040 from aging)
+  const demographicPressure = 2.5; // % of GDP (DREAM's published estimate for DK aging pressure)
+  const adjustedGap = balPct - demographicPressure;
+  let holdClass, holdIcon, holdLabel, holdDesc;
+  if (adjustedGap > 0.5) {
+    holdClass = 'hold-ok'; holdIcon = '✓';
+    holdLabel = 'Holdbar';
+    holdDesc = `Med et strukturelt overskud på ${VG.ppct(balPct)} af BNP og en aldringsudgift på ca. ${demographicPressure}% af BNP frem mod 2040, er den samlede finanspolitik holdbar på lang sigt.`;
+  } else if (adjustedGap > -0.5) {
+    holdClass = 'hold-warn'; holdIcon = '⚠';
+    holdLabel = 'På grænsen';
+    holdDesc = `Den demografiske udgiftspres (~${demographicPressure}% af BNP) overstiger næsten det strukturelle overskud (${VG.ppct(balPct)}). Marginen er lille — selv moderate ændringer kan gøre finanspolitikken uholdbar.`;
+  } else {
+    holdClass = 'hold-fail'; holdIcon = '✗';
+    holdLabel = 'Ikke holdbar';
+    holdDesc = `Det strukturelle overskud (${VG.ppct(balPct)}) er ikke tilstrækkeligt til at absorbere aldringspresset (~${demographicPressure}% af BNP). Ifølge DREAM's OLG-model vil gælden stige uholdbart uden politikjusteringer.`;
+  }
+
   return `<div class="card">
     <h2>Statsgæld 2026–2034</h2>
     <p class="intro">Hvis dit nuværende budget fastholdes hvert år. Starter på 30% af BNP. BNP-vækst 2%/år.</p>
@@ -179,6 +265,21 @@ VG.render.projection = function() {
     <h2 style="margin-top:24px">EU-budgetregler</h2>
     <p class="intro">Danmark er bundet af både EU's Stabilitetspagt og den danske Budgetlov.</p>
     <div class="eu-pills">${pills}</div>
+    <div class="holdbarhed-box ${holdClass}">
+      <div class="holdbarhed-head">
+        <span class="holdbarhed-icon">${holdIcon}</span>
+        <div>
+          <strong>DREAM Holdbarhedsindikator: ${holdLabel}</strong>
+          <p class="holdbarhed-desc">${holdDesc}</p>
+        </div>
+      </div>
+      <div class="holdbarhed-grid">
+        <div class="holdbarhed-item"><span>Strukturel saldo</span><strong>${VG.ppct(balPct)} af BNP</strong></div>
+        <div class="holdbarhed-item"><span>Aldringspres 2040</span><strong>−${demographicPressure}% af BNP</strong></div>
+        <div class="holdbarhed-item"><span>Justeret holdbarhed</span><strong class="${adjustedGap > 0 ? 'neg' : 'pos'}">${VG.ppct(adjustedGap)} af BNP</strong></div>
+      </div>
+      <p class="holdbarhed-source">Metode: DREAM's OLG-model (overlappende generationer). Aldringspres baseret på DREAMs fremskrivning af alders-relaterede udgifter 2026–2045. <a href="https://dreamgruppen.dk/modeller-og-metoder/makro" target="_blank" rel="noopener">dreamgruppen.dk</a></p>
+    </div>
     <h2 style="margin-top:28px">Historisk oversigt 2022–2026</h2>
     <p class="intro">Faktiske og estimerede tal. Saldo > 0 betyder overskud (grøn).</p>
     <div style="overflow-x:auto">
