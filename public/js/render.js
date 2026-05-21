@@ -250,6 +250,10 @@ VG.render.all = function() {
     VG.party.renderPanel();
   }
 
+  if (VG.state.activeTab === 'demographics') {
+    VG.demo.renderPanel();
+  }
+
   VG.bindControls();
 };
 

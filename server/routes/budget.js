@@ -41,7 +41,7 @@ const BUDGET_DATA = {
     other:     { name: "Øvrige indtægter",              val: 119, min: 55,  max: 210, info: "Statens udbytter (fx Ørsted), gebyrer, bøder og EU-overførsler.",              source: "DST OFF3" }
   },
   policy: {
-    retireAge:   { name: "Folkepensionsalder",        val: 67,     min: 62,    max: 72,      unit: "år",    info: "Hvert år ned koster ~14 mia. Hvert år op sparer ~14 mia. Vedtaget 70 år fra 2040.",              elasticity: 14,     target: "pension", direction: "expense" },
+    retireAge:   { name: "Folkepensionsalder",        val: 67,     min: 62,    max: 72,      unit: "år",    info: "Hvert år ned koster ~14 mia. Hvert år op sparer ~14 mia. Vedtaget 70 år fra 2040.",              elasticity: -14,    target: "pension", direction: "expense" },
     topTax:      { name: "Topskattesats",             val: 7.5,    min: 0,     max: 25,      unit: "%",     info: "7,5% er FL2026-niveau. Hvert pct.point ≈ 4 mia provenu.",                                        elasticity: 4,      target: "income",  direction: "revenue" },
     vatRate:     { name: "Momssats",                  val: 25,     min: 10,    max: 30,      unit: "%",     info: "Hvert pct.point ≈ 11 mia. Lavere moms = lavere priser, lavere provenu.",                         elasticity: 11.2,   target: "vat",     direction: "revenue" },
     corpTax:     { name: "Selskabsskattesats",        val: 22,     min: 10,    max: 35,      unit: "%",     info: "Hvert pct.point ≈ 4,3 mia. EU-minimum 15%. Risiko for kapitaludflytning over 25%.",              elasticity: 4.3,    target: "corp",    direction: "revenue" },

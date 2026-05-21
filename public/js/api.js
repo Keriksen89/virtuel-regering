@@ -53,6 +53,15 @@ VG.api.loadPartyProposals = async function() {
   }
 };
 
+VG.api.loadDemographics = async function() {
+  try {
+    return await VG.api.fetchJSON('/api/demographics/summary');
+  } catch (err) {
+    console.warn('Could not load demographics:', err.message);
+    return null;
+  }
+};
+
 VG.api.loadPartyPlatform = async function() {
   try {
     return await VG.api.fetchJSON('/api/party/platform');
