@@ -43,3 +43,21 @@ VG.api.loadRecentBills = async function(topic) {
     return null;
   }
 };
+
+VG.api.loadPartyProposals = async function() {
+  try {
+    return await VG.api.fetchJSON('/api/party/proposals');
+  } catch (err) {
+    console.warn('Could not load party proposals:', err.message);
+    return null;
+  }
+};
+
+VG.api.loadPartyPlatform = async function() {
+  try {
+    return await VG.api.fetchJSON('/api/party/platform');
+  } catch (err) {
+    console.warn('Could not load party platform:', err.message);
+    return null;
+  }
+};

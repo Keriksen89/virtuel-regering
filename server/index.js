@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import dstRouter from './routes/dst.js';
 import odaRouter from './routes/oda.js';
 import budgetRouter from './routes/budget.js';
+import partyRouter from './routes/party.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -43,11 +44,12 @@ app.use(express.json({ limit: '64kb' }));
 app.use('/api/dst', dstRouter);
 app.use('/api/oda', odaRouter);
 app.use('/api/budget', budgetRouter);
+app.use('/api/party', partyRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '1.0.0',
+    version: '2.0.0',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });

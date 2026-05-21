@@ -57,6 +57,7 @@
   <button class="tab" data-tab="projection" role="tab">Fremskrivning</button>
   <button class="tab" data-tab="scenarios" role="tab">Scenarier</button>
   <button class="tab" data-tab="folketing" role="tab">Folketinget</button>
+  <button class="tab" data-tab="party" role="tab">🗳 VirtuelPartiet</button>
 </nav>
 
 <main>
@@ -67,6 +68,7 @@
   <div id="panel-projection" class="panel"></div>
   <div id="panel-scenarios" class="panel"></div>
   <div id="panel-folketing" class="panel"></div>
+  <div id="panel-party" class="panel"></div>
 </main>
 
 <div class="actions">
@@ -88,7 +90,8 @@
     </div>
     <div>
       <h3>Open source</h3>
-      <p>Dette er en åben prototype. Version 1.0 · <span id="version-info">indlæser...</span></p>
+      <p>Dette er en åben prototype. Version 2.0 · <span id="version-info">indlæser...</span></p>
+      <p style="margin-top:6px">Ny i v2.0: <strong>🗳 VirtuelPartiet</strong> — stem på hvad partiet mener og form dansk politik i realtid.</p>
     </div>
   </div>
 </footer>
@@ -110,6 +113,7 @@
 <script src="/js/render.js"></script>
 <script src="/js/chart.js"></script>
 <script src="/js/share.js"></script>
+<script src="/js/party.js"></script>
 <script src="/js/app.js"></script>
 </body>
 </html>

@@ -66,9 +66,18 @@ VG.render.overview = function() {
     return `<div class="bar-container"><div class="bar-row"><span class="bar-name">${v.name}</span><span class="bar-val">${VG.fmt(v.val)}${dHtml}</span></div><div class="bar-track"><div class="bar-fill rev" style="width:${w}%"></div></div></div>`;
   }).join('');
 
+  const bal = VG.sumRev() - VG.sumExp();
+  const balPct = (bal / VG.state.baseline.gdp * 100).toFixed(1);
+  const balColor = bal >= 0 ? 'var(--neg)' : 'var(--pos)';
+  const balSign = bal >= 0 ? '+' : '';
+
   return `<div class="grid-2">
     <div class="card"><h2>Hvor pengene bruges</h2><p class="intro">Statslige, regionale og kommunale udgifter — i alt ${VG.fmt(totalExp)} kr/år</p>${expRows}</div>
     <div class="card"><h2>Hvor pengene kommer fra</h2><p class="intro">Skatter, afgifter og andre offentlige indtægter — i alt ${VG.fmt(totalRev)} kr/år</p>${revRows}</div>
+  </div>
+  <div class="overview-balance-bar" style="border-left-color:${balColor}">
+    Budgetsaldo: <strong style="color:${balColor}">${balSign}${VG.fmt(bal)} (${balSign}${balPct}% af BNP)</strong>
+    — Gå til <em>Fremskrivning</em> for gælds-prognose · <em>🗳 VirtuelPartiet</em> for at stemme på partiets politik
   </div>`;
 };
 
@@ -148,6 +157,20 @@ VG.render.projection = function() {
   const okSaldo = balPct >= -3;
   const okStrukt = balPct >= -1;
   const pills = `<span class="pill ${okSaldo ? 'ok' : 'fail'}">${okSaldo ? '✓' : '✗'} Saldo > -3% (EU Stabilitetspagt)</span><span class="pill ${okStrukt ? 'ok' : 'fail'}">${okStrukt ? '✓' : '✗'} Strukturel saldo > -1% (Budgetlov)</span>`;
+
+  const hist = VG.state.baseline.historical;
+  const histRows = hist.years.map((y, i) => {
+    const surplusClass = hist.deficitRatio[i] >= 0 ? 'neg' : 'pos';
+    return `<tr>
+      <td>${y}</td>
+      <td>${hist.totalRevenue[i]} mia</td>
+      <td>${hist.totalExpense[i]} mia</td>
+      <td class="${surplusClass}">${hist.deficitRatio[i] > 0 ? '+' : ''}${hist.deficitRatio[i].toFixed(1)}%</td>
+      <td>${hist.debtRatio[i].toFixed(1)}%</td>
+      <td>${hist.gdpGrowth[i].toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+
   return `<div class="card">
     <h2>Statsgæld 2026–2034</h2>
     <p class="intro">Hvis dit nuværende budget fastholdes hvert år. Starter på 30% af BNP. BNP-vækst 2%/år.</p>
@@ -156,6 +179,14 @@ VG.render.projection = function() {
     <h2 style="margin-top:24px">EU-budgetregler</h2>
     <p class="intro">Danmark er bundet af både EU's Stabilitetspagt og den danske Budgetlov.</p>
     <div class="eu-pills">${pills}</div>
+    <h2 style="margin-top:28px">Historisk oversigt 2022–2026</h2>
+    <p class="intro">Faktiske og estimerede tal. Saldo > 0 betyder overskud (grøn).</p>
+    <div style="overflow-x:auto">
+    <table class="hist-table">
+      <thead><tr><th>År</th><th>Indtægter</th><th>Udgifter</th><th>Saldo % BNP</th><th>Gæld % BNP</th><th>BNP-vækst</th></tr></thead>
+      <tbody>${histRows}</tbody>
+    </table>
+    </div>
   </div>`;
 };
 
@@ -213,6 +244,10 @@ VG.render.all = function() {
 
   if (VG.state.activeTab === 'projection') {
     setTimeout(() => VG.chart.drawDebt(), 0);
+  }
+
+  if (VG.state.activeTab === 'party') {
+    VG.party.renderPanel();
   }
 
   VG.bindControls();

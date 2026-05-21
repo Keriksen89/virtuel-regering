@@ -128,6 +128,17 @@ VG.actions.analyze = function() {
     html += '<p style="margin-top:16px;font-size:12px;color:var(--text-2)"><em>Bemærk: Modellen er statisk og lineær. I virkeligheden påvirker dine valg arbejdsudbud, vækst, inflation og adfærd — effekter som kræver makroøkonomisk model (DREAM, MAKRO) for at fange.</em></p>';
   }
 
+  const adopted = VG.party.state.proposals.filter(p => {
+    const v = p.votes || { ja: 0, nej: 0 };
+    return v.ja + v.nej > 0 && v.ja > v.nej;
+  });
+  if (adopted.length > 0) {
+    const partyImpact = adopted.reduce((s, p) => s + p.budgetImpact.value, 0);
+    html += `<p style="margin-top:16px"><strong>VirtuelPartiet's nuværende platform:</strong></p>
+      <p style="font-size:13px;color:var(--text-2)">Borgerne har vedtaget ${adopted.length} forslag med en samlet budgeteffekt på ${partyImpact > 0 ? '+' : ''}${partyImpact} mia kr/år.
+      Vedtagne: ${adopted.slice(0, 5).map(p => p.title).join(', ')}${adopted.length > 5 ? ' m.fl.' : ''}.</p>`;
+  }
+
   VG.showModal('Analyse af dit budget', html);
 };
 
@@ -189,6 +200,11 @@ VG.bootstrap = async function() {
         document.getElementById('panel-folketing').innerHTML = VG.render.folketing();
       }
     });
+
+    VG.party.init();
+    VG.party.load().then(() => {
+      VG.party.startPolling();
+    });
   } catch (err) {
     console.error('Bootstrap error:', err);
     document.getElementById('data-status').textContent = 'Fejl ved indlæsning';
@@ -209,6 +225,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + VG.state.activeTab));
       if (VG.state.activeTab === 'projection') setTimeout(() => VG.chart.drawDebt(), 50);
+      if (VG.state.activeTab === 'party') {
+        VG.party.load();
+        VG.party.renderPanel();
+      }
     });
   });
 
