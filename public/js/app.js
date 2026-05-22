@@ -234,20 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
         x.setAttribute('aria-selected', x === t ? 'true' : 'false');
       });
       document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + VG.state.activeTab));
-      if (VG.state.activeTab === 'projection') setTimeout(() => VG.chart.drawDebt(), 50);
-      if (VG.state.activeTab === 'party') {
-        VG.party.load();
-        VG.party.renderPanel();
-      }
-      if (VG.state.activeTab === 'demographics') {
-        VG.demo.renderPanel();
-      }
-      if (VG.state.activeTab === 'platform') {
-        VG.platform.renderPanel();
-      }
-      if (VG.state.activeTab === 'regering') VG.regering.renderPanel();
-      if (VG.state.activeTab === 'partier')  VG.partier.renderPanel();
-      if (VG.state.activeTab === 'borger')   VG.borger.renderPanel();
+      if (VG.state.activeTab === 'party') VG.party.load();
+      VG.render.fast(); // always re-render active panel with latest state
     });
   });
 

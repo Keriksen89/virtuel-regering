@@ -337,6 +337,36 @@ VG.render.safePanel = function(id, fn) {
   }
 };
 
+// Re-render only the currently active panel (fast path for slider updates)
+VG.render.fast = function() {
+  VG.applyPolicy();
+  try { VG.render.summary(); } catch (e) { console.error('[render] summary:', e); }
+
+  const tab = VG.state.activeTab;
+  const simple = {
+    overview:   () => VG.render.safePanel('panel-overview',   () => VG.render.overview()),
+    spending:   () => VG.render.safePanel('panel-spending',   () => VG.render.sliders('expense')),
+    revenue:    () => VG.render.safePanel('panel-revenue',    () => VG.render.sliders('revenue')),
+    policy:     () => VG.render.safePanel('panel-policy',     () => VG.render.policy()),
+    projection: () => { VG.render.safePanel('panel-projection', () => VG.render.projection()); setTimeout(() => VG.chart.drawDebt(), 0); },
+    scenarios:  () => VG.render.safePanel('panel-scenarios',  () => VG.render.scenarios()),
+    folketing:  () => VG.render.safePanel('panel-folketing',  () => VG.render.folketing()),
+  };
+  if (simple[tab]) {
+    simple[tab]();
+  } else {
+    try {
+      if (tab === 'party')        VG.party.renderPanel();
+      if (tab === 'demographics') VG.demo.renderPanel();
+      if (tab === 'platform')     VG.platform.renderPanel();
+      if (tab === 'regering')     VG.regering.renderPanel();
+      if (tab === 'partier')      VG.partier.renderPanel();
+      if (tab === 'borger')       VG.borger.renderPanel();
+    } catch (e) { console.error('[render] tab panel:', e); }
+  }
+  VG.bindControls();
+};
+
 VG.render.all = function() {
   VG.applyPolicy();
   try { VG.render.summary(); } catch (e) { console.error('[render] summary:', e); }
@@ -360,7 +390,9 @@ VG.render.all = function() {
     if (VG.state.activeTab === 'party')        VG.party.renderPanel();
     if (VG.state.activeTab === 'demographics') VG.demo.renderPanel();
     if (VG.state.activeTab === 'platform')     VG.platform.renderPanel();
+    if (VG.state.activeTab === 'regering')     VG.regering.renderPanel();
     if (VG.state.activeTab === 'partier')      VG.partier.renderPanel();
+    if (VG.state.activeTab === 'borger')       VG.borger.renderPanel();
   } catch (e) { console.error('[render] tab panel:', e); }
 
   VG.bindControls();
@@ -368,23 +400,26 @@ VG.render.all = function() {
 
 VG.bindControls = function() {
   document.querySelectorAll('input[type=range][data-bucket]').forEach(inp => {
+    if (inp._vgBound) return;
+    inp._vgBound = true;
     inp.addEventListener('input', e => {
       const b = e.target.dataset.bucket, k = e.target.dataset.key;
-      VG.state.current[b][k].val = parseFloat(e.target.value);
-      VG.render.all();
+      VG.state.manualAdj[b][k] = parseFloat(e.target.value);
+      VG.render.fast();
     });
   });
   document.querySelectorAll('input[type=range][data-policy]').forEach(inp => {
+    if (inp._vgBound) return;
+    inp._vgBound = true;
     inp.addEventListener('input', e => {
       VG.state.current.policy[e.target.dataset.policy].val = parseFloat(e.target.value);
-      VG.render.all();
+      VG.render.fast();
     });
   });
   document.querySelectorAll('.scenario').forEach(el => {
-    el.addEventListener('click', () => {
-      const key = el.dataset.scenario;
-      VG.loadScenario(key);
-    });
+    if (el._vgBound) return;
+    el._vgBound = true;
+    el.addEventListener('click', () => VG.loadScenario(el.dataset.scenario));
   });
 };
 

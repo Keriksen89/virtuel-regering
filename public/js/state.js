@@ -11,7 +11,8 @@ VG.state = {
     votes: [],
     parties: []
   },
-  status: 'loading'
+  status: 'loading',
+  manualAdj: { expense: {}, revenue: {} }
 };
 
 VG.fmt = function(n) {
@@ -58,6 +59,10 @@ VG.applyPolicy = function() {
       bucket[p.target].val = Math.max(0, bucket[p.target].val + impact);
     }
   }
+  // Manual direct-slider overrides win over policy calculations
+  const adj = VG.state.manualAdj;
+  for (const k in adj.expense) if (s.expense[k]) s.expense[k].val = adj.expense[k];
+  for (const k in adj.revenue) if (s.revenue[k]) s.revenue[k].val = adj.revenue[k];
 };
 
 VG.deepClone = function(obj) {
@@ -66,6 +71,7 @@ VG.deepClone = function(obj) {
 
 VG.reset = function() {
   VG.state.current = VG.deepClone(VG.state.baseline);
+  VG.state.manualAdj = { expense: {}, revenue: {} };
 };
 
 VG.getChanges = function() {

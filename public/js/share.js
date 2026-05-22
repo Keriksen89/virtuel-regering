@@ -51,10 +51,10 @@ VG.share.applyFromURL = function() {
       if (VG.state.current.policy[k]) VG.state.current.policy[k].val = val;
     } else if (key.startsWith('e_')) {
       const k = key.slice(2);
-      if (VG.state.current.expense[k]) VG.state.current.expense[k].val = val;
+      if (VG.state.current.expense[k]) VG.state.manualAdj.expense[k] = val;
     } else if (key.startsWith('r_')) {
       const k = key.slice(2);
-      if (VG.state.current.revenue[k]) VG.state.current.revenue[k].val = val;
+      if (VG.state.current.revenue[k]) VG.state.manualAdj.revenue[k] = val;
     }
   }
   return true;
