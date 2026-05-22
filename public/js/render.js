@@ -328,18 +328,27 @@ VG.render.folketing = function() {
   </div>`;
 };
 
+VG.render.safePanel = function(id, fn) {
+  try {
+    document.getElementById(id).innerHTML = fn();
+  } catch (e) {
+    console.error('[render] ' + id + ':', e);
+    document.getElementById(id).innerHTML = '<div class="card"><p style="color:var(--pos)">Fejl ved rendering af dette panel. Se konsollen for detaljer.</p></div>';
+  }
+};
+
 VG.render.all = function() {
   VG.applyPolicy();
-  VG.render.summary();
-  VG.render.liveIndicators();
+  try { VG.render.summary(); } catch (e) { console.error('[render] summary:', e); }
+  try { VG.render.liveIndicators(); } catch (e) { console.error('[render] liveIndicators:', e); }
 
-  document.getElementById('panel-overview').innerHTML = VG.render.overview();
-  document.getElementById('panel-spending').innerHTML = VG.render.sliders('expense');
-  document.getElementById('panel-revenue').innerHTML = VG.render.sliders('revenue');
-  document.getElementById('panel-policy').innerHTML = VG.render.policy();
-  document.getElementById('panel-projection').innerHTML = VG.render.projection();
-  document.getElementById('panel-scenarios').innerHTML = VG.render.scenarios();
-  document.getElementById('panel-folketing').innerHTML = VG.render.folketing();
+  VG.render.safePanel('panel-overview',    () => VG.render.overview());
+  VG.render.safePanel('panel-spending',    () => VG.render.sliders('expense'));
+  VG.render.safePanel('panel-revenue',     () => VG.render.sliders('revenue'));
+  VG.render.safePanel('panel-policy',      () => VG.render.policy());
+  VG.render.safePanel('panel-projection',  () => VG.render.projection());
+  VG.render.safePanel('panel-scenarios',   () => VG.render.scenarios());
+  VG.render.safePanel('panel-folketing',   () => VG.render.folketing());
 
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + VG.state.activeTab));
 
@@ -347,17 +356,11 @@ VG.render.all = function() {
     setTimeout(() => VG.chart.drawDebt(), 0);
   }
 
-  if (VG.state.activeTab === 'party') {
-    VG.party.renderPanel();
-  }
-
-  if (VG.state.activeTab === 'demographics') {
-    VG.demo.renderPanel();
-  }
-
-  if (VG.state.activeTab === 'platform') {
-    VG.platform.renderPanel();
-  }
+  try {
+    if (VG.state.activeTab === 'party')        VG.party.renderPanel();
+    if (VG.state.activeTab === 'demographics') VG.demo.renderPanel();
+    if (VG.state.activeTab === 'platform')     VG.platform.renderPanel();
+  } catch (e) { console.error('[render] tab panel:', e); }
 
   VG.bindControls();
 };
