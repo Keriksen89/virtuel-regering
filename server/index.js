@@ -11,6 +11,7 @@ import budgetRouter from './routes/budget.js';
 import partyRouter from './routes/party.js';
 import demoRouter from './routes/demographics.js';
 import governmentRouter from './routes/government.js';
+import livedataRouter from './routes/livedata.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -49,6 +50,7 @@ app.use('/api/budget', budgetRouter);
 app.use('/api/party', partyRouter);
 app.use('/api/demographics', demoRouter);
 app.use('/api/government', governmentRouter);
+app.use('/api/livedata', livedataRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({

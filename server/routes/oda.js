@@ -120,4 +120,66 @@ router.get('/recent-bills', async (req, res) => {
   }
 });
 
+router.get('/active-bills', async (req, res) => {
+  const cacheKey = 'oda:active-bills';
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    return res.json(cached);
+  }
+
+  const STATUS_LABELS = {
+    1: 'Ubehandlet',
+    2: 'Fremsat',
+    3: 'Under behandling',
+    4: 'Vedtaget',
+    5: 'Forkastet',
+    6: 'Bortfaldet'
+  };
+
+  try {
+    const billsUrl = `${ODA_BASE}/Sag?$filter=typeid%20eq%203%20and%20statusid%20le%205&$top=20&$orderby=opdateringsdato%20desc&$select=id,nummer,titel,statusid,opdateringsdato,kategoriid`;
+    const catUrl   = `${ODA_BASE}/SagKategori?$select=id,beskrivelse`;
+
+    const [billsData, catData] = await Promise.allSettled([
+      fetchJSON(billsUrl),
+      fetchJSON(catUrl)
+    ]);
+
+    // Build category map
+    const catMap = {};
+    if (catData.status === 'fulfilled' && catData.value && catData.value.value) {
+      for (const c of catData.value.value) {
+        catMap[c.id] = c.beskrivelse;
+      }
+    }
+
+    const rawBills = (billsData.status === 'fulfilled' && billsData.value && billsData.value.value) ? billsData.value.value : [];
+
+    const bills = rawBills.map(s => ({
+      id: s.id,
+      nummer: s.nummer,
+      titel: s.titel,
+      statusid: s.statusid,
+      statusLabel: STATUS_LABELS[s.statusid] || 'Ukendt',
+      opdateret: s.opdateringsdato,
+      kategori: catMap[s.kategoriid] || null,
+      url: `https://www.ft.dk/samling/sag/${s.id}`
+    }));
+
+    const result = {
+      bills,
+      fetched: new Date().toISOString(),
+      source: 'Folketingets ODA-API'
+    };
+
+    cache.set(cacheKey, result, 3 * 3600);
+    res.setHeader('X-Cache', 'MISS');
+    res.json(result);
+  } catch (err) {
+    console.warn('[oda] active-bills failed:', err.message);
+    res.json({ bills: [], fetched: new Date().toISOString(), source: 'Folketingets ODA-API', error: 'temporarily unavailable' });
+  }
+});
+
 export default router;

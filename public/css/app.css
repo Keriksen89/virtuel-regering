@@ -1941,3 +1941,42 @@ canvas { display: block; max-width: 100%; }
 .tax-where-item { background:var(--surface-2); border-radius:var(--radius); padding:8px 10px; text-align:center; }
 .tax-where-num { font-size:15px; font-weight:700; color:var(--accent); }
 .tax-where-label { font-size:10px; color:var(--text-2); margin-top:2px; }
+
+/* Economic grid */
+.eco-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:10px; margin-top:12px; }
+.eco-card { background:var(--surface-2); border-radius:var(--radius); padding:12px 14px; text-align:center; }
+.eco-icon { font-size:20px; margin-bottom:6px; }
+.eco-value { font-size:22px; font-weight:700; line-height:1.1; }
+.eco-value.eco-red { color:#c0392b; }
+.eco-value.eco-yellow { color:#c8891a; }
+.eco-value.eco-green { color:#27ae60; }
+.eco-label { font-size:12px; font-weight:600; margin-top:4px; }
+.eco-sub { font-size:10px; color:var(--text-3); margin-top:3px; }
+.eco-gini-note { font-size:12px; color:var(--text-2); margin-top:12px; padding:10px 12px; background:var(--surface-2); border-radius:var(--radius); border-left:3px solid var(--accent); }
+
+/* Climate status */
+.climate-status-box { display:flex; gap:0; margin:12px 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.climate-col { flex:1; padding:12px 10px; text-align:center; background:var(--surface-2); }
+.climate-col + .climate-col { border-left:1px solid var(--border); }
+.climate-col--current { background: color-mix(in srgb, #f59e0b 8%, var(--surface-2)); }
+.climate-col--target { background: color-mix(in srgb, #22c55e 8%, var(--surface-2)); }
+.climate-year { font-size:11px; color:var(--text-2); margin-bottom:4px; }
+.climate-mt { font-size:20px; font-weight:700; }
+.climate-lbl { font-size:11px; color:var(--text-2); margin-top:3px; }
+.climate-progress-wrap { margin-top:12px; }
+.climate-progress-labels { display:flex; justify-content:space-between; font-size:11px; color:var(--text-2); margin-bottom:4px; }
+.climate-progress-track { height:12px; background:var(--surface-3); border-radius:6px; overflow:hidden; position:relative; }
+.climate-progress-done { height:100%; background:linear-gradient(90deg, #22c55e, #f59e0b); border-radius:6px; }
+.climate-gap-note { font-size:12px; color:var(--text-2); margin-top:8px; padding:8px 12px; background:rgba(245,158,11,0.1); border-radius:var(--radius); border-left:3px solid #f59e0b; }
+
+/* Active bills */
+.bills-list { display:flex; flex-direction:column; gap:6px; margin-top:10px; margin-bottom:20px; }
+.bill-card { display:flex; align-items:center; gap:10px; background:var(--surface-2); border-radius:var(--radius); padding:9px 12px; }
+.bill-status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; background:var(--text-3); }
+.bill-status-dot.status-active { background:#f59e0b; }
+.bill-status-dot.status-new { background:var(--accent); }
+.bill-body { flex:1; min-width:0; }
+.bill-title { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bill-meta { font-size:11px; color:var(--text-2); margin-top:2px; }
+.bill-link { font-size:14px; color:var(--accent); text-decoration:none; flex-shrink:0; padding:2px 6px; }
+.bill-link:hover { opacity:0.7; }

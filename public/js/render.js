@@ -37,6 +37,26 @@ VG.render.liveIndicators = function() {
   if (live.unemployment) {
     items.push(`<div class="live-indicator"><span class="live-dot"></span><span class="label">Ledige</span><span class="value">${live.unemployment.value.toLocaleString('da-DK')}</span><span class="label">(${live.unemployment.period})</span></div>`);
   }
+
+  // Economic live data enrichment
+  const eco = (typeof VG.livedata !== 'undefined') ? VG.livedata.economic : null;
+  if (eco) {
+    if (eco.inflation) {
+      const inf = eco.inflation;
+      const infColor = inf.yoy > 4 ? 'style="color:var(--pos)"' : inf.yoy > 2 ? 'style="color:var(--warn)"' : 'style="color:var(--neg)"';
+      const infVal = inf.yoy != null ? inf.yoy.toFixed(1).replace('.', ',') : inf.value.toFixed(1).replace('.', ',');
+      items.push(`<div class="live-indicator"><span class="live-dot"></span><span class="label">Inflation</span><span class="value" ${infColor}>${infVal}%</span><span class="label">(${inf.period})</span></div>`);
+    }
+    if (eco.housing) {
+      const h = eco.housing;
+      const sign = h.qoq >= 0 ? '+' : '';
+      items.push(`<div class="live-indicator"><span class="live-dot"></span><span class="label">Boligpriser</span><span class="value">${sign}${h.qoq.toFixed(1).replace('.', ',')}%</span><span class="label">(kvartal)</span></div>`);
+    }
+    if (eco.nbRate) {
+      items.push(`<div class="live-indicator"><span class="live-dot"></span><span class="label">NBR-rente</span><span class="value">${eco.nbRate.value.toFixed(2).replace('.', ',')}%</span></div>`);
+    }
+  }
+
   if (!items.length) {
     items.push('<div class="live-indicator"><span class="label">Live data fra DST henter...</span></div>');
   }
@@ -81,6 +101,67 @@ VG.render.overview = function() {
     </div>
   </div>`;
 
+  // Economic snapshot card (only if livedata.economic is available)
+  const eco = (typeof VG.livedata !== 'undefined') ? VG.livedata.economic : null;
+  let ecoCard = '';
+  if (eco) {
+    const inf = eco.inflation;
+    const hou = eco.housing;
+    const nbr = eco.nbRate;
+    const wag = eco.wageGrowth;
+    const ineq = (typeof VG.livedata !== 'undefined') ? VG.livedata.inequality : null;
+
+    let infClass = 'eco-green';
+    if (inf && inf.yoy > 4) infClass = 'eco-red';
+    else if (inf && inf.yoy > 2) infClass = 'eco-yellow';
+
+    const infVal  = inf  ? inf.yoy.toFixed(1).replace('.', ',') + '%'  : '—';
+    const infSub  = inf  ? (inf.period + ' · ' + inf.source) : '';
+    const houSign = (hou && hou.qoq >= 0) ? '+' : '';
+    const houVal  = hou  ? houSign + hou.qoq.toFixed(1).replace('.', ',') + '%' : '—';
+    const houSub  = hou  ? (hou.period + ' · kvartal-over-kvartal') : '';
+    const nbrVal  = nbr  ? nbr.value.toFixed(2).replace('.', ',') + '%' : '3,35%';
+    const wagSign = (wag && wag.yoy >= 0) ? '+' : '';
+    const wagVal  = wag  ? wagSign + wag.yoy.toFixed(1).replace('.', ',') + '%' : '—';
+    const wagSub  = wag  ? ((wag.period || '') + ' · ' + (wag.source || '')) : '';
+
+    const giniNote = ineq
+      ? `<div class="eco-gini-note">Gini-koefficient 2023: <strong>${ineq.gini_2023}</strong> — Danmark vs. EU-gennemsnit ${ineq.gini_eu_avg}. ${ineq.note}</div>`
+      : '';
+
+    ecoCard = `<div class="card" style="margin-top:16px">
+  <h2>Aktuel Dansk Økonomi</h2>
+  <p class="intro">Nøgletal fra Danmarks Statistik og Nationalbanken — opdateret automatisk.</p>
+  <div class="eco-grid">
+    <div class="eco-card">
+      <div class="eco-icon">📈</div>
+      <div class="eco-value ${infClass}">${infVal}</div>
+      <div class="eco-label">Inflation (KPI)</div>
+      <div class="eco-sub">${infSub}</div>
+    </div>
+    <div class="eco-card">
+      <div class="eco-icon">🏠</div>
+      <div class="eco-value">${houVal}</div>
+      <div class="eco-label">Boligprisændring</div>
+      <div class="eco-sub">${houSub}</div>
+    </div>
+    <div class="eco-card">
+      <div class="eco-icon">🏦</div>
+      <div class="eco-value">${nbrVal}</div>
+      <div class="eco-label">Nationalbankens rente</div>
+      <div class="eco-sub">maj 2026</div>
+    </div>
+    <div class="eco-card">
+      <div class="eco-icon">💼</div>
+      <div class="eco-value">${wagVal}</div>
+      <div class="eco-label">Lønvækst (nominelt)</div>
+      <div class="eco-sub">${wagSub}</div>
+    </div>
+  </div>
+  ${giniNote}
+</div>`;
+  }
+
   return `${introCard}<div class="grid-2">
     <div class="card"><h2>Hvor pengene bruges</h2><p class="intro">Statslige, regionale og kommunale udgifter — i alt ${VG.fmt(totalExp)} kr/år</p>${expRows}</div>
     <div class="card"><h2>Hvor pengene kommer fra</h2><p class="intro">Skatter, afgifter og andre offentlige indtægter — i alt ${VG.fmt(totalRev)} kr/år</p>${revRows}</div>
@@ -88,7 +169,8 @@ VG.render.overview = function() {
   <div class="overview-balance-bar" style="border-left-color:${balColor}">
     Budgetsaldo: <strong style="color:${balColor}">${balSign}${VG.fmt(bal)} (${balSign}${balPct}% af BNP)</strong>
     — Gå til <em>Fremskrivning</em> for gælds-prognose og <strong>DREAM holdbarhedsindikator</strong>
-  </div>`;
+  </div>
+  ${ecoCard}`;
 };
 
 VG.render.sliders = function(bucketKey) {
@@ -280,6 +362,45 @@ VG.render.projection = function() {
       </div>
       <p class="holdbarhed-source">Metode: DREAM's OLG-model (overlappende generationer). Aldringspres baseret på DREAMs fremskrivning af alders-relaterede udgifter 2026–2045. <a href="https://dreamgruppen.dk/modeller-og-metoder/makro" target="_blank" rel="noopener">dreamgruppen.dk</a></p>
     </div>
+    ${(function() {
+      const c = (typeof VG.livedata !== 'undefined' && VG.livedata.climate) ? VG.livedata.climate : null;
+      const baseline = c ? c.baseline_1990         : 69.6;
+      const cur      = c ? c.current_mt            : 42.1;
+      const tgt      = c ? c.target_2030_mt        : 20.9;
+      const curPct   = c ? c.current_pct_reduction : 39.5;
+      const gap      = c ? c.gap_mt                : 21.2;
+      const req      = c ? c.required_annual_reduction_pct : 8.5;
+      const curYear  = c ? c.current_year          : 2023;
+      const progressPct = Math.min(100, (curPct / 70 * 100)).toFixed(1);
+      return `<h2 style="margin-top:28px">🌱 Klimastatus — vejen mod 2030</h2>
+<p class="intro">Danmarks CO2-reduktion mod det lovbundne mål om 70% reduktion i 2030 ift. 1990.</p>
+<div class="climate-status-box">
+  <div class="climate-col">
+    <div class="climate-year">1990</div>
+    <div class="climate-mt">${baseline.toFixed(1).replace('.', ',')} Mt</div>
+    <div class="climate-lbl">Basisår</div>
+  </div>
+  <div class="climate-col climate-col--current">
+    <div class="climate-year">${curYear}</div>
+    <div class="climate-mt">${cur.toFixed(1).replace('.', ',')} Mt</div>
+    <div class="climate-lbl">Nu (−${curPct.toFixed(1).replace('.', ',')}%)</div>
+  </div>
+  <div class="climate-col climate-col--target">
+    <div class="climate-year">2030</div>
+    <div class="climate-mt">${tgt.toFixed(1).replace('.', ',')} Mt</div>
+    <div class="climate-lbl">Mål (−70%)</div>
+  </div>
+</div>
+<div class="climate-progress-wrap">
+  <div class="climate-progress-labels">
+    <span>0%</span><span>Nået: ${curPct.toFixed(1).replace('.', ',')}%</span><span>Mål: 70%</span>
+  </div>
+  <div class="climate-progress-track">
+    <div class="climate-progress-done" style="width:${progressPct}%"></div>
+  </div>
+  <p class="climate-gap-note">⚠ Mangler yderligere ${gap.toFixed(1).replace('.', ',')} Mt reduktion inden 2030 — kræver ~${req.toFixed(1).replace('.', ',')}% reduktion pr. år fra nu. Kilde: Klimarådet 2024.</p>
+</div>`;
+    })()}
     <h2 style="margin-top:28px">Historisk oversigt 2022–2026</h2>
     <p class="intro">Faktiske og estimerede tal. Saldo > 0 betyder overskud (grøn).</p>
     <div style="overflow-x:auto">
@@ -301,12 +422,46 @@ VG.render.scenarios = function() {
 
 VG.render.folketing = function() {
   const votes = VG.state.live.votes;
+  const activeBills = VG.state.live.activeBills || [];
+
+  // Active bills section
+  let billsSection = '';
+  if (!activeBills.length) {
+    billsSection = `<div class="card" style="margin-bottom:16px">
+  <h2>Aktuelle lovforslag i behandling</h2>
+  <p class="intro">Lovforslag der aktuelt behandles i Folketing eller udvalgene. Kilde: Folketingets ODA-API.</p>
+  <div class="loading">Henter aktuelle lovforslag...</div>
+</div>`;
+  } else {
+    const billCards = activeBills.slice(0, 8).map(b => {
+      const dotClass = (b.statusid === 2) ? 'status-new' : (b.statusid === 3) ? 'status-active' : '';
+      const dateStr  = b.opdateret ? new Date(b.opdateret).toLocaleDateString('da-DK') : '';
+      const metaParts = [];
+      if (b.nummer) metaParts.push('L ' + b.nummer);
+      if (b.statusLabel) metaParts.push(b.statusLabel);
+      if (dateStr) metaParts.push('opdateret: ' + dateStr);
+      return `<div class="bill-card">
+  <div class="bill-status-dot ${dotClass}"></div>
+  <div class="bill-body">
+    <div class="bill-title">${b.titel || '(ingen titel)'}</div>
+    <div class="bill-meta">${metaParts.join(' · ')}</div>
+  </div>
+  <a href="${b.url}" target="_blank" rel="noopener" class="bill-link">↗</a>
+</div>`;
+    }).join('');
+    billsSection = `<div class="card" style="margin-bottom:16px">
+  <h2>Aktuelle lovforslag i behandling</h2>
+  <p class="intro">Lovforslag der aktuelt behandles i Folketing eller udvalgene. Kilde: Folketingets ODA-API.</p>
+  <div class="bills-list">${billCards}</div>
+</div>`;
+  }
+
   if (!votes || !votes.length) {
     const loaded = VG.state.live.votesLoaded;
     const msg = loaded
       ? 'Live data fra Folketinget er midlertidigt utilgængeligt. Prøv at genindlæse om et øjeblik.'
       : 'Henter live data fra Folketingets ODA-API...';
-    return `<div class="card"><h2>Folketinget — seneste afstemninger</h2><div class="loading">${msg}</div></div>`;
+    return `${billsSection}<div class="card"><h2>Folketinget — seneste afstemninger</h2><div class="loading">${msg}</div></div>`;
   }
   const html = votes.slice(0, 15).map(v => {
     const status = v.vedtaget ? 'passed' : 'failed';
@@ -321,7 +476,7 @@ VG.render.folketing = function() {
       <div class="vote-meta">Afstemning #${v.nummer} · ${date}</div>
     </div>`;
   }).join('');
-  return `<div class="card">
+  return `${billsSection}<div class="card">
     <h2>Folketinget — seneste afstemninger</h2>
     <p class="intro">Live data fra <a href="https://oda.ft.dk/" target="_blank" rel="noopener">Folketingets ODA-API</a>. Viser de 15 seneste afstemninger i Folketingssalen.</p>
     ${html}

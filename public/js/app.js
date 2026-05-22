@@ -202,7 +202,25 @@ VG.bootstrap = async function() {
     });
 
     VG.party.init();
-    VG.party.load().then(() => VG.party.startPolling());
+    VG.party.load().then(() => {
+      VG.party.startPolling();
+
+      VG.livedata.load().then(() => {
+        VG.render.liveIndicators();
+        if (VG.state.activeTab === 'overview') {
+          VG.render.safePanel('panel-overview', () => VG.render.overview());
+        }
+      });
+
+      VG.api.fetchJSON('/api/oda/active-bills').then(data => {
+        if (data && data.bills) {
+          VG.state.live.activeBills = data.bills;
+          if (VG.state.activeTab === 'folketing') {
+            VG.render.safePanel('panel-folketing', () => VG.render.folketing());
+          }
+        }
+      }).catch(() => {});
+    });
 
     VG.demo.load();
     VG.platform.init();
