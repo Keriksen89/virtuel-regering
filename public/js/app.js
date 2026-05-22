@@ -206,6 +206,15 @@ VG.bootstrap = async function() {
 
     VG.demo.load();
     VG.platform.init();
+
+    VG.api.loadGovernment().then(data => {
+      if (data) {
+        VG.regering.data = data;
+        if (VG.state.activeTab === 'regering') VG.regering.renderPanel();
+        if (VG.state.activeTab === 'partier')  VG.partier.renderPanel();
+      }
+    });
+    VG.borger.init();
   } catch (err) {
     console.error('Bootstrap error:', err);
     document.getElementById('data-status').textContent = 'Fejl ved indlæsning';
@@ -236,6 +245,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (VG.state.activeTab === 'platform') {
         VG.platform.renderPanel();
       }
+      if (VG.state.activeTab === 'regering') VG.regering.renderPanel();
+      if (VG.state.activeTab === 'partier')  VG.partier.renderPanel();
+      if (VG.state.activeTab === 'borger')   VG.borger.renderPanel();
     });
   });
 

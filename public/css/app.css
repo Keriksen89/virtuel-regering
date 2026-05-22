@@ -1871,3 +1871,73 @@ canvas { display: block; max-width: 100%; }
   .onboarding-steps { grid-template-columns: 1fr; }
   .holdbarhed-grid { grid-template-columns: 1fr; }
 }
+
+/* Parliament hemicycle */
+.hemicycle-wrap { text-align:center; margin: 16px 0; }
+.hemicycle-legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; justify-content:center; }
+.hemicycle-leg-item { display:flex; align-items:center; gap:4px; font-size:11px; }
+.hemicycle-leg-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+/* Government */
+.coalition-bar { display:flex; height:20px; border-radius:var(--radius); overflow:hidden; margin:12px 0; }
+.coalition-seg { height:100%; transition: width 0.3s; }
+.minister-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:8px; margin-top:12px; }
+.minister-card { background:var(--surface-2); border-radius:var(--radius); padding:10px 12px; border-left: 3px solid var(--border); }
+.minister-name { font-weight:600; font-size:13px; }
+.minister-title { font-size:11px; color:var(--text-2); margin-top:2px; }
+.minister-ministry { font-size:10px; color:var(--text-3); margin-top:2px; }
+.agreement-points { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+.agreement-point { display:flex; gap:10px; background:var(--surface-2); padding:10px 12px; border-radius:var(--radius); }
+.agreement-icon { font-size:18px; flex-shrink:0; }
+.agreement-text strong { font-size:13px; }
+.agreement-text p { font-size:12px; color:var(--text-2); margin:2px 0 0; }
+
+/* Party comparison */
+.party-match-list { display:flex; flex-direction:column; gap:10px; }
+.party-match-card { background:var(--surface-2); border-radius:var(--radius); padding:12px 14px; border-left:4px solid var(--border); }
+.party-match-card.top-match { box-shadow: 0 0 0 1.5px var(--accent); }
+.party-match-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.party-abbr-badge { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:#fff; flex-shrink:0; }
+.party-match-name { font-weight:600; font-size:14px; }
+.party-match-leader { font-size:11px; color:var(--text-2); }
+.match-bar-wrap { display:flex; align-items:center; gap:8px; }
+.match-bar-track { flex:1; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden; }
+.match-bar-fill { height:100%; border-radius:3px; background:var(--accent); }
+.match-pct { font-size:12px; font-weight:600; min-width:36px; text-align:right; }
+.issue-pills { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+.issue-pill { font-size:10px; padding:2px 7px; border-radius:999px; background:var(--surface-3); color:var(--text-2); }
+.issue-pill.left { background: rgba(228,0,43,0.1); color: #b00020; }
+.issue-pill.right { background: rgba(0,63,135,0.1); color: #00308f; }
+.issue-pill.green { background: rgba(0,193,101,0.12); color: #008040; }
+
+/* Civic guide */
+.civic-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px; margin-top:12px; }
+.civic-card { background:var(--surface-2); border-radius:var(--radius); padding:14px 16px; }
+.civic-icon { font-size:24px; margin-bottom:8px; }
+.civic-title { font-weight:600; font-size:14px; margin-bottom:4px; }
+.civic-text { font-size:12px; color:var(--text-2); line-height:1.5; }
+.civic-link { display:inline-block; margin-top:8px; font-size:12px; color:var(--accent); text-decoration:none; }
+.civic-link:hover { text-decoration:underline; }
+.election-banner { background: linear-gradient(135deg, var(--accent) 0%, #1a5fa8 100%); color:#fff; border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; }
+.election-banner h3 { margin:0 0 4px; font-size:16px; }
+.election-banner p { margin:0; font-size:13px; opacity:0.9; }
+.steps-list { list-style:none; padding:0; margin:12px 0 0; display:flex; flex-direction:column; gap:8px; }
+.steps-list li { display:flex; gap:10px; align-items:flex-start; font-size:13px; }
+.step-num-sm { background:var(--accent); color:#fff; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; margin-top:1px; }
+
+/* Tax calculator */
+.tax-calc-wrap { margin-top:16px; }
+.tax-salary-row { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+.tax-salary-label { font-size:14px; font-weight:600; }
+.tax-salary-val { font-size:20px; font-weight:700; color:var(--accent); min-width:100px; }
+.tax-breakdown { display:flex; flex-direction:column; gap:6px; }
+.tax-row { display:flex; align-items:center; gap:8px; }
+.tax-name { font-size:12px; flex:1; color:var(--text-2); }
+.tax-bar-track { width:120px; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden; flex-shrink:0; }
+.tax-bar-fill { height:100%; background:var(--pos); border-radius:3px; }
+.tax-amount { font-size:12px; font-weight:600; min-width:80px; text-align:right; }
+.tax-net-row { background:var(--surface-2); border-radius:var(--radius); padding:10px 12px; display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
+.tax-where-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:6px; margin-top:12px; }
+.tax-where-item { background:var(--surface-2); border-radius:var(--radius); padding:8px 10px; text-align:center; }
+.tax-where-num { font-size:15px; font-weight:700; color:var(--accent); }
+.tax-where-label { font-size:10px; color:var(--text-2); margin-top:2px; }

@@ -70,3 +70,7 @@ VG.api.loadPartyPlatform = async function() {
     return null;
   }
 };
+
+VG.api.loadGovernment = async function() {
+  try { return await VG.api.fetchJSON('/api/government/data'); } catch(e) { console.warn('[api] government:', e.message); return null; }
+};

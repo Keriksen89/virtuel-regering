@@ -360,6 +360,7 @@ VG.render.all = function() {
     if (VG.state.activeTab === 'party')        VG.party.renderPanel();
     if (VG.state.activeTab === 'demographics') VG.demo.renderPanel();
     if (VG.state.activeTab === 'platform')     VG.platform.renderPanel();
+    if (VG.state.activeTab === 'partier')      VG.partier.renderPanel();
   } catch (e) { console.error('[render] tab panel:', e); }
 
   VG.bindControls();
