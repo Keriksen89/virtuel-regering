@@ -233,6 +233,14 @@ VG.bootstrap = async function() {
       }
     });
     VG.borger.init();
+    VG.api.fetchJSON('/api/borgerforslag/active').then(data => {
+      if (data && data.proposals) {
+        VG.state.live.borgerforslag = data.proposals;
+        if (VG.state.activeTab === 'borger') {
+          VG.borger.renderPanel();
+        }
+      }
+    }).catch(() => {});
   } catch (err) {
     console.error('Bootstrap error:', err);
     document.getElementById('data-status').textContent = 'Fejl ved indlæsning';

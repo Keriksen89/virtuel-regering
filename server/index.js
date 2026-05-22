@@ -12,6 +12,7 @@ import partyRouter from './routes/party.js';
 import demoRouter from './routes/demographics.js';
 import governmentRouter from './routes/government.js';
 import livedataRouter from './routes/livedata.js';
+import borgerforslagRouter from './routes/borgerforslag.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -27,10 +28,10 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", 'data:'],
       connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
@@ -51,6 +52,7 @@ app.use('/api/party', partyRouter);
 app.use('/api/demographics', demoRouter);
 app.use('/api/government', governmentRouter);
 app.use('/api/livedata', livedataRouter);
+app.use('/api/borgerforslag', borgerforslagRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({

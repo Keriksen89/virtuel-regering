@@ -111,6 +111,47 @@ VG.borger.bindCalc = function() {
   update(); // Initial render
 };
 
+VG.borger.buildBorgerforslagHTML = function() {
+  const proposals = VG.state.live.borgerforslag || [];
+
+  if (!proposals.length) {
+    return `<div class="card" style="margin-bottom:12px">
+  <h2>Aktive borgerforslag</h2>
+  <p class="intro">Forslag der samler 50.000 underskrifter inden for 180 dage behandles af Folketing-udvalget. Kilde: borgerforslag.dk</p>
+  <div class="loading">Henter aktive forslag…</div>
+</div>`;
+  }
+
+  const cards = proposals.slice(0, 10).map(p => {
+    const pct     = Math.min(100, (p.signatures / p.required) * 100);
+    const sigFmt  = p.signatures.toLocaleString('da-DK');
+    const reqFmt  = p.required.toLocaleString('da-DK');
+    const urgency = p.daysLeft != null && p.daysLeft <= 14 ? 'bf-urgent' : '';
+    const daysStr = p.daysLeft != null
+      ? (p.daysLeft === 0 ? 'Udløber i dag' : `${p.daysLeft} dage tilbage`)
+      : '';
+
+    return `<div class="bf-card ${urgency}">
+  <div class="bf-top">
+    <div class="bf-title">${p.title}</div>
+    <div class="bf-sigs">${sigFmt} <span>/ ${reqFmt}</span></div>
+  </div>
+  <div class="bf-bar-track"><div class="bf-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
+  <div class="bf-foot">
+    <span class="bf-pct">${pct.toFixed(0)}% nået</span>
+    ${daysStr ? `<span class="bf-days ${p.daysLeft != null && p.daysLeft <= 14 ? 'bf-days--urgent' : ''}">${daysStr}</span>` : ''}
+    <a class="bf-link" href="${p.url}" target="_blank" rel="noopener">Skriv under ↗</a>
+  </div>
+</div>`;
+  }).join('');
+
+  return `<div class="card" style="margin-bottom:12px">
+  <h2>Aktive borgerforslag — ${proposals.length} åbne</h2>
+  <p class="intro">Forslag der samler 50.000 underskrifter inden for 180 dage behandles af Folketing-udvalget. Kilde: borgerforslag.dk</p>
+  <div class="bf-list">${cards}</div>
+</div>`;
+};
+
 VG.borger.buildHTML = function() {
   const civicCards = [
     {
@@ -186,6 +227,7 @@ VG.borger.buildHTML = function() {
 </div>`;
 
   return `
+${VG.borger.buildBorgerforslagHTML()}
 <div class="card">
   <div class="election-banner">
     <h3>🇩🇰 Din stemme tæller</h3>

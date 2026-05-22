@@ -56,6 +56,23 @@ const governmentData = {
       ]
     }
   },
+  formation: {
+    status: 'active',
+    headline: 'Regeringsdannelse i gang',
+    description: 'Danmark er i en overgangsfase efter nyvalg. Kongeligt udpeget forhandlingsleder leder forhandlinger om en ny regeringskoalition.',
+    lastUpdated: '2026-05-22',
+    note: 'Data opdateres manuelt. Følg ft.dk og dr.dk for seneste nyt.',
+    timeline: [
+      { label: 'Valg afholdt',                  date: '2025',          status: 'done'    },
+      { label: 'Mandatfordeling opgjort',        date: '2025',          status: 'done'    },
+      { label: 'Forhandlingsleder udpeget',      date: 'Forår 2026',    status: 'done'    },
+      { label: 'Partier i koalitionsforhandlinger', date: 'Maj 2026',  status: 'active'  },
+      { label: 'Koalitionsaftale underskrives',  date: 'Forventet 2026', status: 'pending' },
+      { label: 'Ny regering præsenteres',        date: 'Forventet 2026', status: 'pending' }
+    ],
+    partiesInTalks: ['A', 'V', 'M', 'I', 'C', 'D'],
+    sources: ['Kongehuset.dk', 'ft.dk', 'dr.dk/nyheder']
+  },
   partyProfiles: [
     {
       abbr: 'A', name: 'Socialdemokratiet', color: '#E32D1C',

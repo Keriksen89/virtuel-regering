@@ -26,8 +26,36 @@ VG.regering.buildHTML = function() {
     return '<div class="card"><p style="color:var(--text-2)">Indlæser regeringsdata…</p></div>';
   }
 
-  const { folketing, government, partyProfiles } = VG.regering.data;
+  const { folketing, government, formation, partyProfiles } = VG.regering.data;
   const { pm, type, formed, ministers, coalitionAgreement } = government;
+
+  // Government formation banner (shown when status === 'active')
+  let formationHTML = '';
+  if (formation && formation.status === 'active') {
+    const chips = (formation.partiesInTalks || []).map(abbr => {
+      const p = folketing.parties.find(x => x.abbr === abbr);
+      return `<span class="formation-party-chip" style="border-left:3px solid ${p ? p.color : '#888'}">${p ? p.name : abbr}</span>`;
+    }).join('');
+
+    const steps = formation.timeline.map(s => `
+<div class="formation-step step-${s.status}">
+  <div class="formation-step-dot"></div>
+  <div class="formation-step-text">
+    <div class="formation-step-label">${s.label}</div>
+    <div class="formation-step-date">${s.date}</div>
+  </div>
+</div>`).join('');
+
+    formationHTML = `<div class="formation-banner" style="margin-bottom:16px">
+  <h3>Aktuel status</h3>
+  <div class="formation-title">${formation.headline}</div>
+  <div class="formation-sub">${formation.description}</div>
+  <div class="formation-timeline" style="margin-top:14px">${steps}</div>
+  <div style="margin-top:12px;font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Parter i forhandling</div>
+  <div class="formation-parties">${chips}</div>
+  <div style="margin-top:10px;font-size:10px;color:var(--text-3)">Sidst opdateret: ${formation.lastUpdated} · ${formation.note}</div>
+</div>`;
+  }
 
   // Coalition bar segments
   const groupOrder = ['coalition', 'opposition-right', 'opposition-left', 'other'];
@@ -106,6 +134,7 @@ VG.regering.buildHTML = function() {
     : `<span style="color:var(--pos)">&#10007; Mindretalsr. (${coalitionSeats}/${totalSeats} — mangler ${majority - coalitionSeats})</span>`;
 
   return `
+${formationHTML}
 <div class="card">
   <h2>🏛 Regering & Folketing</h2>
   <p style="font-size:13px;color:var(--text-2);margin-top:4px">${type} · Dannet ${formed}</p>

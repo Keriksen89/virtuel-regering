@@ -10,7 +10,8 @@ VG.state = {
     unemployment: null,
     votes: [],
     parties: [],
-    activeBills: []
+    activeBills: [],
+    borgerforslag: []
   },
   status: 'loading',
   manualAdj: { expense: {}, revenue: {} }
