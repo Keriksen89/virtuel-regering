@@ -51,20 +51,17 @@
   <div class="stat" id="s-debt-card"><div class="stat-label">Gæld 2030</div><div class="stat-num" id="s-debt">—</div><div class="stat-delta">% af BNP, hvis fortsat</div></div>
 </div>
 
-<nav class="tabs" role="tablist" aria-label="Vælg sektion">
-  <button class="tab active" data-tab="overview" role="tab" aria-selected="true">Oversigt</button>
-  <button class="tab" data-tab="platform" role="tab">⭐ Mit Parti</button>
-  <button class="tab" data-tab="party" role="tab">🗳 Borgerstemmer</button>
-  <button class="tab" data-tab="regering" role="tab">🏛 Regering</button>
-  <button class="tab" data-tab="partier" role="tab">📊 Partier</button>
-  <button class="tab" data-tab="policy" role="tab">Økonomi & Politik</button>
-  <button class="tab" data-tab="spending" role="tab">Udgifter</button>
-  <button class="tab" data-tab="revenue" role="tab">Indtægter</button>
-  <button class="tab" data-tab="projection" role="tab">Fremskrivning</button>
-  <button class="tab" data-tab="scenarios" role="tab">Scenarier</button>
-  <button class="tab" data-tab="folketing" role="tab">Folketinget</button>
-  <button class="tab" data-tab="demographics" role="tab">Demografi</button>
-  <button class="tab" data-tab="borger" role="tab">🇩🇰 Din stemme</button>
+<nav class="site-nav" aria-label="Navigation">
+  <div class="nav-primary" role="tablist">
+    <button class="nav-btn active" data-group="oversigt">Oversigt</button>
+    <button class="nav-btn" data-group="parti">⭐ Mit Parti</button>
+    <button class="nav-btn" data-group="budget">💰 Budget</button>
+    <button class="nav-btn" data-group="folketing">🏛 Folketing</button>
+    <button class="nav-btn" data-group="demokrati">🇩🇰 Demokrati</button>
+  </div>
+  <div class="nav-secondary" id="nav-secondary" role="tablist">
+    <!-- sub-tabs injected by JS -->
+  </div>
 </nav>
 
 <main>

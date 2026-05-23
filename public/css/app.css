@@ -274,49 +274,67 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   TABS  — underline nav, not pill container
+   TWO-TIER NAV
 ═══════════════════════════════════════════════════════════════════════════ */
 
-.tabs {
+/* Primary nav */
+.site-nav { margin-bottom: 0; }
+.nav-primary {
   display: flex;
-  gap: 0;
-  margin-bottom: 24px;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--border);
+  gap: 2px;
   padding: 0;
+  border-bottom: 1px solid var(--border);
   overflow-x: auto;
   scrollbar-width: none;
 }
-
-.tabs::-webkit-scrollbar { display: none; }
-
-.tab {
-  padding: 10px 15px;
+.nav-primary::-webkit-scrollbar { display: none; }
+.nav-btn {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 11px 18px;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--text-3);
-  font-size: 13px;
-  font-weight: 500;
   cursor: pointer;
-  font-family: var(--font);
   white-space: nowrap;
-  transition: color 0.12s, border-color 0.12s;
   margin-bottom: -1px;
-  letter-spacing: 0;
+  transition: color 0.12s, border-color 0.12s;
 }
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 
-.tab:hover {
-  color: var(--text);
-  border-bottom-color: var(--border-strong);
+/* Secondary sub-tabs */
+.nav-secondary {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+  padding: 0 4px;
+  min-height: 0;
 }
-
-.tab.active {
-  color: var(--text);
-  border-bottom-color: var(--accent);
-  font-weight: 600;
+.nav-secondary:empty { display: none; margin-bottom: 24px; }
+.nav-secondary::-webkit-scrollbar { display: none; }
+.sub-tab {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  white-space: nowrap;
+  margin-bottom: -1px;
+  transition: color 0.12s, border-color 0.12s;
 }
+.sub-tab:hover { color: var(--text); }
+.sub-tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PANELS
@@ -1591,3 +1609,26 @@ canvas { display: block; max-width: 100%; }
   background: var(--surface-2);
   color: var(--text);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EU comparison grid
+═══════════════════════════════════════════════════════════════════════════ */
+
+.eu-comp-grid { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.eu-comp-row  { display: grid; grid-template-columns: 1fr 52px 80px 120px; gap: 8px; align-items: center; font-size: 12px; }
+.eu-comp-label { color: var(--text-2); }
+.eu-comp-dk   { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.eu-comp-eu   { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.eu-comp-bar  { height: 4px; background: var(--surface-3); border-radius: 2px; overflow: hidden; }
+.eu-comp-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Poll chart
+═══════════════════════════════════════════════════════════════════════════ */
+
+.poll-list { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.poll-row  { display: grid; grid-template-columns: 28px 1fr 40px; gap: 8px; align-items: center; }
+.poll-abbr { font-size: 11px; font-weight: 800; text-align: center; }
+.poll-bar-wrap { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; position: relative; }
+.poll-bar-fill { height: 100%; border-radius: 3px; }
+.poll-pct  { font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }

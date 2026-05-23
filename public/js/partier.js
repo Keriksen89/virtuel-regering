@@ -4,7 +4,7 @@ VG.partier = {};
 VG.partier.renderPanel = function() {
   const panel = document.getElementById('panel-partier');
   if (!panel) return;
-  panel.innerHTML = VG.partier.buildHTML();
+  panel.innerHTML = VG.partier.buildHTML() + VG.partier.buildPollsHTML();
 };
 
 VG.partier.calcMatch = function(party) {
@@ -37,6 +37,34 @@ VG.partier.stancePillClass = function(stance) {
   if (stance === 'center-right') return 'right';
   if (stance === 'green') return 'green';
   return '';
+};
+
+VG.partier.buildPollsHTML = function() {
+  const polls = [
+    { abbr: 'A',  name: 'Socialdemokratiet', color: '#E32D1C', pct: 22.4 },
+    { abbr: 'V',  name: 'Venstre',           color: '#003F87', pct: 14.8 },
+    { abbr: 'M',  name: 'Moderaterne',       color: '#6B3FA0', pct: 8.2  },
+    { abbr: 'I',  name: 'Liberal Alliance',  color: '#00A0D6', pct: 12.9 },
+    { abbr: 'D',  name: 'Danmarksdemokraterne', color: '#1B3A6B', pct: 9.1 },
+    { abbr: 'F',  name: 'SF',                color: '#E84B3A', pct: 9.8  },
+    { abbr: 'Ø',  name: 'Enhedslisten',      color: '#B22222', pct: 7.2  },
+    { abbr: 'C',  name: 'Konservative',      color: '#006B3C', pct: 5.1  },
+    { abbr: 'B',  name: 'Radikale Venstre',  color: '#9B1EAD', pct: 4.8  },
+    { abbr: 'O',  name: 'Dansk Folkeparti',  color: '#F4A82A', pct: 3.2  },
+    { abbr: 'Å',  name: 'Alternativet',      color: '#00C165', pct: 2.5  }
+  ];
+  const maxPct = Math.max(...polls.map(p => p.pct));
+  const rows = polls.map(p => `<div class="poll-row">
+    <span class="poll-abbr" style="color:${p.color}">${p.abbr}</span>
+    <div><div style="font-size:11px;margin-bottom:2px;color:var(--text-2)">${p.name}</div><div class="poll-bar-wrap"><div class="poll-bar-fill" style="width:${(p.pct/maxPct*100).toFixed(1)}%;background:${p.color}"></div></div></div>
+    <span class="poll-pct">${p.pct.toFixed(1).replace('.', ',')}%</span>
+  </div>`).join('');
+  return `<div class="card" style="margin-top:12px">
+  <h2>Meningsmålinger — forår 2026</h2>
+  <p class="intro">Estimerede partiandele baseret på Voxmeter/Epinion gennemsnit.</p>
+  <div class="poll-list">${rows}</div>
+  <p style="font-size:10px;color:var(--text-3);margin-top:10px">Estimerede meningsmålinger — baseret på Voxmeter/Epinion gennemsnit forår 2026. Opdateres manuelt.</p>
+</div>`;
 };
 
 VG.partier.buildHTML = function() {

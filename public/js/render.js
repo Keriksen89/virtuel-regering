@@ -55,6 +55,11 @@ VG.render.liveIndicators = function() {
     if (eco.nbRate) {
       items.push(`<div class="live-indicator"><span class="live-dot"></span><span class="label">NBR-rente</span><span class="value">${eco.nbRate.value.toFixed(2).replace('.', ',')}%</span></div>`);
     }
+    if (eco.wageGrowth) {
+      const w = eco.wageGrowth;
+      const sign = w.yoy >= 0 ? '+' : '';
+      items.push(`<div class="live-indicator"><span class="live-dot"></span><span class="label">Lønvækst</span><span class="value">${sign}${w.yoy.toFixed(1).replace('.', ',')}%</span></div>`);
+    }
   }
 
   if (!items.length) {
@@ -162,6 +167,20 @@ VG.render.overview = function() {
 </div>`;
   }
 
+  const euCompCard = `<div class="card" style="margin-top:12px">
+  <h2>Danmark i europæisk kontekst</h2>
+  <p class="intro">Udvalgte nøgletal sammenlignet med EU-gennemsnit (Eurostat 2024–2025).</p>
+  <div class="eu-comp-grid">
+    <div class="eu-comp-row"><span class="eu-comp-label">Skattetryk</span><span class="eu-comp-dk">47,4%</span><span class="eu-comp-eu">EU: 41,3%</span><div class="eu-comp-bar"><div class="eu-comp-fill" style="width:100%"></div></div></div>
+    <div class="eu-comp-row"><span class="eu-comp-label">Offentlige udgifter / BNP</span><span class="eu-comp-dk">53,1%</span><span class="eu-comp-eu">EU: 49,8%</span><div class="eu-comp-bar"><div class="eu-comp-fill" style="width:94%"></div></div></div>
+    <div class="eu-comp-row"><span class="eu-comp-label">Beskæftigelsesgrad</span><span class="eu-comp-dk">75,8%</span><span class="eu-comp-eu">EU: 70,4%</span><div class="eu-comp-bar"><div class="eu-comp-fill" style="width:100%"></div></div></div>
+    <div class="eu-comp-row"><span class="eu-comp-label">Ledighed</span><span class="eu-comp-dk">4,8%</span><span class="eu-comp-eu">EU: 5,9%</span><div class="eu-comp-bar"><div class="eu-comp-fill" style="width:81%"></div></div></div>
+    <div class="eu-comp-row"><span class="eu-comp-label">Statsgæld / BNP</span><span class="eu-comp-dk">30,4%</span><span class="eu-comp-eu">EU: 81,7%</span><div class="eu-comp-bar"><div class="eu-comp-fill" style="width:37%"></div></div></div>
+    <div class="eu-comp-row"><span class="eu-comp-label">Gini-koefficient</span><span class="eu-comp-dk">28,9</span><span class="eu-comp-eu">EU: 30,3</span><div class="eu-comp-bar"><div class="eu-comp-fill" style="width:95%"></div></div></div>
+  </div>
+  <p style="font-size:10px;color:var(--text-3);margin-top:10px">Kilde: Eurostat 2024–2025 · OECD Revenue Statistics 2024</p>
+</div>`;
+
   return `${introCard}<div class="grid-2">
     <div class="card"><h2>Hvor pengene bruges</h2><p class="intro">Statslige, regionale og kommunale udgifter — i alt ${VG.fmt(totalExp)} kr/år</p>${expRows}</div>
     <div class="card"><h2>Hvor pengene kommer fra</h2><p class="intro">Skatter, afgifter og andre offentlige indtægter — i alt ${VG.fmt(totalRev)} kr/år</p>${revRows}</div>
@@ -170,7 +189,8 @@ VG.render.overview = function() {
     Budgetsaldo: <strong style="color:${balColor}">${balSign}${VG.fmt(bal)} (${balSign}${balPct}% af BNP)</strong>
     — Gå til <em>Fremskrivning</em> for gælds-prognose og <strong>DREAM holdbarhedsindikator</strong>
   </div>
-  ${ecoCard}`;
+  ${ecoCard}
+  ${euCompCard}`;
 };
 
 VG.render.sliders = function(bucketKey) {
@@ -590,7 +610,9 @@ VG.loadScenario = function(key) {
     }
   }
   VG.state.activeTab = 'overview';
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'overview'));
+  // Switch back to the Oversigt group in the two-tier nav
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.group === 'oversigt'));
+  document.getElementById('nav-secondary').innerHTML = '';
   VG.render.all();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };

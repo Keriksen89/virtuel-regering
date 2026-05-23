@@ -252,18 +252,78 @@ document.addEventListener('DOMContentLoaded', () => {
   VG.theme.init();
   VG.bootstrap();
 
-  document.querySelectorAll('.tab').forEach(t => {
-    t.addEventListener('click', () => {
-      VG.state.activeTab = t.dataset.tab;
-      document.querySelectorAll('.tab').forEach(x => {
-        x.classList.toggle('active', x === t);
-        x.setAttribute('aria-selected', x === t ? 'true' : 'false');
-      });
-      document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + VG.state.activeTab));
-      if (VG.state.activeTab === 'party') VG.party.load();
-      VG.render.fast(); // always re-render active panel with latest state
+  const GROUPS = {
+    oversigt:  { label: 'Oversigt',      tabs: [{ id: 'overview',     label: 'Oversigt' }] },
+    parti:     { label: '⭐ Mit Parti',  tabs: [
+      { id: 'platform',    label: '⭐ Mit Parti' },
+      { id: 'party',       label: '🗳 Borgerstemmer' },
+      { id: 'partier',     label: '📊 Partier' }
+    ]},
+    budget:    { label: '💰 Budget',     tabs: [
+      { id: 'policy',      label: 'Økonomi & Politik' },
+      { id: 'spending',    label: 'Udgifter' },
+      { id: 'revenue',     label: 'Indtægter' },
+      { id: 'projection',  label: 'Fremskrivning' },
+      { id: 'scenarios',   label: 'Scenarier' }
+    ]},
+    folketing: { label: '🏛 Folketing',  tabs: [
+      { id: 'regering',    label: 'Regering' },
+      { id: 'folketing',   label: 'Folketing' },
+      { id: 'demographics',label: 'Demografi' }
+    ]},
+    demokrati: { label: '🇩🇰 Demokrati', tabs: [{ id: 'borger', label: 'Din stemme' }] }
+  };
+
+  function switchTab(tabId) {
+    VG.state.activeTab = tabId;
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tabId));
+    // Update active state on sub-tab buttons
+    document.querySelectorAll('.sub-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabId);
     });
+    if (tabId === 'party') VG.party.load();
+    VG.render.fast();
+  }
+
+  function switchGroup(groupKey) {
+    const group = GROUPS[groupKey];
+    if (!group) return;
+
+    // Update primary nav active state
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.group === groupKey);
+    });
+
+    const secondary = document.getElementById('nav-secondary');
+    if (group.tabs.length <= 1) {
+      // Single-tab group: hide secondary bar and activate tab directly
+      secondary.innerHTML = '';
+      switchTab(group.tabs[0].id);
+    } else {
+      // Multi-tab group: populate secondary bar
+      secondary.innerHTML = group.tabs.map(t =>
+        `<button class="sub-tab${t.id === group.tabs[0].id ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`
+      ).join('');
+      switchTab(group.tabs[0].id);
+    }
+  }
+
+  // Wire up primary nav buttons
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchGroup(btn.dataset.group));
   });
+
+  // Wire up secondary nav via event delegation
+  document.getElementById('nav-secondary').addEventListener('click', e => {
+    const btn = e.target.closest('.sub-tab');
+    if (!btn) return;
+    document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    switchTab(btn.dataset.tab);
+  });
+
+  // Initialise: show overview group
+  switchGroup('oversigt');
 
   document.getElementById('btn-reset').addEventListener('click', () => {
     VG.reset();
