@@ -292,8 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const group = GROUPS[groupKey];
     if (!group) return;
 
-    // Update primary nav active state
-    document.querySelectorAll('.nav-btn').forEach(btn => {
+    // Update primary nav + mobile nav active state
+    document.querySelectorAll('.nav-btn, .mobile-nav-item').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.group === groupKey);
     });
 
@@ -311,8 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Wire up primary nav buttons
-  document.querySelectorAll('.nav-btn').forEach(btn => {
+  // Wire up primary nav + mobile bottom nav
+  document.querySelectorAll('.nav-btn, .mobile-nav-item').forEach(btn => {
     btn.addEventListener('click', () => switchGroup(btn.dataset.group));
   });
 
