@@ -148,7 +148,7 @@ VG.maskinen.renderDiagram = function() {
 
   const nodes = VG.maskinen.NODES.map(n => {
     const c = CC[n.cluster];
-    return `<g class="mk-node" data-id="${n.id}" onclick="VG.maskinen.showNodeCard('${n.id}', event)">
+    return `<g class="mk-node" data-id="${n.id}">
       <circle cx="${n.x}" cy="${n.y}" r="44" class="mk-halo" fill="${c}"/>
       <circle cx="${n.x}" cy="${n.y}" r="30" fill="url(#mkgrad-${n.cluster})" stroke="${c}" stroke-width="1.8" class="mk-ring"/>
       <text x="${n.x}" y="${n.y - 5}" text-anchor="middle" dominant-baseline="middle" class="mk-emoji">${n.emoji}</text>
@@ -196,39 +196,66 @@ VG.maskinen.showNodeCard = function(id, event) {
   const cc = VG.maskinen.CLUSTER_COLORS[nodeData.cluster];
   const clusterLabel = {
     velfaerd: 'Velfærd', klima: 'Klima', okonomi: 'Økonomi',
-    samfund: 'Samfund', uddannelse: 'Uddannelse/Integration', sikkerhed: 'Sikkerhed'
+    samfund: 'Samfund', uddannelse: 'Uddannelse / Integration', sikkerhed: 'Sikkerhed'
   }[nodeData.cluster] || nodeData.cluster;
 
-  const conns = (VG.maskinen._connMap[id] || []).map(cid => {
+  // Build fact rows with subtle left-bar indicator
+  const facts = (nodeData.details || []).map((f, i) => {
+    const icons = ['📌','📎','📐'];
+    return `<div class="mk-card-fact"><span class="mk-fact-dot" style="background:${cc}"></span>${f}</div>`;
+  }).join('');
+
+  // Connected node chips — wired to JS click via delegation
+  const connIds = VG.maskinen._connMap[id] || [];
+  const conns = connIds.map(cid => {
     const cn = VG.maskinen.NODES.find(n => n.id === cid);
     if (!cn) return '';
-    return `<button class="mk-cc-chip" onclick="VG.maskinen.showNodeCard('${cid}',event);event.stopPropagation()">${cn.emoji} ${cn.label}</button>`;
+    return `<button class="mk-cc-chip" data-navid="${cid}">${cn.emoji} ${cn.label}</button>`;
   }).filter(Boolean).join('');
 
-  const facts = (nodeData.details || []).map(f => `<li>${f}</li>`).join('');
-
   card.innerHTML = `
-    <div class="mk-card-accent" style="background:${cc}"></div>
-    <button class="mk-card-close" onclick="VG.maskinen.hideNodeCard()" title="Luk">×</button>
-    <div class="mk-card-head">
-      <span class="mk-card-emoji">${nodeData.emoji}</span>
-      <div>
+    <div class="mk-card-banner" style="background:linear-gradient(135deg,${cc}22,${cc}08)">
+      <span class="mk-card-big-emoji">${nodeData.emoji}</span>
+      <div class="mk-card-head-text">
         <div class="mk-card-title">${nodeData.label}</div>
         <div class="mk-card-cluster" style="color:${cc}">${clusterLabel}</div>
       </div>
+      <button class="mk-card-close" data-action="close" title="Luk">×</button>
     </div>
-    <div class="mk-card-stat">${nodeData.stat}</div>
-    ${facts ? `<ul class="mk-card-facts">${facts}</ul>` : ''}
-    ${conns ? `<div class="mk-card-conns"><div class="mk-card-conn-lbl">Hænger sammen med</div><div class="mk-card-conn-row">${conns}</div></div>` : ''}
-    <button class="mk-card-cta" style="border-color:${cc};color:${cc}" onclick="window.__mkClick('${id}');VG.maskinen.hideNodeCard()">📊 Se fuld dataanalyse →</button>
+    <div class="mk-card-body">
+      <div class="mk-card-kpi" style="border-left:3px solid ${cc}">${nodeData.stat}</div>
+      ${facts ? `<div class="mk-card-facts">${facts}</div>` : ''}
+      ${conns ? `<div class="mk-card-conns">
+        <div class="mk-card-conn-lbl">🔗 Hænger direkte sammen med</div>
+        <div class="mk-card-conn-row">${conns}</div>
+      </div>` : ''}
+      <button class="mk-card-cta" data-navid="${id}" style="--cc:${cc}">
+        Udforsk fuld dataanalyse →
+      </button>
+    </div>
   `;
+
+  // Wire up all buttons via delegation (no inline onclick, CSP-safe)
+  card.addEventListener('click', function handler(ev) {
+    const closeBtn = ev.target.closest('[data-action="close"]');
+    if (closeBtn) { VG.maskinen.hideNodeCard(); return; }
+    const navBtn = ev.target.closest('[data-navid]');
+    if (navBtn) {
+      const navId = navBtn.dataset.navid;
+      const isCta = navBtn.classList.contains('mk-card-cta');
+      if (isCta) {
+        window.__mkClick(navId);
+        VG.maskinen.hideNodeCard();
+      } else {
+        VG.maskinen.showNodeCard(navId, ev);
+      }
+    }
+  });
 
   card.classList.remove('show');
   void card.offsetWidth;
   card.classList.add('show');
-
   card._currentId = id;
-
   VG.maskinen._positionCard(card, event);
 };
 
@@ -297,6 +324,12 @@ VG.maskinen.initDiagram = function() {
     });
 
     el.addEventListener('mousemove', positionTip);
+
+    el.addEventListener('click', ev => {
+      ev.stopPropagation();
+      tip.classList.remove('show');
+      VG.maskinen.showNodeCard(id, ev);
+    });
 
     el.addEventListener('mouseleave', () => {
       svg.classList.remove('mk-hovering');
