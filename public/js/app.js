@@ -253,7 +253,10 @@ document.addEventListener('DOMContentLoaded', () => {
   VG.bootstrap();
 
   const GROUPS = {
-    oversigt:  { label: 'Oversigt', tabs: [{ id: 'overview', label: 'Oversigt' }] },
+    oversigt:  { label: 'Oversigt', tabs: [
+      { id: 'overview', label: 'Oversigt' },
+      { id: 'energi',   label: '⚡ Energi' }
+    ]},
     parti:     { label: '⭐ Mit Parti', tabs: [
       { id: 'platform',    label: '⭐ Mit Parti' },
       { id: 'party',       label: '🗳 Borgerstemmer' },
@@ -272,9 +275,14 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 'folketing',    label: 'Folketing' },
       { id: 'mandater',     label: '🧮 Mandater' },
       { id: 'valgkort',     label: '🗺 Valgkort' },
+      { id: 'kommuner',     label: '🏘 Kommuner' },
       { id: 'demographics', label: 'Demografi' }
     ]},
-    demokrati: { label: '🇩🇰 Demokrati', tabs: [{ id: 'borger', label: 'Din stemme' }] }
+    demokrati: { label: '🇩🇰 Demokrati', tabs: [
+      { id: 'borger',  label: 'Din stemme' },
+      { id: 'sundhed', label: '🏥 Sundhed' },
+      { id: 'forbrug', label: '🛍 Forbrug' }
+    ]}
   };
 
   function switchTab(tabId) {

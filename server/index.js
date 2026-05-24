@@ -13,6 +13,8 @@ import demoRouter from './routes/demographics.js';
 import governmentRouter from './routes/government.js';
 import livedataRouter from './routes/livedata.js';
 import borgerforslagRouter from './routes/borgerforslag.js';
+import energiRouter from './routes/energi.js';
+import kommunerRouter from './routes/kommuner.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -53,6 +55,8 @@ app.use('/api/demographics', demoRouter);
 app.use('/api/government', governmentRouter);
 app.use('/api/livedata', livedataRouter);
 app.use('/api/borgerforslag', borgerforslagRouter);
+app.use('/api/energi', energiRouter);
+app.use('/api/kommuner', kommunerRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({

@@ -1725,3 +1725,65 @@ canvas { display: block; max-width: 100%; }
 .aff-grid { display: grid; gap: 2px; margin-top: 8px; }
 .aff-cell { padding: 4px 3px; text-align: center; font-size: 11px; font-weight: 600; border-radius: 2px; min-width: 0; }
 .aff-header { font-weight: 800; font-size: 11px; }
+
+/* ── Energi panel ──────────────────────────────────── */
+.e-hero-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+@media (max-width: 760px) { .e-hero-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 440px) { .e-hero-grid { grid-template-columns: 1fr 1fr; } }
+.e-hero-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 14px; text-align: center; }
+.e-hero-card.accent-card { background: var(--accent); color: #fff; border-color: transparent; }
+.e-hero-card.accent-card .e-hero-label,
+.e-hero-card.accent-card .e-hero-sub { color: rgba(255,255,255,0.85); }
+.e-hero-num { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.e-hero-label { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px; }
+.e-hero-sub { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+.e-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.e-bar-row { display: grid; grid-template-columns: 140px 1fr 90px; gap: 10px; align-items: center; }
+@media (max-width: 540px) { .e-bar-row { grid-template-columns: 100px 1fr 60px; gap: 6px; } }
+.e-bar-label { font-size: 13px; color: var(--text-2); }
+.e-bar-track { height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+.e-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+.e-bar-val { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+
+.spot-chart { display: flex; align-items: flex-end; gap: 2px; height: 80px; margin-top: 8px; }
+.spot-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; }
+.spot-bar { width: 100%; border-radius: 2px 2px 0 0; min-height: 4px; transition: height 0.3s; }
+.spot-label { font-size: 9px; color: var(--text-3); }
+
+.e-targets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 8px; }
+@media (max-width: 640px) { .e-targets-grid { grid-template-columns: 1fr; } }
+.e-target { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.e-target-num { font-size: 28px; font-weight: 800; color: var(--accent); }
+.e-target-label { font-size: 12px; font-weight: 700; color: var(--text); margin: 4px 0 8px; }
+.e-target-prog { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+.e-target-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.5s; }
+.e-target-sub { font-size: 11px; color: var(--text-2); }
+
+/* ── Kommuner panel ────────────────────────────────── */
+.komm-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.komm-search { flex: 1; min-width: 160px; max-width: 280px; padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--text); font-size: 13px; }
+.komm-search:focus { outline: none; border-color: var(--accent); }
+.komm-sort-hint { font-size: 11px; color: var(--text-3); }
+.table-wrap { overflow-x: auto; }
+.komm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.komm-table th { padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid var(--border); white-space: nowrap; cursor: default; }
+.komm-table th.sortable { cursor: pointer; }
+.komm-table th.sortable:hover { color: var(--accent); }
+.komm-table th.sort-active { color: var(--accent); }
+.komm-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.komm-table tr:last-child td { border-bottom: none; }
+.komm-table tr:hover td { background: var(--surface-2); }
+.region-tag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; background: var(--surface-3); color: var(--text-2); white-space: nowrap; }
+.skat-cell, .pop-cell { display: flex; align-items: center; gap: 8px; }
+.skat-bar, .pop-bar { height: 6px; border-radius: 3px; min-width: 4px; flex-shrink: 0; }
+.skat-bar { background: var(--accent); }
+.pop-bar { background: #22c5d4; }
+.komm-region-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+
+/* ── Sundhed & Forbrug ─────────────────────────────── */
+.sundhed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 640px) { .sundhed-grid { grid-template-columns: 1fr; } }
+.hist-timeline { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0; }
+.hist-point { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.hist-point span { font-size: 10px; color: var(--text-3); }
+.hist-point strong { font-size: 13px; font-variant-numeric: tabular-nums; }

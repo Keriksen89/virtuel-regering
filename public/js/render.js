@@ -540,6 +540,10 @@ VG.render.fast = function() {
       if (tab === 'borger')       VG.borger.renderPanel();
       if (tab === 'mandater')     VG.mandater.renderPanel();
       if (tab === 'valgkort')     VG.valgkort.renderPanel();
+      if (tab === 'energi')       VG.energi.renderPanel();
+      if (tab === 'kommuner')     VG.kommuner.renderPanel();
+      if (tab === 'sundhed')      VG.render.sundhed();
+      if (tab === 'forbrug')      VG.render.forbrug();
     } catch (e) { console.error('[render] tab panel:', e); }
   }
   VG.bindControls();
@@ -712,6 +716,219 @@ VG.render.drawHistorikChart = function(canvasId, data, label, color) {
     ctx.fillStyle = color;
     ctx.fill();
   });
+};
+
+VG.render.sundhed = async function() {
+  const panel = document.getElementById('panel-sundhed');
+  if (!panel) return;
+
+  let d;
+  try {
+    d = await fetch('/api/livedata/sundhed').then(r => r.json());
+  } catch (e) {
+    panel.innerHTML = '<p class="text-muted">Sundhedsdata midlertidigt utilgængelig.</p>';
+    return;
+  }
+
+  const smokeTrend = d.smoking.trend.map(t => `<span style="color:var(--text-2)">${t.year}:</span> ${t.val}%`).join(' → ');
+  const lifeExp = d.lifeExpectancy;
+
+  const lifeExpRows = lifeExp.trend.map(t =>
+    `<div class="hist-point"><span>${t.year}</span><strong>${t.val}</strong></div>`
+  ).join('');
+
+  const sickTrend = d.sickDays.trend.map(t =>
+    `<div class="hist-point"><span>${t.year}</span><strong>${t.val}</strong></div>`
+  ).join('');
+
+  panel.innerHTML = `
+    <div class="section-header">
+      <h2>🏥 Sundhed</h2>
+      <p class="section-desc">Danskernes sundhedstilstand — levealder, sygefravær, livsstil og sundhedsudgifter</p>
+    </div>
+
+    <div class="e-hero-grid">
+      <div class="e-hero-card accent-card">
+        <div class="e-hero-num">${lifeExp.total}</div>
+        <div class="e-hero-label">Levealder (år)</div>
+        <div class="e-hero-sub">M: ${lifeExp.men} · K: ${lifeExp.women}</div>
+      </div>
+      <div class="e-hero-card">
+        <div class="e-hero-num">${d.sickDays.avgPerEmployee}</div>
+        <div class="e-hero-label">Sygefraværsdage/år</div>
+        <div class="e-hero-sub">pr. medarbejder</div>
+      </div>
+      <div class="e-hero-card">
+        <div class="e-hero-num">${d.healthSpending.pctGDP}%</div>
+        <div class="e-hero-label">Sundhedsudgifter</div>
+        <div class="e-hero-sub">af BNP (EU-snit: ${d.healthSpending.euAvgPctGDP}%)</div>
+      </div>
+      <div class="e-hero-card">
+        <div class="e-hero-num">${d.smoking.dailyPct}%</div>
+        <div class="e-hero-label">Dagligrygere</div>
+        <div class="e-hero-sub">mod 30% i år 2000</div>
+      </div>
+    </div>
+
+    <div class="sundhed-grid">
+      <div class="card">
+        <h3>Levealder over tid</h3>
+        <div class="hist-timeline">${lifeExpRows}</div>
+        <p class="data-note">EU-snit: mænd ${lifeExp.euAvgMen} · kvinder ${lifeExp.euAvgWomen} · Kilde: ${lifeExp.source}</p>
+      </div>
+      <div class="card">
+        <h3>Sygefravær over tid (dage/medarbejder)</h3>
+        <div class="hist-timeline">${sickTrend}</div>
+        <div class="e-bar-row">
+          <div class="e-bar-label">Offentlig sektor</div>
+          <div class="e-bar-track"><div class="e-bar-fill" style="width:${(d.sickDays.public/15*100).toFixed(0)}%;background:var(--accent)"></div></div>
+          <div class="e-bar-val">${d.sickDays.public} dage</div>
+        </div>
+        <div class="e-bar-row">
+          <div class="e-bar-label">Privat sektor</div>
+          <div class="e-bar-track"><div class="e-bar-fill" style="width:${(d.sickDays.private/15*100).toFixed(0)}%;background:#22c5d4"></div></div>
+          <div class="e-bar-val">${d.sickDays.private} dage</div>
+        </div>
+        <p class="data-note">Kilde: ${d.sickDays.source}</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Mental sundhed</h3>
+      <div class="e-hero-grid">
+        <div class="e-hero-card">
+          <div class="e-hero-num">${d.mentalHealth.stressPct}%</div>
+          <div class="e-hero-label">Stress</div>
+        </div>
+        <div class="e-hero-card">
+          <div class="e-hero-num">${d.mentalHealth.depressionPct}%</div>
+          <div class="e-hero-label">Depression</div>
+        </div>
+        <div class="e-hero-card">
+          <div class="e-hero-num">${d.mentalHealth.anxietyPct}%</div>
+          <div class="e-hero-label">Angst</div>
+        </div>
+        <div class="e-hero-card">
+          <div class="e-hero-num">${d.mentalHealth.burnoutPct}%</div>
+          <div class="e-hero-label">Udbrændthed</div>
+        </div>
+      </div>
+      <p class="data-note">Kilde: ${d.mentalHealth.source}</p>
+    </div>
+
+    <div class="card">
+      <h3>Overvægt & rygning</h3>
+      <div class="e-bar-row">
+        <div class="e-bar-label">Overvægt (BMI > 30) — DK ${d.obesity.pct}% · EU ${d.obesity.euAvg}%</div>
+        <div class="e-bar-track"><div class="e-bar-fill" style="width:${d.obesity.pct*3}%;background:var(--accent)"></div></div>
+        <div class="e-bar-val">${d.obesity.pct}%</div>
+      </div>
+      <div class="e-bar-row">
+        <div class="e-bar-label">Dagligrygere (2023)</div>
+        <div class="e-bar-track"><div class="e-bar-fill" style="width:${d.smoking.dailyPct*3}%;background:#22c5d4"></div></div>
+        <div class="e-bar-val">${d.smoking.dailyPct}%</div>
+      </div>
+      <p class="data-note">Rygning: ${smokeTrend}</p>
+    </div>
+  `;
+};
+
+VG.render.forbrug = async function() {
+  const panel = document.getElementById('panel-forbrug');
+  if (!panel) return;
+
+  let d;
+  try {
+    d = await fetch('/api/livedata/forbrug').then(r => r.json());
+  } catch (e) {
+    panel.innerHTML = '<p class="text-muted">Forbrugsdata midlertidigt utilgængelig.</p>';
+    return;
+  }
+
+  const evTrend = d.carRegistrations.trend.map(t =>
+    `<div class="hist-point"><span>${t.month.replace('M','/').slice(2)}</span><strong>${t.ev}%</strong></div>`
+  ).join('');
+
+  const confTrend = d.consumerConfidence.trend.map(t => {
+    const v = t.val;
+    const color = v >= 0 ? 'var(--accent)' : '#c0392b';
+    return `<div class="hist-point"><span>${t.month.replace('M','/').slice(2)}</span><strong style="color:${color}">${v > 0 ? '+' : ''}${v}</strong></div>`;
+  }).join('');
+
+  const retailTrend = d.retail.trend.map(t =>
+    `<div class="hist-point"><span>${t.year}</span><strong>${t.idx}</strong></div>`
+  ).join('');
+
+  const confColor = d.consumerConfidence.index >= 0 ? 'var(--accent)' : '#c0392b';
+
+  panel.innerHTML = `
+    <div class="section-header">
+      <h2>🛍 Forbrug</h2>
+      <p class="section-desc">Dansk forbrug og forbrugertillid — bilsalg, detailhandel og opsparingsrate</p>
+    </div>
+
+    <div class="e-hero-grid">
+      <div class="e-hero-card accent-card">
+        <div class="e-hero-num">${d.consumerConfidence.index > 0 ? '+' : ''}${d.consumerConfidence.index}</div>
+        <div class="e-hero-label">Forbrugertillid</div>
+        <div class="e-hero-sub">Mod ${d.consumerConfidence.prev > 0 ? '+' : ''}${d.consumerConfidence.prev} sidst</div>
+      </div>
+      <div class="e-hero-card">
+        <div class="e-hero-num">${d.carRegistrations.newCars.toLocaleString('da')}</div>
+        <div class="e-hero-label">Nybilsalg/mdr</div>
+        <div class="e-hero-sub">${d.carRegistrations.latestMonth.replace('M','/')}</div>
+      </div>
+      <div class="e-hero-card">
+        <div class="e-hero-num">${d.carRegistrations.electricShare}%</div>
+        <div class="e-hero-label">El-biler andel</div>
+        <div class="e-hero-sub">af nybilsalg</div>
+      </div>
+      <div class="e-hero-card">
+        <div class="e-hero-num">${d.savings.householdSavingsRate}%</div>
+        <div class="e-hero-label">Husholdningsopsparing</div>
+        <div class="e-hero-sub">Gæld/indkomst: ${d.savings.debtToIncomePct}%</div>
+      </div>
+    </div>
+
+    <div class="sundhed-grid">
+      <div class="card">
+        <h3>Forbrugertillid over tid</h3>
+        <div class="hist-timeline">${confTrend}</div>
+        <p class="data-note">Positiv = optimisme. Kilde: ${d.consumerConfidence.source}</p>
+      </div>
+      <div class="card">
+        <h3>El-bilers andel af nybilsalg</h3>
+        <div class="hist-timeline">${evTrend}</div>
+        <p class="data-note">Kilde: ${d.carRegistrations.source}</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Detailhandelsindeks (2020 = 100)</h3>
+      <div class="hist-timeline">${retailTrend}</div>
+      <div class="e-bar-row">
+        <div class="e-bar-label">Indeks 2025</div>
+        <div class="e-bar-track"><div class="e-bar-fill" style="width:${Math.min(d.retail.indexLatest, 120)/120*100}%;background:var(--accent)"></div></div>
+        <div class="e-bar-val">${d.retail.indexLatest} (${d.retail.yoy > 0 ? '+' : ''}${d.retail.yoy}% ÅoÅ)</div>
+      </div>
+      <p class="data-note">Kilde: ${d.retail.source}</p>
+    </div>
+
+    <div class="card">
+      <h3>Husholdningsøkonomi</h3>
+      <div class="e-bar-row">
+        <div class="e-bar-label">Opsparingsrate</div>
+        <div class="e-bar-track"><div class="e-bar-fill" style="width:${d.savings.householdSavingsRate*5}%;background:var(--accent)"></div></div>
+        <div class="e-bar-val">${d.savings.householdSavingsRate}% af disponibel indkomst</div>
+      </div>
+      <div class="e-bar-row">
+        <div class="e-bar-label">Gæld ift. indkomst</div>
+        <div class="e-bar-track"><div class="e-bar-fill" style="width:${Math.min(d.savings.debtToIncomePct/300*100, 100)}%;background:#22c5d4"></div></div>
+        <div class="e-bar-val">${d.savings.debtToIncomePct}% (høj internationalt)</div>
+      </div>
+      <p class="data-note">Kilde: ${d.savings.source}</p>
+    </div>
+  `;
 };
 
 VG.loadScenario = function(key) {

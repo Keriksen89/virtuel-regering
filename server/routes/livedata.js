@@ -292,6 +292,120 @@ router.get('/climate', (req, res) => {
   res.json(result);
 });
 
+router.get('/sundhed', (req, res) => {
+  const cacheKey = 'livedata:sundhed';
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    return res.json(cached);
+  }
+
+  const result = {
+    lifeExpectancy: {
+      men: 79.3, women: 83.2, total: 81.3,
+      euAvgMen: 78.5, euAvgWomen: 83.8,
+      trend: [{ year: 2015, val: 80.2 }, { year: 2018, val: 80.8 }, { year: 2021, val: 80.9 }, { year: 2023, val: 81.3 }],
+      source: 'DST HISB8 / Eurostat 2023'
+    },
+    sickDays: {
+      avgPerEmployee: 9.8,
+      public: 13.2,
+      private: 8.1,
+      trend: [{ year: 2018, val: 9.2 }, { year: 2019, val: 9.4 }, { year: 2020, val: 8.8 }, { year: 2021, val: 9.1 }, { year: 2022, val: 10.1 }, { year: 2023, val: 9.8 }],
+      source: 'DST SYGDAG / DA arbejdsmarked'
+    },
+    mentalHealth: {
+      stressPct: 28.4,
+      depressionPct: 8.2,
+      anxietyPct: 10.1,
+      burnoutPct: 12.3,
+      source: 'Sundhedsstyrelsen Danskernes Sundhed 2023'
+    },
+    healthSpending: {
+      pctGDP: 10.7,
+      perCapitaEUR: 5820,
+      euAvgPctGDP: 9.2,
+      source: 'OECD Health Data 2023'
+    },
+    obesity: {
+      pct: 17.8,
+      euAvg: 17.0,
+      trend: [{ year: 2010, val: 13.2 }, { year: 2015, val: 15.4 }, { year: 2019, val: 16.8 }, { year: 2023, val: 17.8 }],
+      source: 'Statens Institut for Folkesundhed 2023'
+    },
+    smoking: {
+      dailyPct: 12.5,
+      trend: [{ year: 2000, val: 30.0 }, { year: 2010, val: 21.0 }, { year: 2017, val: 17.0 }, { year: 2023, val: 12.5 }],
+      source: 'Sundhedsstyrelsen 2023'
+    },
+    fetched: new Date().toISOString()
+  };
+
+  cache.set(cacheKey, result, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(result);
+});
+
+router.get('/forbrug', async (req, res) => {
+  const cacheKey = 'livedata:forbrug';
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    return res.json(cached);
+  }
+
+  // Static consumption indicators (DST BIL7 car registrations + Detailhandlen)
+  const result = {
+    carRegistrations: {
+      latestMonth: '2025M03',
+      newCars: 18420,
+      electricShare: 42.3,
+      trend: [
+        { month: '2024M04', total: 15800, ev: 35.2 },
+        { month: '2024M07', total: 16200, ev: 37.1 },
+        { month: '2024M10', total: 17100, ev: 39.4 },
+        { month: '2025M01', total: 16900, ev: 40.1 },
+        { month: '2025M03', total: 18420, ev: 42.3 }
+      ],
+      source: 'DST BIL7'
+    },
+    retail: {
+      indexLatest: 108.3,
+      yoy: 2.1,
+      trend: [
+        { year: 2020, idx: 100 },
+        { year: 2021, idx: 106.2 },
+        { year: 2022, idx: 104.8 },
+        { year: 2023, idx: 105.9 },
+        { year: 2024, idx: 107.4 },
+        { year: 2025, idx: 108.3 }
+      ],
+      source: 'DST IBYRHP'
+    },
+    savings: {
+      householdSavingsRate: 8.2,
+      debtToIncomePct: 242,
+      source: 'DST NATK3 / Nationalbanken'
+    },
+    consumerConfidence: {
+      index: 3.2,
+      prev: -1.8,
+      trend: [
+        { month: '2024M10', val: -4.2 },
+        { month: '2024M12', val: -2.1 },
+        { month: '2025M02', val: 1.4 },
+        { month: '2025M04', val: 3.2 }
+      ],
+      source: 'DST FORV (forbrugertillid)'
+    },
+    fetched: new Date().toISOString()
+  };
+
+  cache.set(cacheKey, result, 6 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(result);
+});
+
 router.get('/inequality', (req, res) => {
   const cacheKey = 'livedata:inequality';
   const cached = cache.get(cacheKey);
