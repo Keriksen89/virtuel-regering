@@ -53,12 +53,10 @@
 
 <nav class="site-nav" aria-label="Navigation">
   <div class="nav-primary" role="tablist">
-    <button class="nav-btn active" data-group="oversigt">Oversigt</button>
-    <button class="nav-btn" data-group="parti">⭐ Mit Parti</button>
-    <button class="nav-btn" data-group="budget">💰 Budget</button>
-    <button class="nav-btn" data-group="folketing">🏛 Folketing</button>
-    <button class="nav-btn" data-group="demokrati">🇩🇰 Demokrati</button>
-    <button class="nav-btn" data-group="hverdag">🏠 Hverdag</button>
+    <button class="nav-btn active" data-group="personligt">👤 Personligt</button>
+    <button class="nav-btn" data-group="samfund">🌍 Samfund</button>
+    <button class="nav-btn" data-group="politik">🏛 Politik</button>
+    <button class="nav-btn" data-group="oekonomi">💰 Økonomi</button>
   </div>
   <div class="nav-secondary" id="nav-secondary" role="tablist">
     <!-- sub-tabs injected by JS -->
@@ -92,6 +90,9 @@
   <div id="panel-ventetider" class="panel"></div>
   <div id="panel-dsb" class="panel"></div>
   <div id="panel-aeldrepleje" class="panel"></div>
+  <div id="panel-elpris" class="panel"></div>
+  <div id="panel-ledighed" class="panel"></div>
+  <div id="panel-meningsmaalinger" class="panel"></div>
 </main>
 
 <div class="actions">
@@ -151,6 +152,7 @@
 <script src="/js/rygter.js"></script>
 <script src="/js/bolig.js"></script>
 <script src="/js/pension.js"></script>
+<script src="/js/meningsmaalinger.js"></script>
 <script src="/js/app.js"></script>
 
 <div class="onboarding-overlay" id="onboarding-overlay">
@@ -174,32 +176,32 @@
       <h2>Hvad interesserer dig mest?</h2>
       <p class="onboarding-sub">Vælg et startpunkt — du kan altid skifte fane bagefter.</p>
       <div class="onboarding-choices">
-        <button class="ob-choice" onclick="VG.onboarding.hide('parti')">
-          <div class="ob-choice-icon">⭐</div>
+        <button class="ob-choice" onclick="VG.onboarding.hide('personligt')">
+          <div class="ob-choice-icon">👤</div>
           <div class="ob-choice-text">
-            <strong>Mit politiske ståsted</strong>
-            <span>Tag stilling til 40 spørgsmål og se dit kompas-placering</span>
+            <strong>Personligt</strong>
+            <span>Skatteberegner, bolig, pension, el-priser og ventetider</span>
           </div>
         </button>
-        <button class="ob-choice" onclick="VG.onboarding.hide('budget')">
-          <div class="ob-choice-icon">💰</div>
+        <button class="ob-choice" onclick="VG.onboarding.hide('samfund')">
+          <div class="ob-choice-icon">🌍</div>
           <div class="ob-choice-text">
-            <strong>Statsbudgettet</strong>
-            <span>Juster skatter, udgifter og se den samfundsmæssige effekt</span>
+            <strong>Samfund</strong>
+            <span>Demografi, sundhed, ledighed og energi</span>
           </div>
         </button>
-        <button class="ob-choice" onclick="VG.onboarding.hide('folketing')">
+        <button class="ob-choice" onclick="VG.onboarding.hide('politik')">
           <div class="ob-choice-icon">🏛</div>
           <div class="ob-choice-text">
-            <strong>Folketing & Regering</strong>
-            <span>Byg koalitioner, beregn mandater, se valgkortet</span>
+            <strong>Politik</strong>
+            <span>Partier, meningsmålinger, Folketing og mandater</span>
           </div>
         </button>
-        <button class="ob-choice" onclick="VG.onboarding.hide('demokrati')">
-          <div class="ob-choice-icon">🗳</div>
+        <button class="ob-choice" onclick="VG.onboarding.hide('oekonomi')">
+          <div class="ob-choice-icon">💰</div>
           <div class="ob-choice-text">
-            <strong>Din stemme</strong>
-            <span>Borgerforslag, demokratiguide og skatteberegner</span>
+            <strong>Økonomi</strong>
+            <span>Statsbudget, udgifter, indtægter og fremskrivninger</span>
           </div>
         </button>
       </div>

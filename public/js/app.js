@@ -253,44 +253,43 @@ document.addEventListener('DOMContentLoaded', () => {
   VG.bootstrap();
 
   const GROUPS = {
-    oversigt:  { label: 'Oversigt', tabs: [
-      { id: 'overview', label: 'Oversigt' },
-      { id: 'energi',   label: '⚡ Energi' }
+    personligt: { label: '👤 Personligt', tabs: [
+      { id: 'borger',           label: '🧮 Skatteberegner' },
+      { id: 'bolig',            label: '🏠 Boligberegner' },
+      { id: 'pension',          label: '💼 Pensionsberegner' },
+      { id: 'ventetider',       label: '⏳ Ventetider' },
+      { id: 'dsb',              label: '🚂 Transport' },
+      { id: 'aeldrepleje',      label: '👴 Ældrepleje' },
+      { id: 'elpris',           label: '⚡ El-priser' },
     ]},
-    parti:     { label: '⭐ Mit Parti', tabs: [
-      { id: 'platform',    label: '⭐ Mit Parti' },
-      { id: 'party',       label: '🗳 Borgerstemmer' },
-      { id: 'partier',     label: '📊 Partier' }
+    samfund: { label: '🌍 Samfund', tabs: [
+      { id: 'overview',         label: 'Oversigt' },
+      { id: 'demographics',     label: '📊 Demografi' },
+      { id: 'kommuner',         label: '🏘 Kommuner' },
+      { id: 'sundhed',          label: '🏥 Sundhed' },
+      { id: 'forbrug',          label: '🛍 Forbrug' },
+      { id: 'energi',           label: '⚡ Energi' },
+      { id: 'ledighed',         label: '📉 Ledighed' },
     ]},
-    budget: { label: '💰 Budget', tabs: [
-      { id: 'policy',     label: 'Økonomi & Politik' },
-      { id: 'spending',   label: 'Udgifter' },
-      { id: 'revenue',    label: 'Indtægter' },
-      { id: 'projection', label: 'Fremskrivning' },
-      { id: 'historik',   label: '📈 Historik' },
-      { id: 'scenarios',  label: 'Scenarier' }
+    politik: { label: '🏛 Politik', tabs: [
+      { id: 'platform',         label: '⭐ Mit Parti' },
+      { id: 'party',            label: '🗳 Borgerstemmer' },
+      { id: 'partier',          label: '📊 Partier' },
+      { id: 'regering',         label: '🏛 Regering' },
+      { id: 'folketing',        label: 'Folketing' },
+      { id: 'mandater',         label: '🧮 Mandater' },
+      { id: 'valgkort',         label: '🗺 Valgkort' },
+      { id: 'meningsmaalinger', label: '📊 Meningsmålinger' },
     ]},
-    folketing: { label: '🏛 Folketing', tabs: [
-      { id: 'regering',     label: 'Regering' },
-      { id: 'folketing',    label: 'Folketing' },
-      { id: 'mandater',     label: '🧮 Mandater' },
-      { id: 'valgkort',     label: '🗺 Valgkort' },
-      { id: 'kommuner',     label: '🏘 Kommuner' },
-      { id: 'demographics', label: 'Demografi' }
+    oekonomi: { label: '💰 Økonomi', tabs: [
+      { id: 'rygter',           label: '📰 Nyheder & Analyse' },
+      { id: 'policy',           label: 'Økonomi & Politik' },
+      { id: 'spending',         label: 'Udgifter' },
+      { id: 'revenue',          label: 'Indtægter' },
+      { id: 'projection',       label: 'Fremskrivning' },
+      { id: 'historik',         label: '📈 Historik' },
+      { id: 'scenarios',        label: 'Scenarier' },
     ]},
-    demokrati: { label: '🇩🇰 Demokrati', tabs: [
-      { id: 'borger',  label: 'Din stemme' },
-      { id: 'sundhed', label: '🏥 Sundhed' },
-      { id: 'forbrug', label: '🛍 Forbrug' },
-      { id: 'rygter',  label: '📰 Politiske rygter' }
-    ]},
-    hverdag: { label: '🏠 Hverdag', tabs: [
-      { id: 'bolig',       label: '🏠 Boligberegner' },
-      { id: 'pension',     label: '💼 Pension' },
-      { id: 'ventetider',  label: '⏳ Ventetider' },
-      { id: 'dsb',         label: '🚂 Transport' },
-      { id: 'aeldrepleje', label: '👴 Ældrepleje' }
-    ]}
   };
 
   function switchTab(tabId) {

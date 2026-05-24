@@ -567,6 +567,9 @@ VG.render.fast = function() {
       if (tab === 'ventetider')   VG.render.ventetider();
       if (tab === 'dsb')          VG.render.dsb();
       if (tab === 'aeldrepleje')  VG.render.aeldrepleje();
+      if (tab === 'elpris')            VG.render.elpris();
+      if (tab === 'ledighed')          VG.render.ledighed();
+      if (tab === 'meningsmaalinger')  VG.meningsmaalinger.renderPanel();
     } catch (e) { console.error('[render] tab panel:', e); }
   }
   VG.bindControls();
@@ -1256,6 +1259,155 @@ VG.render.aeldrepleje = async function() {
   </div>
   <p class="data-note">${d.staffToResidentRatio.note}</p>
   <p class="data-note" style="margin-top:8px">${d.workforce.note}</p>
+</div>`;
+};
+
+VG.render.ledighed = async function() {
+  const panel = document.getElementById('panel-ledighed');
+  if (!panel) return;
+  if (panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="panel-loading">Henter ledighedsdata…</div>';
+
+  let d;
+  try { d = await fetch('/api/livedata/ledighed').then(r => r.json()); }
+  catch(e) { panel.innerHTML = '<div class="card"><p class="data-note">Kunne ikke hente data.</p></div>'; panel._loading = false; return; }
+  panel._loading = false;
+
+  const maxTrend = Math.max(...d.trend12m.map(t => t.pct));
+  const trendBars = d.trend12m.map(t => {
+    const h = Math.round(t.pct / (maxTrend + 1) * 80);
+    return `<div class="led-bar-col">
+      <div class="led-bar-fill" style="height:${h}px" title="${t.pct}%"></div>
+      <div class="led-bar-month">${t.month.slice(0,3)}</div>
+    </div>`;
+  }).join('');
+
+  const regionRows = d.byRegion.map(r => `
+    <div class="led-region-row">
+      <span class="led-region-name">${r.name}</span>
+      <div class="led-region-bar-track">
+        <div class="led-region-bar" style="width:${(r.pct/8*100).toFixed(0)}%"></div>
+      </div>
+      <span class="led-region-pct">${r.pct.toFixed(1)}%</span>
+    </div>`).join('');
+
+  const sectorRows = d.bySector.map(s => `
+    <div class="led-sector-row">
+      <span>${s.name}</span>
+      <strong>${s.pct.toFixed(1)}%</strong>
+    </div>`).join('');
+
+  panel.innerHTML = `<div class="card">
+  <h2>📉 Ledighed i Danmark</h2>
+  <p class="intro">Bruttoledighed — registrerede ledige og aktiverede. ${d.liveSource ? 'Live data fra Danmarks Statistik.' : 'Estimat baseret på DST-data.'}</p>
+
+  <div class="led-hero-grid">
+    <div class="led-hero-stat">
+      <div class="stat-label">National ledighed</div>
+      <div class="stat-num">${d.national.toFixed(1)}%</div>
+      <div class="stat-delta">af arbejdsstyrken</div>
+    </div>
+    <div class="led-hero-stat">
+      <div class="stat-label">Ungdomsledighed (15–29 år)</div>
+      <div class="stat-num">${d.youth.toFixed(1)}%</div>
+      <div class="stat-delta">dobbelt så høj som gennemsnit</div>
+    </div>
+    <div class="led-hero-stat">
+      <div class="stat-label">EU-gennemsnit</div>
+      <div class="stat-num">${d.context.euAvg.toFixed(1)}%</div>
+      <div class="stat-delta">Danmark under EU-snit</div>
+    </div>
+    <div class="led-hero-stat">
+      <div class="stat-label">Historisk lavpunkt</div>
+      <div class="stat-num">${d.context.low2022.toFixed(1)}%</div>
+      <div class="stat-delta">nået i 2022</div>
+    </div>
+  </div>
+
+  <h3>12-måneders trend</h3>
+  <div class="led-bar-chart">${trendBars}</div>
+
+  <div class="led-two-col">
+    <div>
+      <h3>Ledighed pr. region</h3>
+      <div class="led-regions">${regionRows}</div>
+    </div>
+    <div>
+      <h3>Ledighed pr. sektor</h3>
+      <div class="led-sectors">${sectorRows}</div>
+    </div>
+  </div>
+
+  <p class="data-note">Kilde: Danmarks Statistik — AULBM02. Opdateret månedligt. EU-tal fra Eurostat.</p>
+</div>`;
+};
+
+VG.render.elpris = async function() {
+  const panel = document.getElementById('panel-elpris');
+  if (!panel) return;
+  if (panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="panel-loading">Henter el-priser…</div>';
+
+  let d;
+  try { d = await fetch('/api/livedata/elpris').then(r => r.json()); }
+  catch(e) { panel.innerHTML = '<div class="card"><p class="data-note">Kunne ikke hente el-prisdata.</p></div>'; panel._loading = false; return; }
+  panel._loading = false;
+
+  const compBars = d.components.map(c => `
+    <div class="elpris-comp-row">
+      <span class="elpris-comp-name">${c.name}</span>
+      <div class="elpris-comp-track">
+        <div class="elpris-comp-fill" style="width:${c.pct}%"></div>
+      </div>
+      <span class="elpris-comp-val">${c.kr.toFixed(2)} kr./kWh (${c.pct}%)</span>
+    </div>`).join('');
+
+  const maxEu = Math.max(...d.euComparison.map(e => e.kr));
+  const euRows = d.euComparison.map(e => `
+    <div class="elpris-eu-row${e.country === 'Danmark' ? ' elpris-eu-highlight' : ''}">
+      <span class="elpris-eu-country">${e.country}</span>
+      <div class="elpris-eu-track">
+        <div class="elpris-eu-fill" style="width:${(e.kr/maxEu*100).toFixed(0)}%"></div>
+      </div>
+      <span class="elpris-eu-val">${e.kr.toFixed(2)} kr./kWh</span>
+    </div>`).join('');
+
+  panel.innerHTML = `<div class="card">
+  <h2>⚡ El-priser for husstande</h2>
+  <p class="intro">Hvad koster strømmen for en gennemsnitlig dansk husstand? ${d.liveSpot ? 'Spotpris er live fra Energidata.dk.' : 'Estimeret spotpris.'}</p>
+
+  <div class="elpris-hero-grid">
+    <div class="elpris-hero-stat">
+      <div class="stat-label">Samlet pris inkl. alt</div>
+      <div class="stat-num">${d.totalKwh.toFixed(2)} kr.</div>
+      <div class="stat-delta">pr. kWh</div>
+    </div>
+    <div class="elpris-hero-stat">
+      <div class="stat-label">Spotpris (marked)</div>
+      <div class="stat-num">${d.spotKwh.toFixed(2)} kr.</div>
+      <div class="stat-delta">pr. kWh${d.liveSpot ? ' · live' : ''}</div>
+    </div>
+    <div class="elpris-hero-stat">
+      <div class="stat-label">Månedlig regning</div>
+      <div class="stat-num">${d.monthlyHousehold} kr.</div>
+      <div class="stat-delta">ca. 350 kWh/mdr.</div>
+    </div>
+    <div class="elpris-hero-stat">
+      <div class="stat-label">Årsomkostning</div>
+      <div class="stat-num">${(d.annualHousehold/1000).toFixed(1)}k kr.</div>
+      <div class="stat-delta">ca. 4.200 kWh/år</div>
+    </div>
+  </div>
+
+  <h3>Hvad betaler du for?</h3>
+  <div class="elpris-comps">${compBars}</div>
+
+  <h3>Sammenligning med nabolande</h3>
+  <div class="elpris-eu">${euRows}</div>
+
+  <p class="data-note">Kilde: Energidata.dk (spotpris DK2) og Forsyningstilsynet (nettarif og afgifter). Priserne er inklusive moms og alle afgifter.</p>
 </div>`;
 };
 
