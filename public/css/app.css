@@ -47,6 +47,27 @@
   --shadow-sm:     0 1px 2px rgba(0,0,0,0.22);
 }
 
+/* Explicit light override — wins over system dark media query */
+[data-theme="light"] {
+  --bg:            #f0efec;
+  --surface:       #ffffff;
+  --surface-2:     #e8e7e4;
+  --surface-3:     #dddcda;
+  --text:          #0c0c0b;
+  --text-1:        #0c0c0b;
+  --text-2:        #514f4a;
+  --text-3:        #8e8c87;
+  --accent:        #0a6e78;
+  --accent-2:      #084f57;
+  --pos:           #9e2020;
+  --neg:           #0a6045;
+  --warn:          #a05810;
+  --border:        #d4d3d0;
+  --border-strong: #b0aeaa;
+  --shadow:        0 1px 4px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.04);
+  --shadow-sm:     0 1px 2px rgba(0,0,0,0.05);
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg:            #111110;
