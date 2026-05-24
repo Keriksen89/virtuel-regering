@@ -293,6 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 'medietillid',   label: '📰 Medie & Tillid' },
       { id: 'groenomstilling', label: '🌱 Grøn Omstilling' },
       { id: 'boligkrise',    label: '🏘 Boligkrise' },
+      { id: 'psykiatri',     label: '🧠 Psykiatri' },
+      { id: 'folkeskolen',   label: '🏫 Folkeskolen' },
+      { id: 'naturvand',     label: '🌊 Natur & Drikkevand' },
+      { id: 'integration',   label: '🌍 Integration' },
+      { id: 'forsvar',       label: '🛡️ Forsvar' },
     ]},
     politik: { label: '🏛 Politik', tabs: [
       { id: 'platform',         label: '⭐ Mit Parti' },

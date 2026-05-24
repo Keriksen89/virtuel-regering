@@ -1722,5 +1722,305 @@ router.get('/boligkrise', (req, res) => {
   res.json(data);
 });
 
+// ── psykiatri (mental health / psychiatry) ──────────────────────────────────
+
+router.get('/psykiatri', (req, res) => {
+  const cacheKey = 'livedata:psykiatri';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    liveSource: false,
+    avgWaitYears: 2.1,
+    specialistShortage: 444,
+    budgetPlanBn: 4.6,
+    adhdPer1000Children: 62,
+    waitByRegion: [
+      { region: 'Hovedstaden', years: 2.4 },
+      { region: 'Sjælland',    years: 1.8 },
+      { region: 'Syddanmark',  years: 2.1 },
+      { region: 'Midtjylland', years: 1.9 },
+      { region: 'Nordjylland', years: 1.6 },
+    ],
+    adhdTrend: [
+      { year: 2015, diagnosed: 12400 },
+      { year: 2016, diagnosed: 13800 },
+      { year: 2017, diagnosed: 15200 },
+      { year: 2018, diagnosed: 16900 },
+      { year: 2019, diagnosed: 18100 },
+      { year: 2020, diagnosed: 19400 },
+      { year: 2021, diagnosed: 21200 },
+      { year: 2022, diagnosed: 23800 },
+      { year: 2023, diagnosed: 26100 },
+      { year: 2024, diagnosed: 28400 },
+    ],
+    conditionBreakdown: [
+      { name: 'Depression',        pct: 8.3 },
+      { name: 'Angst',             pct: 9.1 },
+      { name: 'ADHD',              pct: 5.2 },
+      { name: 'Spiseforstyrrelser',pct: 1.8 },
+      { name: 'Psykose',           pct: 1.2 },
+    ],
+    intlComparison: [
+      { country: 'DK',    per100k: 18 },
+      { country: 'SE',    per100k: 28 },
+      { country: 'NO',    per100k: 30 },
+      { country: 'DE',    per100k: 27 },
+      { country: 'EU snit',per100k: 22 },
+    ],
+    keyFact: '70% af børnepsykiatrikurser overholdt IKKE den lovpligtige 30-dages frist (2025)',
+    legalTimeline: 'Fra 1. jan 2026: max 30 dage til udredning, 60 dage til fuld evaluering',
+    source: 'Sundhedsstyrelsen, Psykiatriudvalget 2024, Regionernes data 2025',
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── folkeskolen (public school crisis) ──────────────────────────────────────
+
+router.get('/folkeskolen', (req, res) => {
+  const cacheKey = 'livedata:folkeskolen';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    liveSource: false,
+    outsideFolkeskolePct: 26.0,
+    privateSectorSharePct: 18.4,
+    specialNeedsArrangePct: 21.0,
+    avgClassSize: 21.3,
+    teacherShortage: 3200,
+    outsideTrend: [
+      { year: 2008, pct: 19.5 },
+      { year: 2012, pct: 21.2 },
+      { year: 2016, pct: 22.8 },
+      { year: 2018, pct: 23.6 },
+      { year: 2020, pct: 24.1 },
+      { year: 2022, pct: 25.0 },
+      { year: 2024, pct: 26.0 },
+    ],
+    schoolTypeBreakdown: [
+      { type: 'Folkeskole',          pct: 74.0 },
+      { type: 'Friskole/privatskole',pct: 18.4 },
+      { type: 'Specialskole',        pct:  3.2 },
+      { type: 'Hjemmeundervisning',  pct:  0.8 },
+      { type: 'Øvrig',               pct:  3.6 },
+    ],
+    wellbeingTrend: [
+      { year: 2018, score: 3.72 },
+      { year: 2019, score: 3.70 },
+      { year: 2020, score: 3.68 },
+      { year: 2021, score: 3.65 },
+      { year: 2022, score: 3.63 },
+      { year: 2023, score: 3.61 },
+      { year: 2024, score: 3.59 },
+      { year: 2025, score: 3.60 },
+    ],
+    violenceTrend: [
+      { year: 2019, per: 4.2 },
+      { year: 2021, per: 5.8 },
+      { year: 2023, per: 7.4 },
+      { year: 2025, per: 8.9 },
+    ],
+    teacherRetention: [
+      { year: 2015, pct: 24 },
+      { year: 2020, pct: 29 },
+      { year: 2024, pct: 33 },
+    ],
+    pisaTrend: [
+      { year: 2006, reading: 494 },
+      { year: 2009, reading: 495 },
+      { year: 2012, reading: 496 },
+      { year: 2015, reading: 500 },
+      { year: 2018, reading: 501 },
+      { year: 2022, reading: 489 },
+    ],
+    keyFact: 'Danmark bruger 8,2% af BNP på uddannelse — alligevel forlader 1 af 4 elever folkeskolen',
+    source: 'UVM Skolestatistik 2024, PISA 2022, EVA trivselsundersøgelse',
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── naturvand (nature & drinking water) ────────────────────────────────────
+
+router.get('/naturvand', (req, res) => {
+  const cacheKey = 'livedata:naturvand';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    liveSource: false,
+    pigCount: 14800000,
+    pigPerPerson: 2.6,
+    waterExceedingNitratePct: 38,
+    groundwaterAtRiskPct: 31,
+    wellsClosedSince2000: 3200,
+    nitrateLimit: 50,
+    nitrateTrend: [
+      { year: 2000, mgl: 28 },
+      { year: 2005, mgl: 31 },
+      { year: 2010, mgl: 33 },
+      { year: 2015, mgl: 35 },
+      { year: 2020, mgl: 37 },
+      { year: 2024, mgl: 39 },
+    ],
+    natureAreaPct: 14.2,
+    euNatureTarget2030Pct: 30,
+    protectedNaturePct: 10.8,
+    agriLandPct: 62,
+    biodiversityAtRiskPct: 42,
+    criticallyEndangeredPct: 15,
+    pesticideSamplesPct: 47,
+    wetlandRestoredHa: 28400,
+    wetlandTargetHa: 140000,
+    pigDensityByRegion: [
+      { region: 'Jylland Vest', per_km2: 284 },
+      { region: 'Fyn',          per_km2: 198 },
+      { region: 'Sjælland',     per_km2:  42 },
+      { region: 'Bornholm',     per_km2:  18 },
+    ],
+    wellClosuresTrend: [
+      { year: 2010, closures: 180 },
+      { year: 2015, closures: 240 },
+      { year: 2020, closures: 310 },
+      { year: 2024, closures: 380 },
+    ],
+    source: 'GEUS Grundvand 2024, Naturstyrelsen, Miljøministeriet, EU Habitatdirektiv',
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── integration ─────────────────────────────────────────────────────────────
+
+router.get('/integration', (req, res) => {
+  const cacheKey = 'livedata:integration';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    liveSource: false,
+    immigrantsDescendantsPct: 15.2,
+    nonWesternPct: 9.3,
+    annualNetImmigration: 62000,
+    asylumGranted2024: 4800,
+    employmentByOrigin: [
+      { group: 'Dansk oprindelse',     pct: 76.8 },
+      { group: 'Vestlig baggrund',     pct: 73.2 },
+      { group: 'Ikke-vestlig baggrund',pct: 56.4 },
+      { group: 'MENA-region',          pct: 48.1 },
+    ],
+    immigrationByType: [
+      { type: 'Arbejde',            pct: 38 },
+      { type: 'Familiesammenføring',pct: 24 },
+      { type: 'Studie',             pct: 21 },
+      { type: 'Asyl',               pct:  7 },
+      { type: 'Øvrig',              pct: 10 },
+    ],
+    geographicConcentration: [
+      { city: 'København',      pct: 18.4 },
+      { city: 'Aarhus',         pct: 14.2 },
+      { city: 'Odense',         pct: 13.8 },
+      { city: 'DK i alt',       pct:  9.3 },
+    ],
+    languageTestPass: [
+      { year: 2015, pct: 38 },
+      { year: 2018, pct: 42 },
+      { year: 2021, pct: 44 },
+      { year: 2024, pct: 46 },
+    ],
+    integrationSpendingPerPerson: 142000,
+    childrenExamPassPct: 68,
+    childrenOverallExamPassPct: 87,
+    crimeIndexNonWestern: 248,
+    crimeIndexControlled: 142,
+    nonWesternTrend: [
+      { year: 2010, count: 341000 },
+      { year: 2015, count: 402000 },
+      { year: 2018, count: 442000 },
+      { year: 2020, count: 466000 },
+      { year: 2022, count: 501000 },
+      { year: 2024, count: 524000 },
+    ],
+    source: 'DST Indvandrere i Danmark 2024, Styrelsen for International Rekruttering og Integration (SIRI)',
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── forsvar (defence & security) ────────────────────────────────────────────
+
+router.get('/forsvar', (req, res) => {
+  const cacheKey = 'livedata:forsvar';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    liveSource: false,
+    defenceSpendingPctGDP: 1.65,
+    natoTarget: 2.0,
+    dkTarget2033: 3.0,
+    defenceBudgetBn: 46.8,
+    militaryPersonnel: 23400,
+    reserveForces: 54000,
+    natoTimeline: [
+      { year: 2025, pct: 1.65 },
+      { year: 2026, pct: 1.90 },
+      { year: 2027, pct: 2.10 },
+      { year: 2028, pct: 2.40 },
+      { year: 2030, pct: 2.80 },
+      { year: 2033, pct: 3.00 },
+    ],
+    spendingTrend: [
+      { year: 2015, pct: 1.17 },
+      { year: 2017, pct: 1.20 },
+      { year: 2019, pct: 1.32 },
+      { year: 2021, pct: 1.35 },
+      { year: 2023, pct: 1.52 },
+      { year: 2025, pct: 1.65 },
+    ],
+    natoComparison: [
+      { country: 'Polen',  flag: '🇵🇱', pct: 4.12 },
+      { country: 'Estland',flag: '🇪🇪', pct: 3.43 },
+      { country: 'USA',    flag: '🇺🇸', pct: 3.38 },
+      { country: 'UK',     flag: '🇬🇧', pct: 2.33 },
+      { country: 'Tyskland',flag:'🇩🇪', pct: 2.12 },
+      { country: 'Danmark',flag: '🇩🇰', pct: 1.65 },
+      { country: 'Belgien',flag: '🇧🇪', pct: 1.30 },
+    ],
+    budgetBreakdown: [
+      { category: 'Personel',          pct: 41 },
+      { category: 'Materiel/anskaffelse',pct: 28 },
+      { category: 'Drift',             pct: 19 },
+      { category: 'F&U',               pct:  7 },
+      { category: 'Infrastruktur',     pct:  5 },
+    ],
+    cyberAttacksTrend: [
+      { year: 2021, attacks: 4200 },
+      { year: 2022, attacks: 6800 },
+      { year: 2023, attacks: 8400 },
+      { year: 2024, attacks: 11200 },
+    ],
+    cfcsThreatLevel: 'HØJ',
+    cfcsThreatSince: '2022',
+    ukraineSupport: 12.8,
+    source: 'Forsvarsministeriet 2025, NATO Defence Expenditure Report 2025, CFCS Trusselsvurdering 2024',
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
 export default router;
+
 

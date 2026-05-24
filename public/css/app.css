@@ -2745,3 +2745,61 @@ canvas { display: block; max-width: 100%; }
 .bk-city-table th { text-align:left; padding:6px 8px; border-bottom:2px solid var(--border); font-size:12px; color:var(--text-2); }
 .bk-city-table td { padding:6px 8px; border-bottom:1px solid var(--border); }
 .bk-source { font-size:11px; color:var(--text-3); margin-top:16px; border-top:1px solid var(--border); padding-top:8px; }
+
+/* ── Psykiatri ─────────────────────────────────────────────────────────── */
+.psy-hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.psy-callout { background:color-mix(in srgb, var(--pos) 12%, var(--surface-2)); border-left:4px solid var(--pos); border-radius:var(--radius); padding:10px 14px; font-size:13px; font-weight:600; margin-bottom:10px; }
+.psy-callout.psy-callout-info { background:color-mix(in srgb, var(--accent) 12%, var(--surface-2)); border-left-color:var(--accent); font-weight:400; }
+.psy-bars { display:flex; flex-direction:column; gap:6px; margin-bottom:20px; }
+.psy-bar-row { display:grid; grid-template-columns:130px 1fr 90px; align-items:center; gap:8px; font-size:12px; }
+.psy-bar-label { font-size:12px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.psy-bar-bg { background:var(--border); border-radius:4px; height:12px; overflow:hidden; }
+.psy-bar-fill { height:100%; border-radius:4px; transition:width .4s; }
+.psy-bar-val { font-size:12px; font-weight:600; text-align:right; }
+
+/* ── Folkeskolen ───────────────────────────────────────────────────────── */
+.fs-hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.fs-callout { background:color-mix(in srgb, var(--warn) 14%, var(--surface-2)); border-left:4px solid var(--warn); border-radius:var(--radius); padding:10px 14px; font-size:13px; margin-bottom:16px; }
+.fs-bars { display:flex; flex-direction:column; gap:6px; margin-bottom:20px; }
+.fs-bar-row { display:grid; grid-template-columns:150px 1fr 110px; align-items:center; gap:8px; font-size:12px; }
+.fs-bar-label { font-size:12px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fs-bar-bg { background:var(--border); border-radius:4px; height:12px; overflow:hidden; }
+.fs-bar-fill { height:100%; border-radius:4px; transition:width .4s; }
+.fs-bar-val { font-size:12px; font-weight:600; text-align:right; }
+
+/* ── Natur & Drikkevand ────────────────────────────────────────────────── */
+.nv-hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.nv-callout { background:color-mix(in srgb, var(--warn) 14%, var(--surface-2)); border-left:4px solid var(--warn); border-radius:var(--radius); padding:10px 14px; font-size:13px; margin-bottom:16px; }
+.nv-bars { display:flex; flex-direction:column; gap:6px; margin-bottom:20px; }
+.nv-bar-row { display:grid; grid-template-columns:130px 1fr 120px; align-items:center; gap:8px; font-size:12px; }
+.nv-bar-label { font-size:12px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nv-bar-bg { background:var(--border); border-radius:4px; height:12px; overflow:hidden; }
+.nv-bar-fill { height:100%; border-radius:4px; transition:width .4s; }
+.nv-bar-val { font-size:12px; font-weight:600; text-align:right; }
+.nv-nature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0; }
+.nv-nature-stat { background:var(--surface-2); border-radius:var(--radius); padding:12px 14px; }
+.nv-nature-num { font-size:1.6rem; font-weight:800; letter-spacing:-0.5px; }
+.nv-nature-label { font-size:11px; color:var(--text-2); margin-top:4px; }
+.nv-nature-label small { color:var(--text-3); }
+
+/* ── Integration ───────────────────────────────────────────────────────── */
+.int-hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.int-bars { display:flex; flex-direction:column; gap:6px; margin-bottom:20px; }
+.int-bar-row { display:grid; grid-template-columns:175px 1fr 60px; align-items:center; gap:8px; font-size:12px; }
+.int-bar-label { font-size:12px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.int-bar-bg { background:var(--border); border-radius:4px; height:12px; overflow:hidden; }
+.int-bar-fill { height:100%; border-radius:4px; transition:width .4s; }
+.int-bar-val { font-size:12px; font-weight:600; text-align:right; }
+.int-edu-callout { background:color-mix(in srgb, var(--accent) 12%, var(--surface-2)); border-left:4px solid var(--accent); border-radius:var(--radius); padding:10px 14px; font-size:13px; margin:12px 0; }
+.int-crime-callout { background:color-mix(in srgb, var(--warn) 12%, var(--surface-2)); border-left:4px solid var(--warn); border-radius:var(--radius); padding:10px 14px; font-size:13px; margin:12px 0; }
+
+/* ── Forsvar & Sikkerhed ───────────────────────────────────────────────── */
+.for-hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.for-callout { background:color-mix(in srgb, var(--pos) 12%, var(--surface-2)); border-left:4px solid var(--pos); border-radius:var(--radius); padding:10px 14px; font-size:13px; font-weight:600; margin-bottom:16px; }
+.for-bars { display:flex; flex-direction:column; gap:6px; margin-bottom:20px; }
+.for-bar-row { display:grid; grid-template-columns:150px 1fr 80px; align-items:center; gap:8px; font-size:12px; }
+.for-bar-label { font-size:12px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.for-bar-bg { background:var(--border); border-radius:4px; height:12px; overflow:hidden; }
+.for-bar-fill { height:100%; border-radius:4px; transition:width .4s; }
+.for-bar-val { font-size:12px; font-weight:600; text-align:right; }
+.for-greenland-box { background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; font-size:13px; margin-top:16px; line-height:1.5; }

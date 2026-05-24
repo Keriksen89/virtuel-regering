@@ -589,6 +589,11 @@ VG.render.fast = function() {
       if (tab === 'medietillid')   VG.render.medietillid();
       if (tab === 'groenomstilling') VG.render.groenomstilling();
       if (tab === 'boligkrise')    VG.render.boligkrise();
+      if (tab === 'psykiatri')    VG.render.psykiatri();
+      if (tab === 'folkeskolen')  VG.render.folkeskolen();
+      if (tab === 'naturvand')    VG.render.naturvand();
+      if (tab === 'integration')  VG.render.integration();
+      if (tab === 'forsvar')      VG.render.forsvar();
     } catch (e) { console.error('[render] tab panel:', e); }
   }
   VG.bindControls();
@@ -2832,5 +2837,408 @@ VG.render.boligkrise = async function() {
     </div>`;
   } catch(e) {
     panel.innerHTML = '<div class="panel-error">Kunne ikke hente data</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── psykiatri ────────────────────────────────────────────────────────────────
+VG.render.psykiatri = async function() {
+  const panel = document.getElementById('panel-psykiatri');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter psykiatridata…</div>';
+  try {
+    const d = await fetch('/api/livedata/psykiatri').then(r => r.json());
+
+    const waitBars = d.waitByRegion.map(r => {
+      const w = Math.round((r.years / 3.0) * 100);
+      return `<div class="psy-bar-row">
+        <span class="psy-bar-label">${r.region}</span>
+        <div class="psy-bar-bg"><div class="psy-bar-fill" style="width:${w}%;background:var(--pos)"></div></div>
+        <span class="psy-bar-val" style="color:var(--pos)">${r.years} år</span>
+      </div>`;
+    }).join('');
+
+    const adhdBars = d.adhdTrend.map(t => {
+      const w = Math.round((t.diagnosed / 30000) * 100);
+      return `<div class="psy-bar-row">
+        <span class="psy-bar-label">${t.year}</span>
+        <div class="psy-bar-bg"><div class="psy-bar-fill" style="width:${w}%;background:var(--accent)"></div></div>
+        <span class="psy-bar-val">${t.diagnosed.toLocaleString('da-DK')}</span>
+      </div>`;
+    }).join('');
+
+    const condRows = d.conditionBreakdown.map(c => {
+      const w = Math.round(c.pct * 8);
+      return `<div class="psy-bar-row">
+        <span class="psy-bar-label">${c.name}</span>
+        <div class="psy-bar-bg"><div class="psy-bar-fill" style="width:${w}%;background:var(--warn)"></div></div>
+        <span class="psy-bar-val">${c.pct}%</span>
+      </div>`;
+    }).join('');
+
+    const intlRows = d.intlComparison.map(c => {
+      const w = Math.round((c.per100k / 35) * 100);
+      const col = c.country === 'DK' ? 'var(--pos)' : 'var(--neg)';
+      return `<div class="psy-bar-row">
+        <span class="psy-bar-label">${c.country}</span>
+        <div class="psy-bar-bg"><div class="psy-bar-fill" style="width:${w}%;background:${col}"></div></div>
+        <span class="psy-bar-val" style="color:${col}">${c.per100k}</span>
+      </div>`;
+    }).join('');
+
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>🧠 Psykiatri</h2>
+      <p class="intro">Danmarks psykiatri er i krise. Mere end 2 års ventetid på specialist-behandling er nu normen. Kilde: ${d.source}</p>
+      <div class="psy-hero-grid">
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${d.avgWaitYears} år</div>Gns. ventetid psykiater</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${d.specialistShortage}</div>Manglende specialister</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--warn)">${d.budgetPlanBn} mia.</div>10-årsplan budget</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${d.adhdPer1000Children}/1000</div>ADHD-diagnoser (børn)</div>
+      </div>
+      <div class="psy-callout">⚠️ ${d.keyFact}</div>
+      <div class="psy-callout psy-callout-info">📋 ${d.legalTimeline}</div>
+      <h3>Ventetid på psykiater — pr. region (år)</h3>
+      <div class="psy-bars">${waitBars}</div>
+      <h3>ADHD-diagnoser hos børn (antal pr. år)</h3>
+      <div class="psy-bars">${adhdBars}</div>
+      <h3>Psykiske lidelser i befolkningen (%)</h3>
+      <div class="psy-bars">${condRows}</div>
+      <h3>Psykiatere pr. 100.000 indbyggere — internationalt</h3>
+      <div class="psy-bars">${intlRows}</div>
+      <p class="data-note">Kilde: ${d.source}</p>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente psykiatridata</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── folkeskolen ──────────────────────────────────────────────────────────────
+VG.render.folkeskolen = async function() {
+  const panel = document.getElementById('panel-folkeskolen');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter skoledata…</div>';
+  try {
+    const d = await fetch('/api/livedata/folkeskolen').then(r => r.json());
+
+    const outsideBars = d.outsideTrend.map(t => {
+      const w = Math.round((t.pct / 30) * 100);
+      return `<div class="fs-bar-row">
+        <span class="fs-bar-label">${t.year}</span>
+        <div class="fs-bar-bg"><div class="fs-bar-fill" style="width:${w}%;background:var(--pos)"></div></div>
+        <span class="fs-bar-val" style="color:var(--pos)">${t.pct}%</span>
+      </div>`;
+    }).join('');
+
+    const schoolTypeBars = d.schoolTypeBreakdown.map(s => {
+      const w = Math.round(s.pct * 1.2);
+      const col = s.type === 'Folkeskole' ? 'var(--neg)' : 'var(--accent)';
+      return `<div class="fs-bar-row">
+        <span class="fs-bar-label">${s.type}</span>
+        <div class="fs-bar-bg"><div class="fs-bar-fill" style="width:${w}%;background:${col}"></div></div>
+        <span class="fs-bar-val">${s.pct}%</span>
+      </div>`;
+    }).join('');
+
+    const wellbeingBars = d.wellbeingTrend.map(t => {
+      const w = Math.round((t.score / 5) * 100);
+      const col = t.score >= 3.70 ? 'var(--neg)' : t.score >= 3.62 ? 'var(--warn)' : 'var(--pos)';
+      return `<div class="fs-bar-row">
+        <span class="fs-bar-label">${t.year}</span>
+        <div class="fs-bar-bg"><div class="fs-bar-fill" style="width:${w}%;background:${col}"></div></div>
+        <span class="fs-bar-val" style="color:${col}">${t.score}</span>
+      </div>`;
+    }).join('');
+
+    const pisaBars = d.pisaTrend.map(t => {
+      const w = Math.round(((t.reading - 470) / 50) * 100);
+      const col = t.year === 2022 ? 'var(--pos)' : 'var(--accent)';
+      return `<div class="fs-bar-row">
+        <span class="fs-bar-label">${t.year}</span>
+        <div class="fs-bar-bg"><div class="fs-bar-fill" style="width:${Math.max(5,w)}%;background:${col}"></div></div>
+        <span class="fs-bar-val" style="color:${col}">${t.reading}${t.year === 2022 ? ' ⬇' : ''}</span>
+      </div>`;
+    }).join('');
+
+    const violBars = d.violenceTrend.map(t => {
+      const w = Math.round((t.per / 10) * 100);
+      return `<div class="fs-bar-row">
+        <span class="fs-bar-label">${t.year}</span>
+        <div class="fs-bar-bg"><div class="fs-bar-fill" style="width:${w}%;background:var(--warn)"></div></div>
+        <span class="fs-bar-val">${t.per} hændelser/skole</span>
+      </div>`;
+    }).join('');
+
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>🏫 Folkeskolen</h2>
+      <p class="intro">1 ud af 4 børn er nu udenfor folkeskolen. Trivslen falder, lærere forlader faget, og PISA 2022 viste det største fald i årtier. Kilde: ${d.source}</p>
+      <div class="fs-hero-grid">
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${d.outsideFolkeskolePct}%</div>Udenfor folkeskolen</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--warn)">${d.privateSectorSharePct}%</div>Privatskoleandel</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--warn)">${d.specialNeedsArrangePct}%</div>Særlige behov</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--accent)">${d.avgClassSize}</div>Gns. klassestr.</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${d.teacherShortage.toLocaleString('da-DK')}</div>Lærermangel</div>
+      </div>
+      <div class="fs-callout">📊 ${d.keyFact}</div>
+      <h3>Andel elever udenfor folkeskolen (%)</h3>
+      <div class="fs-bars">${outsideBars}</div>
+      <h3>Fordeling af skoletyper (klasse 0–9)</h3>
+      <div class="fs-bars">${schoolTypeBars}</div>
+      <h3>Trivselsscore (national gns., skala 1–5)</h3>
+      <div class="fs-bars">${wellbeingBars}</div>
+      <h3>Vold &amp; uro pr. skole pr. år</h3>
+      <div class="fs-bars">${violBars}</div>
+      <h3>PISA Læsning (dansk score)</h3>
+      <div class="fs-bars">${pisaBars}</div>
+      <p class="data-note">Kilde: ${d.source}</p>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente skoledata</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── naturvand ────────────────────────────────────────────────────────────────
+VG.render.naturvand = async function() {
+  const panel = document.getElementById('panel-naturvand');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter natur- og vanddata…</div>';
+  try {
+    const d = await fetch('/api/livedata/naturvand').then(r => r.json());
+
+    const nitrateBars = d.nitrateTrend.map(t => {
+      const w = Math.round((t.mgl / 55) * 100);
+      const col = t.mgl >= 38 ? 'var(--pos)' : t.mgl >= 33 ? 'var(--warn)' : 'var(--neg)';
+      return `<div class="nv-bar-row">
+        <span class="nv-bar-label">${t.year}</span>
+        <div class="nv-bar-bg"><div class="nv-bar-fill" style="width:${w}%;background:${col}"></div></div>
+        <span class="nv-bar-val" style="color:${col}">${t.mgl} mg/l${t.year === 2024 ? ' ⚠' : ''}</span>
+      </div>`;
+    }).join('');
+
+    const densityBars = d.pigDensityByRegion.map(r => {
+      const w = Math.round((r.per_km2 / 300) * 100);
+      return `<div class="nv-bar-row">
+        <span class="nv-bar-label">${r.region}</span>
+        <div class="nv-bar-bg"><div class="nv-bar-fill" style="width:${w}%;background:var(--warn)"></div></div>
+        <span class="nv-bar-val">${r.per_km2} grise/km²</span>
+      </div>`;
+    }).join('');
+
+    const wellBars = d.wellClosuresTrend.map(t => {
+      const w = Math.round((t.closures / 400) * 100);
+      return `<div class="nv-bar-row">
+        <span class="nv-bar-label">${t.year}</span>
+        <div class="nv-bar-bg"><div class="nv-bar-fill" style="width:${w}%;background:var(--pos)"></div></div>
+        <span class="nv-bar-val" style="color:var(--pos)">${t.closures} lukninger</span>
+      </div>`;
+    }).join('');
+
+    const wetlandPct = Math.round((d.wetlandRestoredHa / d.wetlandTargetHa) * 100);
+
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>🌊 Natur &amp; Drikkevand</h2>
+      <p class="intro">Svinelandbrug og nitratvand er blevet et af de største valgkampstemaer i 2026. Grundvandet nærmer sig EU's grænseværdi på 50 mg/l. Kilde: ${d.source}</p>
+      <div class="nv-hero-grid">
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${d.pigPerPerson}</div>Grise pr. dansker</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${(d.pigCount/1000000).toFixed(1)} mio.</div>Svin i Danmark</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${d.waterExceedingNitratePct}%</div>Vandløb over grænse</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--warn)">${d.groundwaterAtRiskPct}%</div>Grundvand i risiko</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${d.wellsClosedSince2000.toLocaleString('da-DK')}+</div>Brønde lukket (siden 2000)</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--warn)">${d.pesticideSamplesPct}%</div>Pesticider i grundvand</div>
+      </div>
+      <h3>Nitrat i grundvand (mg/l) — EU-grænse: 50 mg/l</h3>
+      <div class="nv-bars">${nitrateBars}</div>
+      <div class="nv-callout">🐷 ${d.agriLandPct}% af Danmarks areal er landbrugsjord — EU's højeste andel proportionalt</div>
+      <h3>Svinedensitet pr. region (grise/km²)</h3>
+      <div class="nv-bars">${densityBars}</div>
+      <h3>Vandborelukning pr. år</h3>
+      <div class="nv-bars">${wellBars}</div>
+      <div class="nv-nature-grid">
+        <div class="nv-nature-stat">
+          <div class="nv-nature-num" style="color:var(--pos)">${d.natureAreaPct}%</div>
+          <div class="nv-nature-label">Naturandel af DK<br><small>EU mål: ${d.euNatureTarget2030Pct}% i 2030</small></div>
+        </div>
+        <div class="nv-nature-stat">
+          <div class="nv-nature-num" style="color:var(--warn)">${d.biodiversityAtRiskPct}%</div>
+          <div class="nv-nature-label">Arter i risiko</div>
+        </div>
+        <div class="nv-nature-stat">
+          <div class="nv-nature-num" style="color:var(--accent)">${(d.wetlandRestoredHa/1000).toFixed(1)}k ha</div>
+          <div class="nv-nature-label">Vådområder genskabt<br><small>${wetlandPct}% af mål (${(d.wetlandTargetHa/1000).toFixed(0)}k ha)</small></div>
+        </div>
+      </div>
+      <p class="data-note">Kilde: ${d.source}</p>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente naturdata</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── integration ──────────────────────────────────────────────────────────────
+VG.render.integration = async function() {
+  const panel = document.getElementById('panel-integration');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter integrationsdata…</div>';
+  try {
+    const d = await fetch('/api/livedata/integration').then(r => r.json());
+
+    const emplBars = d.employmentByOrigin.map(e => {
+      const w = Math.round(e.pct);
+      const col = e.pct >= 74 ? 'var(--neg)' : e.pct >= 60 ? 'var(--warn)' : 'var(--pos)';
+      return `<div class="int-bar-row">
+        <span class="int-bar-label">${e.group}</span>
+        <div class="int-bar-bg"><div class="int-bar-fill" style="width:${w}%;background:${col}"></div></div>
+        <span class="int-bar-val" style="color:${col}">${e.pct}%</span>
+      </div>`;
+    }).join('');
+
+    const immigTypeBars = d.immigrationByType.map(t => {
+      const w = Math.round(t.pct * 2.2);
+      return `<div class="int-bar-row">
+        <span class="int-bar-label">${t.type}</span>
+        <div class="int-bar-bg"><div class="int-bar-fill" style="width:${w}%;background:var(--accent)"></div></div>
+        <span class="int-bar-val">${t.pct}%</span>
+      </div>`;
+    }).join('');
+
+    const geoBars = d.geographicConcentration.map(c => {
+      const w = Math.round((c.pct / 20) * 100);
+      const col = c.city === 'DK i alt' ? 'var(--accent)' : 'var(--warn)';
+      return `<div class="int-bar-row">
+        <span class="int-bar-label">${c.city}</span>
+        <div class="int-bar-bg"><div class="int-bar-fill" style="width:${w}%;background:${col}"></div></div>
+        <span class="int-bar-val">${c.pct}%</span>
+      </div>`;
+    }).join('');
+
+    const langBars = d.languageTestPass.map(t => {
+      const w = Math.round(t.pct);
+      return `<div class="int-bar-row">
+        <span class="int-bar-label">${t.year}</span>
+        <div class="int-bar-bg"><div class="int-bar-fill" style="width:${w}%;background:var(--neg)"></div></div>
+        <span class="int-bar-val" style="color:var(--neg)">${t.pct}%</span>
+      </div>`;
+    }).join('');
+
+    const trendBars = d.nonWesternTrend.map(t => {
+      const w = Math.round((t.count / 550000) * 100);
+      return `<div class="int-bar-row">
+        <span class="int-bar-label">${t.year}</span>
+        <div class="int-bar-bg"><div class="int-bar-fill" style="width:${w}%;background:var(--accent)"></div></div>
+        <span class="int-bar-val">${(t.count/1000).toFixed(0)}k</span>
+      </div>`;
+    }).join('');
+
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>🌍 Integration</h2>
+      <p class="intro">Integration er konsekvent top-3 i Ipsos bekymringsundersøgelser. Her er de faktiske data: beskæftigelse, uddannelse og geografi. Kilde: ${d.source}</p>
+      <div class="int-hero-grid">
+        <div class="stat-label"><div class="stat-num" style="color:var(--accent)">${d.immigrantsDescendantsPct}%</div>Indvandrere+efterkommere</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--warn)">${d.nonWesternPct}%</div>Ikke-vestlig baggrund</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--accent)">${d.annualNetImmigration.toLocaleString('da-DK')}</div>Netto-indvandring/år</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--accent)">${d.asylumGranted2024.toLocaleString('da-DK')}</div>Asyl bevilget (2024)</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--pos)">${d.integrationSpendingPerPerson.toLocaleString('da-DK')} kr</div>Integrationsudgift/pers.</div>
+      </div>
+      <h3>Beskæftigelsesfrekvens efter oprindelse (2024)</h3>
+      <div class="int-bars">${emplBars}</div>
+      <h3>Indvandring efter type (2024)</h3>
+      <div class="int-bars">${immigTypeBars}</div>
+      <h3>Ikke-vestlige indvandrere i storbyer (% af befolkning)</h3>
+      <div class="int-bars">${geoBars}</div>
+      <h3>Bestået danskprøve niveau 3 inden 3 år (%)</h3>
+      <div class="int-bars">${langBars}</div>
+      <h3>Ikke-vestlige indvandrere i DK (antal)</h3>
+      <div class="int-bars">${trendBars}</div>
+      <div class="int-edu-callout">
+        <strong>Uddannelse:</strong> ${d.childrenExamPassPct}% af børn med ikke-vestlig baggrund gennemfører 9. klasses afgangsprøve (vs. ${d.childrenOverallExamPassPct}% for alle elever)
+      </div>
+      <div class="int-crime-callout">
+        <strong>Kriminalitetsindeks ikke-vestlig baggrund:</strong> ${d.crimeIndexNonWestern} (indeks 100 = gennemsnit). Kontrolleret for socioøkonomiske faktorer: ${d.crimeIndexControlled}
+      </div>
+      <p class="data-note">Kilde: ${d.source}</p>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente integrationsdata</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── forsvar ──────────────────────────────────────────────────────────────────
+VG.render.forsvar = async function() {
+  const panel = document.getElementById('panel-forsvar');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter forsvarsdata…</div>';
+  try {
+    const d = await fetch('/api/livedata/forsvar').then(r => r.json());
+
+    const timelineBars = d.natoTimeline.map(t => {
+      const w = Math.round((t.pct / 4.5) * 100);
+      const col = t.pct >= 2.0 ? 'var(--neg)' : t.pct >= 1.9 ? 'var(--warn)' : 'var(--pos)';
+      return `<div class="for-bar-row">
+        <span class="for-bar-label">${t.year}</span>
+        <div class="for-bar-bg"><div class="for-bar-fill" style="width:${w}%;background:${col}"></div></div>
+        <span class="for-bar-val" style="color:${col}">${t.pct}% BNP</span>
+      </div>`;
+    }).join('');
+
+    const natoRows = d.natoComparison.map(c => {
+      const w = Math.round((c.pct / 4.5) * 100);
+      const col = c.country === 'Danmark' ? 'var(--warn)' : c.pct >= 2.0 ? 'var(--neg)' : 'var(--accent)';
+      return `<div class="for-bar-row">
+        <span class="for-bar-label">${c.flag} ${c.country}</span>
+        <div class="for-bar-bg"><div class="for-bar-fill" style="width:${w}%;background:${col}"></div></div>
+        <span class="for-bar-val" style="color:${col}">${c.pct}%</span>
+      </div>`;
+    }).join('');
+
+    const budgetRows = d.budgetBreakdown.map(b => {
+      const w = Math.round(b.pct * 2);
+      return `<div class="for-bar-row">
+        <span class="for-bar-label">${b.category}</span>
+        <div class="for-bar-bg"><div class="for-bar-fill" style="width:${w}%;background:var(--accent)"></div></div>
+        <span class="for-bar-val">${b.pct}%</span>
+      </div>`;
+    }).join('');
+
+    const cyberBars = d.cyberAttacksTrend.map(t => {
+      const w = Math.round((t.attacks / 12000) * 100);
+      return `<div class="for-bar-row">
+        <span class="for-bar-label">${t.year}</span>
+        <div class="for-bar-bg"><div class="for-bar-fill" style="width:${w}%;background:var(--pos)"></div></div>
+        <span class="for-bar-val" style="color:var(--pos)">${t.attacks.toLocaleString('da-DK')}</span>
+      </div>`;
+    }).join('');
+
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>🛡️ Forsvar &amp; Sikkerhed</h2>
+      <p class="intro">Grønland, Rusland og NATO. Danmark øger forsvarsbudgettet markant — fra 1,65% til 3% af BNP inden 2033. Kilde: ${d.source}</p>
+      <div class="for-hero-grid">
+        <div class="stat-label"><div class="stat-num" style="color:var(--warn)">${d.defenceSpendingPctGDP}%</div>Forsvar % BNP (nu)</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--neg)">${d.dkTarget2033}%</div>DK-mål 2033</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--accent)">${d.defenceBudgetBn} mia.</div>Forsvarsbudget 2025</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--accent)">${d.militaryPersonnel.toLocaleString('da-DK')}</div>Aktive militærpersoner</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--accent)">${d.reserveForces.toLocaleString('da-DK')}</div>Reservestyrke</div>
+        <div class="stat-label"><div class="stat-num" style="color:var(--warn)">${d.ukraineSupport} mia.</div>Ukraine-støtte (pledget)</div>
+      </div>
+      <div class="for-callout">🔴 CFCS-trusselsniveau: <strong>${d.cfcsThreatLevel}</strong> (siden ${d.cfcsThreatSince}) — Cybertruslen mod Danmark er vedvarende og alvorlig</div>
+      <h3>Danmarks vej mod NATO 3%-mål (% BNP)</h3>
+      <div class="for-bars">${timelineBars}</div>
+      <h3>NATO-allierede — forsvarsudgifter (% BNP, 2025)</h3>
+      <div class="for-bars">${natoRows}</div>
+      <h3>Forsvarsbudget fordeling</h3>
+      <div class="for-bars">${budgetRows}</div>
+      <h3>Cyberangreb mod dansk infrastruktur pr. år</h3>
+      <div class="for-bars">${cyberBars}</div>
+      <div class="for-greenland-box">
+        <strong>🏔 Grønland</strong><br>
+        Strategisk vigtigt: US-base (Pituffik/Thule), Arktiske søveje åbner, dansk militær tilstedeværelse.
+        Grønlands ressourcer og placering giver Danmark og NATO en nøgleposition i Arktis.
+      </div>
+      <p class="data-note">Kilde: ${d.source}</p>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente forsvarsdata</div>';
   } finally { panel._loading = false; }
 };
