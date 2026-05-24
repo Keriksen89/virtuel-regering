@@ -375,6 +375,9 @@ document.addEventListener('DOMContentLoaded', () => {
   switchGroup('samfund');
   window.__switchGroup = switchGroup; // allow onboarding to navigate
   window.__switchTab = switchTab;
+  window.__goHome = function() {
+    switchGroup('samfund');
+  };
   VG.onboarding.init();
 
   document.getElementById('btn-reset').addEventListener('click', () => {
