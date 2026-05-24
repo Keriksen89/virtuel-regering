@@ -1337,4 +1337,390 @@ router.get('/innovation', async (req, res) => {
   res.json(data);
 });
 
+// ── folkesundhed (public health detail) ────────────────────────────────────
+
+router.get('/folkesundhed', async (req, res) => {
+  const cacheKey = 'livedata:folkesundhed';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  let sickLeave = null;
+  try {
+    const dst = await fetchJSON('https://api.statbank.dk/v1/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'SYGE33', format: 'JSON-STAT2',
+        variables: [{ code: 'Tid', values: ['-1'] }] })
+    });
+    if (dst && dst.value) sickLeave = dst.value[dst.value.length - 1];
+  } catch (e) { console.warn('[livedata/folkesundhed] DST SYGE33 failed:', e.message); }
+
+  const data = {
+    liveSource: sickLeave != null,
+    lifeExpectancy: { men: 79.5, women: 83.8, total: 81.7 },
+    sickLeavePerEmployee: sickLeave ?? 11.2,
+    sickLeaveBySector: [
+      { sector: 'Offentlig forvaltning', days: 14.1 },
+      { sector: 'Social- og sundhedsvæsen', days: 13.4 },
+      { sector: 'Undervisning', days: 12.8 },
+      { sector: 'Privat service', days: 9.6 },
+      { sector: 'Industri', days: 9.1 },
+      { sector: 'Bygge og anlæg', days: 8.2 },
+      { sector: 'IT og finans', days: 7.4 },
+    ],
+    kramFactors: [
+      { name: 'Kost (møder anbefaling)', pct: 16.0 },
+      { name: 'Rygning (aldrig/eks)', pct: 75.0 },
+      { name: 'Alkohol (under grænse)', pct: 84.0 },
+      { name: 'Motion (møder anbefaling)', pct: 64.0 },
+    ],
+    mentalHealth: {
+      anxietyPct: 10.1,
+      depressionPct: 8.2,
+      stressPct: 21.0,
+      burnoutPct: 15.0,
+      trend: [
+        { year: 2010, anxietyPct: 7.2, stressPct: 16.4 },
+        { year: 2013, anxietyPct: 8.0, stressPct: 17.8 },
+        { year: 2017, anxietyPct: 9.1, stressPct: 19.6 },
+        { year: 2021, anxietyPct: 9.8, stressPct: 20.5 },
+        { year: 2024, anxietyPct: 10.1, stressPct: 21.0 },
+      ]
+    },
+    obesity: { pct: 17.8, euAvg: 17.0 },
+    cancerIncidence: { per100k: 482, euAvg: 441 },
+    smokingPct: 12.5,
+    alcoholLiters: 9.8,
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── ligestilling (gender equality) ─────────────────────────────────────────
+
+router.get('/ligestilling', (req, res) => {
+  const cacheKey = 'livedata:ligestilling';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    wageGapUnadjusted: 14.0,
+    wageGapAdjusted: 6.0,
+    womenOnBoards: 29.0,
+    womenInParliament: 44.0,
+    womenInManagement: 28.0,
+    parentalLeaveSplit: { mothers: 75.0, fathers: 25.0 },
+    employmentGap: { men: 74.2, women: 69.8 },
+    educationCompletion: {
+      higherEdWomen: 43.2,
+      higherEdMen: 31.4,
+    },
+    nordicComparison: [
+      { country: 'Island',  womenParl: 47.6, wageGap: 10.2, boards: 43.0 },
+      { country: 'Sverige', womenParl: 46.4, wageGap: 11.8, boards: 35.0 },
+      { country: 'Finland', womenParl: 46.0, wageGap: 15.1, boards: 31.0 },
+      { country: 'Danmark', womenParl: 44.0, wageGap: 14.0, boards: 29.0 },
+      { country: 'Norge',   womenParl: 45.4, wageGap: 13.2, boards: 40.0 },
+    ],
+    wageGapTrend: [
+      { year: 2000, unadjusted: 20.1 }, { year: 2005, unadjusted: 18.4 },
+      { year: 2010, unadjusted: 17.2 }, { year: 2015, unadjusted: 15.8 },
+      { year: 2019, unadjusted: 14.8 }, { year: 2022, unadjusted: 14.2 },
+      { year: 2024, unadjusted: 14.0 },
+    ],
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── velfærdsstat (welfare state comparison) ─────────────────────────────────
+
+router.get('/velfaerdsstat', (req, res) => {
+  const cacheKey = 'livedata:velfaerdsstat';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    countries: [
+      { name: 'Danmark',  healthPctGDP: 10.5, pensionReplace: 62, unemplCoverage: 90, socialSpendPct: 28.3, giniAfter: 28.9, publicEmpPct: 29.0, score: 88 },
+      { name: 'Sverige',  healthPctGDP: 10.9, pensionReplace: 58, unemplCoverage: 80, socialSpendPct: 25.4, giniAfter: 27.6, publicEmpPct: 28.0, score: 85 },
+      { name: 'Norge',    healthPctGDP: 10.2, pensionReplace: 60, unemplCoverage: 62, socialSpendPct: 24.8, giniAfter: 25.0, publicEmpPct: 30.0, score: 87 },
+      { name: 'Finland',  healthPctGDP:  9.6, pensionReplace: 56, unemplCoverage: 60, socialSpendPct: 29.1, giniAfter: 27.7, publicEmpPct: 25.0, score: 83 },
+      { name: 'Tyskland', healthPctGDP: 12.7, pensionReplace: 53, unemplCoverage: 67, socialSpendPct: 26.7, giniAfter: 31.7, publicEmpPct: 15.0, score: 76 },
+      { name: 'UK',       healthPctGDP: 11.3, pensionReplace: 29, unemplCoverage: 30, socialSpendPct: 20.6, giniAfter: 35.1, publicEmpPct: 17.0, score: 62 },
+    ],
+    dkHighlights: {
+      healthcare: { pctGDP: 10.5, note: 'Skattefinansieret, universel adgang' },
+      pension: { replacementRate: 62, note: 'Folkepension + ATP + arbejdsgiver' },
+      unemployment: { coveragePct: 90, durationYears: 2, note: 'Dagpenge op til 2 år' },
+      childcare: { coveragePct: 96, parentContribPct: 25, note: '96% af børn i daginstitution' },
+    },
+    giniBeforeAfter: [
+      { country: 'Danmark',  before: 47.2, after: 28.9, reduction: 18.3 },
+      { country: 'Sverige',  before: 44.8, after: 27.6, reduction: 17.2 },
+      { country: 'Norge',    before: 43.1, after: 25.0, reduction: 18.1 },
+      { country: 'Finland',  before: 50.3, after: 27.7, reduction: 22.6 },
+      { country: 'Tyskland', before: 50.1, after: 31.7, reduction: 18.4 },
+      { country: 'UK',       before: 51.8, after: 35.1, reduction: 16.7 },
+    ],
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── generationsregnskab (generational accounting) ───────────────────────────
+
+router.get('/generationsregnskab', (req, res) => {
+  const cacheKey = 'livedata:generationsregnskab';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    cohorts: [
+      { age: '0–17',  netPerPerson: -142000, taxes: 18000,  transfers: 98000, services: 62000, note: 'Skole, daginstitution, børneydelser' },
+      { age: '18–29', netPerPerson:  -28000, taxes: 89000,  transfers: 42000, services: 75000, note: 'SU, studietilbud, dagpenge' },
+      { age: '30–44', netPerPerson:  124000, taxes: 248000, transfers: 28000, services: 96000, note: 'Primær nettoindbetalingsgruppe' },
+      { age: '45–59', netPerPerson:  168000, taxes: 298000, transfers: 32000, services: 98000, note: 'Højeste nettoindbetalere' },
+      { age: '60–74', netPerPerson:  -38000, taxes: 112000, transfers: 88000, services: 62000, note: 'Overgang til pension' },
+      { age: '75+',   netPerPerson: -198000, taxes:  28000, transfers: 148000,services: 78000, note: 'Folkepension + ældrepleje' },
+    ],
+    lifetimeContribution: { netDKK: 1820000, note: 'Gennemsnitlig livstids nettobidrag pr. person' },
+    dependencyRatioTrend: [
+      { year: 2000, ratio: 48.2 }, { year: 2005, ratio: 47.8 },
+      { year: 2010, ratio: 51.4 }, { year: 2015, ratio: 54.2 },
+      { year: 2020, ratio: 55.8 }, { year: 2025, ratio: 57.4 },
+      { year: 2030, ratio: 60.1, forecast: true }, { year: 2035, ratio: 63.8, forecast: true },
+      { year: 2040, ratio: 67.2, forecast: true },
+    ],
+    currentDependencyRatio: 57.4,
+    note: 'Forsørgerbyrde = antal 0-17 og 65+ pr. 100 i arbejdsstyrken. Kilde: DST/FM generationsregnskab 2024.',
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── arbejdsmiljø (work environment) ─────────────────────────────────────────
+
+router.get('/arbejdsmiljoe', (req, res) => {
+  const cacheKey = 'livedata:arbejdsmiljoe';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    nationalAvgSickDays: 11.2,
+    stressPct: 21.0,
+    burnoutPct: 15.0,
+    accidentsPer1000: 18.4,
+    avgOvertimeHrsWeek: 1.8,
+    jobSatisfaction: 7.4,
+    euWorkLifeRank: 3,
+    sectorSickLeave: [
+      { sector: 'Offentlig forvaltning',        days: 14.1 },
+      { sector: 'Social- og sundhedsvæsen',      days: 13.4 },
+      { sector: 'Undervisning',                  days: 12.8 },
+      { sector: 'Landbrug & fiskeri',            days: 10.2 },
+      { sector: 'Privat service & handel',       days: 9.6 },
+      { sector: 'Industri',                      days: 9.1 },
+      { sector: 'Bygge og anlæg',                days: 8.2 },
+      { sector: 'IT, finans & rådgivning',       days: 7.4 },
+    ],
+    stressTrend: [
+      { year: 2010, stressPct: 14.0, burnoutPct: 9.0 },
+      { year: 2013, stressPct: 16.0, burnoutPct: 10.2 },
+      { year: 2016, stressPct: 18.4, burnoutPct: 12.1 },
+      { year: 2019, stressPct: 20.2, burnoutPct: 13.8 },
+      { year: 2022, stressPct: 21.0, burnoutPct: 14.8 },
+      { year: 2024, stressPct: 21.0, burnoutPct: 15.0 },
+    ],
+    euComparison: [
+      { country: 'Danmark', rank: 3, jobSat: 7.4, stressPct: 21 },
+      { country: 'Sverige', rank: 2, jobSat: 7.6, stressPct: 19 },
+      { country: 'Finland', rank: 1, jobSat: 7.8, stressPct: 18 },
+      { country: 'Norge',   rank: 4, jobSat: 7.3, stressPct: 22 },
+      { country: 'EU-snit', rank: null, jobSat: 6.8, stressPct: 27 },
+    ],
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── medietillid (media trust) ────────────────────────────────────────────────
+
+router.get('/medietillid', (req, res) => {
+  const cacheKey = 'livedata:medietillid';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    institutionTrust: [
+      { name: 'Sundhedsvæsen',      pct: 88 },
+      { name: 'Politi',             pct: 79 },
+      { name: 'Retsvæsen',          pct: 68 },
+      { name: 'Regering',           pct: 52 },
+      { name: 'Medier',             pct: 52 },
+      { name: 'EU',                 pct: 48 },
+      { name: 'Folketing',          pct: 47 },
+      { name: 'Sociale medier',     pct: 14 },
+    ],
+    pressFreedomRank: 3,
+    pressFreedomScore: 87.4,
+    nordicPressFreedom: [
+      { country: 'Norge',    rank: 1, score: 92.5 },
+      { country: 'Finland',  rank: 2, score: 89.8 },
+      { country: 'Danmark',  rank: 3, score: 87.4 },
+      { country: 'Sverige',  rank: 4, score: 86.1 },
+      { country: 'Island',   rank: 5, score: 84.2 },
+    ],
+    mediaConsumption: {
+      tvHrsDay: 2.8,
+      onlineHrsDay: 4.1,
+      radioHrsDay: 1.2,
+      printHrsDay: 0.4,
+    },
+    newsSource: [
+      { source: 'TV (DR/TV2)',         pct: 68 },
+      { source: 'Online nyhedsmedier', pct: 72 },
+      { source: 'Sociale medier',      pct: 48 },
+      { source: 'Radio',               pct: 42 },
+      { source: 'Aviser (print)',       pct: 18 },
+    ],
+    publicVsPrivate: { publicPct: 58, privatePct: 42 },
+    factCheckAwareness: 62.0,
+    trustTrend: [
+      { year: 2016, mediaPct: 60, parliamentPct: 54 },
+      { year: 2018, mediaPct: 57, parliamentPct: 50 },
+      { year: 2020, mediaPct: 55, parliamentPct: 49 },
+      { year: 2022, mediaPct: 53, parliamentPct: 48 },
+      { year: 2024, mediaPct: 52, parliamentPct: 47 },
+    ],
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── grøn omstilling (green transition) ──────────────────────────────────────
+
+router.get('/groenomstilling', (req, res) => {
+  const cacheKey = 'livedata:groenomstilling';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    co2Target2030Pct: 70,
+    co2CurrentPct: 47.0,
+    baseline1990Mt: 69.6,
+    current2023Mt: 36.9,
+    target2030Mt: 20.9,
+    onTrack: false,
+    renewableElecPct: 84.0,
+    windSharePct: 55.1,
+    solarSharePct: 12.4,
+    evShareNewCarsPct: 42.3,
+    heatPumpAdoptionPct: 38.0,
+    districtHeatingPct: 64.0,
+    greenJobsCount: 47000,
+    euEtsCarbonPrice: 68.0,
+    intlClimateFinanceBn: 4.8,
+    sectorProgress: [
+      { sector: 'Energi & varme',  reductionPct: 68, targetPct: 70, onTrack: true  },
+      { sector: 'Transport',       reductionPct: 18, targetPct: 70, onTrack: false },
+      { sector: 'Industri',        reductionPct: 42, targetPct: 70, onTrack: false },
+      { sector: 'Landbrug',        reductionPct:  8, targetPct: 55, onTrack: false },
+      { sector: 'Bygninger',       reductionPct: 38, targetPct: 70, onTrack: false },
+    ],
+    techAdoption: [
+      { year: 2018, evSharePct: 2.1,  heatPumpPct: 18.0, renewElecPct: 62.0 },
+      { year: 2019, evSharePct: 2.8,  heatPumpPct: 20.0, renewElecPct: 67.0 },
+      { year: 2020, evSharePct: 5.4,  heatPumpPct: 23.0, renewElecPct: 71.0 },
+      { year: 2021, evSharePct: 11.8, heatPumpPct: 26.0, renewElecPct: 74.0 },
+      { year: 2022, evSharePct: 22.4, heatPumpPct: 29.0, renewElecPct: 78.0 },
+      { year: 2023, evSharePct: 34.2, heatPumpPct: 33.0, renewElecPct: 82.0 },
+      { year: 2024, evSharePct: 42.3, heatPumpPct: 38.0, renewElecPct: 84.0 },
+    ],
+    investments: [
+      { sector: 'Havvind',           bn: 48.2 },
+      { sector: 'Landvind & sol',    bn: 18.4 },
+      { sector: 'Grøn brint',        bn: 22.1 },
+      { sector: 'Fjernvarme',        bn:  9.8 },
+      { sector: 'El-infrastruktur',  bn: 14.6 },
+      { sector: 'CCS (CO2-fangst)',  bn:  6.2 },
+    ],
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
+// ── boligkrise (housing crisis) ─────────────────────────────────────────────
+
+router.get('/boligkrise', (req, res) => {
+  const cacheKey = 'livedata:boligkrise';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const data = {
+    rentBurden: {
+      lowIncome:    38.0,
+      middleIncome: 22.0,
+      highIncome:   14.0,
+    },
+    socialHousingWaitCph: 8.5,
+    constructionDeficitPerYear: 15000,
+    rentIncreaseLastFiveYears: 28.0,
+    affordabilityYearsMedian: 8.2,
+    homelessCount: 5800,
+    housingBenefitRecipients: 240000,
+    newConstructionTrend: [
+      { year: 2016, built: 30200, needed: 32000 },
+      { year: 2017, built: 33400, needed: 33000 },
+      { year: 2018, built: 31800, needed: 34000 },
+      { year: 2019, built: 29400, needed: 35000 },
+      { year: 2020, built: 24800, needed: 35500 },
+      { year: 2021, built: 28200, needed: 36000 },
+      { year: 2022, built: 26400, needed: 36500 },
+      { year: 2023, built: 21800, needed: 37000 },
+      { year: 2024, built: 21400, needed: 37000 },
+    ],
+    rentVsIncomeTrend: [
+      { year: 2010, lowIncome: 29.0, middleIncome: 17.0 },
+      { year: 2013, lowIncome: 31.0, middleIncome: 18.0 },
+      { year: 2016, lowIncome: 33.0, middleIncome: 19.0 },
+      { year: 2019, lowIncome: 35.0, middleIncome: 20.0 },
+      { year: 2022, lowIncome: 37.0, middleIncome: 21.0 },
+      { year: 2024, lowIncome: 38.0, middleIncome: 22.0 },
+    ],
+    byCity: [
+      { city: 'København',  waitYears: 8.5, affordYears: 12.4, rentM2: 1680 },
+      { city: 'Aarhus',     waitYears: 5.2, affordYears:  8.1, rentM2: 1180 },
+      { city: 'Odense',     waitYears: 3.8, affordYears:  6.2, rentM2:  980 },
+      { city: 'Aalborg',    waitYears: 2.4, affordYears:  5.4, rentM2:  820 },
+      { city: 'Landdistrikter', waitYears: 0.5, affordYears: 3.8, rentM2: 620 },
+    ],
+    housingTypes: {
+      ownerOccupied: 63.1,
+      privateRental: 20.4,
+      socialHousing: 19.1,
+      other: 2.4,
+    },
+  };
+
+  cache.set(cacheKey, data, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(data);
+});
+
 export default router;
+

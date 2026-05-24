@@ -581,6 +581,14 @@ VG.render.fast = function() {
       if (tab === 'statsgaeld')     VG.render.statsgaeld();
       if (tab === 'erhverv')        VG.render.erhverv();
       if (tab === 'innovation')     VG.render.innovation();
+      if (tab === 'folkesundhed')  VG.render.folkesundhed();
+      if (tab === 'ligestilling')  VG.render.ligestilling();
+      if (tab === 'velfaerdsstat') VG.render.velfaerdsstat();
+      if (tab === 'generationsregnskab') VG.render.generationsregnskab();
+      if (tab === 'arbejdsmiljoe') VG.render.arbejdsmiljoe();
+      if (tab === 'medietillid')   VG.render.medietillid();
+      if (tab === 'groenomstilling') VG.render.groenomstilling();
+      if (tab === 'boligkrise')    VG.render.boligkrise();
     } catch (e) { console.error('[render] tab panel:', e); }
   }
   VG.bindControls();
@@ -2374,4 +2382,455 @@ VG.render.innovation = async function() {
     </div>
   </div>
 </div>`;
+};
+
+// ── folkesundhed ────────────────────────────────────────────────────────────
+VG.render.folkesundhed = async function() {
+  const panel = document.getElementById('panel-folkesundhed');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter folkesundhedsdata…</div>';
+  try {
+    const d = await fetch('/api/livedata/folkesundhed').then(r => r.json());
+    const kramBars = d.kramFactors.map(k => {
+      const w = Math.round(k.pct);
+      const color = k.pct >= 70 ? 'var(--neg)' : k.pct >= 50 ? 'var(--warn)' : 'var(--pos)';
+      return `<div class="fs-kram-row">
+        <span class="fs-kram-label">${k.name}</span>
+        <div class="fs-kram-bar-bg"><div class="fs-kram-bar-fill" style="width:${w}%;background:${color}"></div></div>
+        <span class="fs-kram-pct">${k.pct}%</span>
+      </div>`;
+    }).join('');
+    const sectorBars = d.sickLeaveBySector.map(s => {
+      const w = Math.min(100, (s.days / 16) * 100).toFixed(1);
+      const color = s.days > 12 ? 'var(--pos)' : s.days > 9 ? 'var(--warn)' : 'var(--neg)';
+      return `<div class="fs-sector-row">
+        <span class="fs-sector-name">${s.sector}</span>
+        <div class="fs-bar-bg"><div class="fs-bar-fill" style="width:${w}%;background:${color}"></div></div>
+        <span class="fs-sector-val">${s.days} dage</span>
+      </div>`;
+    }).join('');
+    const trendRows = d.mentalHealth.trend.map(t =>
+      `<div class="fs-trend-row"><span class="fs-trend-yr">${t.year}</span>
+        <span class="fs-trend-val" style="color:var(--pos)">Angst: ${t.anxietyPct}%</span>
+        <span class="fs-trend-val" style="color:var(--warn)">Stress: ${t.stressPct}%</span>
+      </div>`
+    ).join('');
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>🏥 Folkesundhed</h2>
+      <div class="fs-hero-grid">
+        <div class="fs-hero-stat"><div class="fs-hero-num">${d.lifeExpectancy.men}</div><div class="fs-hero-label">Levealder mænd</div></div>
+        <div class="fs-hero-stat"><div class="fs-hero-num">${d.lifeExpectancy.women}</div><div class="fs-hero-label">Levealder kvinder</div></div>
+        <div class="fs-hero-stat"><div class="fs-hero-num" style="color:var(--pos)">${d.sickLeavePerEmployee}</div><div class="fs-hero-label">Sygedage/ansat/år</div></div>
+        <div class="fs-hero-stat"><div class="fs-hero-num" style="color:var(--pos)">${d.obesity.pct}%</div><div class="fs-hero-label">Overvægt</div></div>
+        <div class="fs-hero-stat"><div class="fs-hero-num" style="color:var(--warn)">${d.mentalHealth.stressPct}%</div><div class="fs-hero-label">Højt stress</div></div>
+        <div class="fs-hero-stat"><div class="fs-hero-num" style="color:var(--warn)">${d.mentalHealth.anxietyPct}%</div><div class="fs-hero-label">Angst/depression</div></div>
+      </div>
+      <h3>KRAM-faktorer <small>(% der opfylder anbefalingen)</small></h3>
+      <div class="fs-kram-container">${kramBars}</div>
+      <h3>Sygefravær efter sektor</h3>
+      <div class="fs-sector-container">${sectorBars}</div>
+      <h3>Mental sundhed — trend</h3>
+      <div class="fs-trend-container">${trendRows}</div>
+      <div class="fs-source">Kilde: Sundhedsstyrelsen, DST SYGE33, Statens Institut for Folkesundhed</div>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente data</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── ligestilling ────────────────────────────────────────────────────────────
+VG.render.ligestilling = async function() {
+  const panel = document.getElementById('panel-ligestilling');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter ligestillingsdata…</div>';
+  try {
+    const d = await fetch('/api/livedata/ligestilling').then(r => r.json());
+    const nordicRows = d.nordicComparison.map(c => {
+      const bold = c.country === 'Danmark' ? 'font-weight:600;color:var(--accent)' : '';
+      return `<tr style="${bold}"><td>${c.country}</td><td>${c.womenParl}%</td><td>${c.wageGap}%</td><td>${c.boards}%</td></tr>`;
+    }).join('');
+    const gapAdj = Math.round(d.wageGapAdjusted / d.wageGapUnadjusted * 100);
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>⚖️ Ligestilling</h2>
+      <div class="ls-hero-grid">
+        <div class="ls-hero-stat"><div class="ls-hero-num" style="color:var(--pos)">${d.wageGapUnadjusted}%</div><div class="ls-hero-label">Ulønsgab (ujusteret)</div></div>
+        <div class="ls-hero-stat"><div class="ls-hero-num" style="color:var(--warn)">${d.wageGapAdjusted}%</div><div class="ls-hero-label">Lønsgab (justeret)</div></div>
+        <div class="ls-hero-stat"><div class="ls-hero-num" style="color:var(--accent)">${d.womenInParliament}%</div><div class="ls-hero-label">Kvinder i Folketing</div></div>
+        <div class="ls-hero-stat"><div class="ls-hero-num" style="color:var(--accent)">${d.womenOnBoards}%</div><div class="ls-hero-label">Kvinder i bestyrelser</div></div>
+        <div class="ls-hero-stat"><div class="ls-hero-num" style="color:var(--pos)">${d.womenInManagement}%</div><div class="ls-hero-label">Kvinder i ledelse</div></div>
+        <div class="ls-hero-stat"><div class="ls-hero-num" style="color:var(--warn)">${d.parentalLeaveSplit.mothers}%</div><div class="ls-hero-label">Barsel til mødre</div></div>
+      </div>
+      <h3>Lønsgab — ujusteret vs justeret</h3>
+      <div class="ls-gap-visual">
+        <div class="ls-gap-bar-row">
+          <span class="ls-gap-label">Ujusteret</span>
+          <div class="ls-gap-bg"><div class="ls-gap-fill" style="width:${d.wageGapUnadjusted * 5}%;background:var(--pos)"></div></div>
+          <span class="ls-gap-val">${d.wageGapUnadjusted}%</span>
+        </div>
+        <div class="ls-gap-bar-row">
+          <span class="ls-gap-label">Justeret</span>
+          <div class="ls-gap-bg"><div class="ls-gap-fill" style="width:${d.wageGapAdjusted * 5}%;background:var(--warn)"></div></div>
+          <span class="ls-gap-val">${d.wageGapAdjusted}%</span>
+        </div>
+        <p class="ls-gap-note">Det justerede gap (~${d.wageGapAdjusted}%) skyldes primært valg af branche og deltid. Det resterende er uforklarlig forskelsbehandling.</p>
+      </div>
+      <h3>Barselorlov — fordeling</h3>
+      <div class="ls-parental-bar">
+        <div class="ls-parental-mothers" style="width:${d.parentalLeaveSplit.mothers}%;background:var(--warn)">Mødre ${d.parentalLeaveSplit.mothers}%</div>
+        <div class="ls-parental-fathers" style="width:${d.parentalLeaveSplit.fathers}%;background:var(--accent)">Fædre ${d.parentalLeaveSplit.fathers}%</div>
+      </div>
+      <h3>Nordisk sammenligning</h3>
+      <table class="ls-nordic-table"><thead><tr><th>Land</th><th>Kvinder i parlament</th><th>Lønsgab</th><th>Bestyrelser</th></tr></thead>
+      <tbody>${nordicRows}</tbody></table>
+      <div class="ls-source">Kilde: DST, Ligestillingsministeriet, IPU, RSF 2024</div>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente data</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── velfærdsstat ─────────────────────────────────────────────────────────────
+VG.render.velfaerdsstat = async function() {
+  const panel = document.getElementById('panel-velfaerdsstat');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter velfærdsdata…</div>';
+  try {
+    const d = await fetch('/api/livedata/velfaerdsstat').then(r => r.json());
+    const dk = d.countries.find(c => c.name === 'Danmark');
+    const dims = [
+      { key: 'healthPctGDP', label: 'Sundhed % BNP', max: 14, unit: '%' },
+      { key: 'pensionReplace', label: 'Pension dækning', max: 100, unit: '%' },
+      { key: 'unemplCoverage', label: 'Dagpenge dækning', max: 100, unit: '%' },
+      { key: 'socialSpendPct', label: 'Social udgift % BNP', max: 35, unit: '%' },
+      { key: 'publicEmpPct', label: 'Off. ansatte %', max: 35, unit: '%' },
+    ];
+    const dimBars = dims.map(dim => {
+      const countryBars = d.countries.map(c => {
+        const w = Math.round((c[dim.key] / dim.max) * 100);
+        const isdk = c.name === 'Danmark';
+        return `<div class="vw-country-bar">
+          <span class="vw-country-name${isdk ? ' vw-dk' : ''}">${c.name}</span>
+          <div class="vw-bar-bg"><div class="vw-bar-fill" style="width:${w}%;background:${isdk ? 'var(--accent)' : 'var(--border)'}"></div></div>
+          <span class="vw-bar-val">${c[dim.key]}${dim.unit}</span>
+        </div>`;
+      }).join('');
+      return `<div class="vw-dim-block"><div class="vw-dim-label">${dim.label}</div>${countryBars}</div>`;
+    }).join('');
+    const giniRows = d.giniBeforeAfter.map(g => {
+      const isdk = g.country === 'Danmark';
+      const style = isdk ? 'font-weight:600;color:var(--accent)' : '';
+      return `<tr style="${style}"><td>${g.country}</td><td>${g.before}</td><td>${g.after}</td><td style="color:var(--neg)">▼${g.reduction}</td></tr>`;
+    }).join('');
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>🌍 Velfærdsstat</h2>
+      <div class="vw-hero-grid">
+        <div class="vw-hero-stat"><div class="vw-hero-num" style="color:var(--accent)">${dk.healthPctGDP}%</div><div class="vw-hero-label">Sundhed % BNP</div></div>
+        <div class="vw-hero-stat"><div class="vw-hero-num" style="color:var(--accent)">${dk.pensionReplace}%</div><div class="vw-hero-label">Pensionsdækning</div></div>
+        <div class="vw-hero-stat"><div class="vw-hero-num" style="color:var(--accent)">${dk.unemplCoverage}%</div><div class="vw-hero-label">Dagpengedækning</div></div>
+        <div class="vw-hero-stat"><div class="vw-hero-num" style="color:var(--accent)">${dk.socialSpendPct}%</div><div class="vw-hero-label">Social udgift % BNP</div></div>
+        <div class="vw-hero-stat"><div class="vw-hero-num" style="color:var(--accent)">${dk.score}</div><div class="vw-hero-label">Velfærdsindeks</div></div>
+        <div class="vw-hero-stat"><div class="vw-hero-num" style="color:var(--neg)">${dk.giniAfter}</div><div class="vw-hero-label">Gini (efter overførsler)</div></div>
+      </div>
+      <h3>Sammenligning på velfærdsdimensioner</h3>
+      <div class="vw-dims">${dimBars}</div>
+      <h3>Omfordeling: Gini før og efter overførsler</h3>
+      <table class="vw-gini-table"><thead><tr><th>Land</th><th>Gini (markedsindkomst)</th><th>Gini (disponibel)</th><th>Omfordeling</th></tr></thead>
+      <tbody>${giniRows}</tbody></table>
+      <div class="vw-source">Kilde: OECD Social Expenditure, Eurostat, ILO 2024</div>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente data</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── generationsregnskab ─────────────────────────────────────────────────────
+VG.render.generationsregnskab = async function() {
+  const panel = document.getElementById('panel-generationsregnskab');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter generationsdata…</div>';
+  try {
+    const d = await fetch('/api/livedata/generationsregnskab').then(r => r.json());
+    const maxAbs = Math.max(...d.cohorts.map(c => Math.abs(c.netPerPerson)));
+    const cohortBars = d.cohorts.map(c => {
+      const isPos = c.netPerPerson >= 0;
+      const w = Math.round((Math.abs(c.netPerPerson) / maxAbs) * 100);
+      const color = isPos ? 'var(--neg)' : 'var(--pos)';
+      const sign = isPos ? '+' : '';
+      const label = (c.netPerPerson / 1000).toFixed(0);
+      return `<div class="gr-cohort-row">
+        <span class="gr-cohort-age">${c.age}</span>
+        <div class="gr-cohort-bar-wrap">
+          ${isPos
+            ? `<div class="gr-cohort-center"></div><div class="gr-bar-pos" style="width:${w/2}%;background:${color}"></div>`
+            : `<div class="gr-bar-neg" style="width:${w/2}%;background:${color}"></div><div class="gr-cohort-center"></div>`
+          }
+        </div>
+        <span class="gr-cohort-val" style="color:${color}">${sign}${label}k kr</span>
+        <span class="gr-cohort-note">${c.note}</span>
+      </div>`;
+    }).join('');
+    const ratioPoints = d.dependencyRatioTrend.map((p, i) => {
+      const x = (i / (d.dependencyRatioTrend.length - 1)) * 100;
+      const y = 100 - ((p.ratio - 44) / 28) * 100;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>👶 Generationsregnskab</h2>
+      <div class="gr-hero">
+        <div class="gr-hero-stat"><div class="gr-hero-num" style="color:var(--accent)">${(d.lifetimeContribution.netDKK/1000000).toFixed(1)} mio kr</div><div class="gr-hero-label">Gennemsnitlig livstidsbidrag</div></div>
+        <div class="gr-hero-stat"><div class="gr-hero-num" style="color:var(--pos)">${d.currentDependencyRatio}</div><div class="gr-hero-label">Forsørgerbyrde 2025</div></div>
+      </div>
+      <h3>Nettobidrag pr. aldersgruppe (kr. pr. person/år)</h3>
+      <p class="gr-legend"><span style="color:var(--neg)">■</span> Nettobidragyder &nbsp; <span style="color:var(--pos)">■</span> Nettomotager</p>
+      <div class="gr-cohorts">${cohortBars}</div>
+      <h3>Forsørgerbyrde 2000–2040</h3>
+      <div class="gr-chart-wrap">
+        <svg class="gr-chart" viewBox="0 0 100 60" preserveAspectRatio="none">
+          <polyline points="${ratioPoints}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <line x1="${((d.dependencyRatioTrend.findIndex(p=>p.forecast)/(d.dependencyRatioTrend.length-1))*100).toFixed(1)}" y1="0" x2="${((d.dependencyRatioTrend.findIndex(p=>p.forecast)/(d.dependencyRatioTrend.length-1))*100).toFixed(1)}" y2="60" stroke="var(--warn)" stroke-width="1" stroke-dasharray="2,2"/>
+        </svg>
+        <div class="gr-chart-labels">
+          ${d.dependencyRatioTrend.filter((_,i)=>i%2===0).map(p=>`<span>${p.year}${p.forecast?'*':''}</span>`).join('')}
+        </div>
+      </div>
+      <p class="gr-note">${d.note}</p>
+      <div class="gr-source">Kilde: FM Generationsregnskab 2024, DST Befolkningsfremskrivning</div>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente data</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── arbejdsmiljø ─────────────────────────────────────────────────────────────
+VG.render.arbejdsmiljoe = async function() {
+  const panel = document.getElementById('panel-arbejdsmiljoe');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter arbejdsmiljødata…</div>';
+  try {
+    const d = await fetch('/api/livedata/arbejdsmiljoe').then(r => r.json());
+    const sectorBars = d.sectorSickLeave.map(s => {
+      const w = Math.min(100, (s.days / 16) * 100).toFixed(1);
+      const color = s.days > 12 ? 'var(--pos)' : s.days > 9 ? 'var(--warn)' : 'var(--neg)';
+      return `<div class="am-sector-row">
+        <span class="am-sector-name">${s.sector}</span>
+        <div class="am-bar-bg"><div class="am-bar-fill" style="width:${w}%;background:${color}"></div></div>
+        <span class="am-sector-val">${s.days} dage</span>
+      </div>`;
+    }).join('');
+    const euRows = d.euComparison.map(c => {
+      const isdk = c.country === 'Danmark';
+      const style = isdk ? 'font-weight:600;color:var(--accent)' : '';
+      const rankBadge = c.rank ? `<span class="am-rank">#${c.rank}</span>` : '<span class="am-rank">—</span>';
+      return `<tr style="${style}"><td>${c.country}</td><td>${rankBadge}</td><td>${c.jobSat}/10</td><td>${c.stressPct}%</td></tr>`;
+    }).join('');
+    const trendRows = d.stressTrend.map(t =>
+      `<div class="am-trend-row"><span class="am-trend-yr">${t.year}</span>
+        <span style="color:var(--warn)">Stress: ${t.stressPct}%</span>
+        <span style="color:var(--pos)">Udbrændthed: ${t.burnoutPct}%</span>
+      </div>`
+    ).join('');
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>💼 Arbejdsmiljø</h2>
+      <div class="am-hero-grid">
+        <div class="am-hero-stat"><div class="am-hero-num" style="color:var(--pos)">${d.nationalAvgSickDays}</div><div class="am-hero-label">Sygedage/år (snit)</div></div>
+        <div class="am-hero-stat"><div class="am-hero-num" style="color:var(--warn)">${d.stressPct}%</div><div class="am-hero-label">Højt stressniveau</div></div>
+        <div class="am-hero-stat"><div class="am-hero-num" style="color:var(--warn)">${d.burnoutPct}%</div><div class="am-hero-label">Udbrændthed</div></div>
+        <div class="am-hero-stat"><div class="am-hero-num" style="color:var(--pos)">${d.accidentsPer1000}</div><div class="am-hero-label">Ulykker pr. 1.000</div></div>
+        <div class="am-hero-stat"><div class="am-hero-num" style="color:var(--neg)">${d.jobSatisfaction}/10</div><div class="am-hero-label">Jobtilfredsstillelse</div></div>
+        <div class="am-hero-stat"><div class="am-hero-num" style="color:var(--neg)">#${d.euWorkLifeRank}</div><div class="am-hero-label">EU work-life balance</div></div>
+      </div>
+      <h3>Sygefravær efter sektor</h3>
+      <div class="am-sector-container">${sectorBars}</div>
+      <h3>Stress & udbrændthed — trend</h3>
+      <div class="am-trend-container">${trendRows}</div>
+      <h3>EU sammenligning</h3>
+      <table class="am-eu-table"><thead><tr><th>Land</th><th>Work-life rank</th><th>Jobtilfredshed</th><th>Stress</th></tr></thead>
+      <tbody>${euRows}</tbody></table>
+      <div class="am-source">Kilde: Arbejdsmiljøinstituttet, Eurofound, DA 2024</div>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente data</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── medietillid ──────────────────────────────────────────────────────────────
+VG.render.medietillid = async function() {
+  const panel = document.getElementById('panel-medietillid');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter medie- og tillidsdata…</div>';
+  try {
+    const d = await fetch('/api/livedata/medietillid').then(r => r.json());
+    const sorted = [...d.institutionTrust].sort((a, b) => b.pct - a.pct);
+    const trustBars = sorted.map(t => {
+      const color = t.pct >= 70 ? 'var(--neg)' : t.pct >= 45 ? 'var(--warn)' : 'var(--pos)';
+      return `<div class="mt-trust-row">
+        <span class="mt-trust-name">${t.name}</span>
+        <div class="mt-bar-bg"><div class="mt-bar-fill" style="width:${t.pct}%;background:${color}"></div></div>
+        <span class="mt-trust-pct">${t.pct}%</span>
+      </div>`;
+    }).join('');
+    const pfRows = d.nordicPressFreedom.map(c => {
+      const isdk = c.country === 'Danmark';
+      const style = isdk ? 'font-weight:600;color:var(--accent)' : '';
+      return `<tr style="${style}"><td>#${c.rank}</td><td>${c.country}</td><td>${c.score}</td></tr>`;
+    }).join('');
+    const newsRows = d.newsSource.map(s =>
+      `<div class="mt-news-row">
+        <span class="mt-news-name">${s.source}</span>
+        <div class="mt-bar-bg"><div class="mt-bar-fill" style="width:${s.pct}%;background:var(--accent)"></div></div>
+        <span class="mt-news-pct">${s.pct}%</span>
+      </div>`
+    ).join('');
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>📰 Medie & Tillid</h2>
+      <div class="mt-hero-grid">
+        <div class="mt-hero-stat"><div class="mt-hero-num" style="color:var(--neg)">#${d.pressFreedomRank}</div><div class="mt-hero-label">Pressefrihed (RSF)</div></div>
+        <div class="mt-hero-stat"><div class="mt-hero-num" style="color:var(--warn)">${d.institutionTrust.find(i=>i.name==='Folketing').pct}%</div><div class="mt-hero-label">Tillid til Folketing</div></div>
+        <div class="mt-hero-stat"><div class="mt-hero-num" style="color:var(--neg)">${d.institutionTrust.find(i=>i.name==='Sundhedsvæsen').pct}%</div><div class="mt-hero-label">Tillid til sundhed</div></div>
+        <div class="mt-hero-stat"><div class="mt-hero-num" style="color:var(--warn)">${d.institutionTrust.find(i=>i.name==='Medier').pct}%</div><div class="mt-hero-label">Tillid til medier</div></div>
+        <div class="mt-hero-stat"><div class="mt-hero-num" style="color:var(--accent)">${d.publicVsPrivate.publicPct}%</div><div class="mt-hero-label">Offentlige medier</div></div>
+        <div class="mt-hero-stat"><div class="mt-hero-num" style="color:var(--accent)">${d.factCheckAwareness}%</div><div class="mt-hero-label">Faktacheck-bevidsthed</div></div>
+      </div>
+      <h3>Institutionstitillid (sorteret)</h3>
+      <div class="mt-trust-container">${trustBars}</div>
+      <h3>Nyhedskilder — andel der bruger dem</h3>
+      <div class="mt-news-container">${newsRows}</div>
+      <h3>Pressefrihed — Norden</h3>
+      <table class="mt-pf-table"><thead><tr><th>Rang</th><th>Land</th><th>Score</th></tr></thead>
+      <tbody>${pfRows}</tbody></table>
+      <div class="mt-source">Kilde: Reuters Institute, RSF Pressefrihedsindeks, Kantar Gallup 2024</div>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente data</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── grøn omstilling ──────────────────────────────────────────────────────────
+VG.render.groenomstilling = async function() {
+  const panel = document.getElementById('panel-groenomstilling');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter klimadata…</div>';
+  try {
+    const d = await fetch('/api/livedata/groenomstilling').then(r => r.json());
+    const progressPct = d.co2CurrentPct;
+    const sectorRows = d.sectorProgress.map(s => {
+      const w = Math.round((s.reductionPct / s.targetPct) * 100);
+      const color = s.onTrack ? 'var(--neg)' : s.reductionPct > s.targetPct * 0.6 ? 'var(--warn)' : 'var(--pos)';
+      const badge = s.onTrack ? '<span class="go-badge go-ok">På sporet</span>' : '<span class="go-badge go-off">Bag</span>';
+      return `<div class="go-sector-row">
+        <span class="go-sector-name">${s.sector}</span>
+        <div class="go-bar-bg"><div class="go-bar-fill" style="width:${Math.min(100,s.reductionPct/s.targetPct*100).toFixed(0)}%;background:${color}"></div></div>
+        <span class="go-sector-val">${s.reductionPct}% reduceret</span>
+        ${badge}
+      </div>`;
+    }).join('');
+    const adoptionRows = d.techAdoption.filter((_,i)=>i%2===0||i===d.techAdoption.length-1).map(t =>
+      `<div class="go-adopt-row"><span class="go-adopt-yr">${t.year}</span>
+        <span style="color:var(--accent)">VE: ${t.renewElecPct}%</span>
+        <span style="color:var(--neg)">Elbil: ${t.evSharePct}%</span>
+        <span style="color:var(--warn)">Varmepumpe: ${t.heatPumpPct}%</span>
+      </div>`
+    ).join('');
+    const investRows = d.investments.map(inv => {
+      const w = Math.round((inv.bn / 50) * 100);
+      return `<div class="go-inv-row">
+        <span class="go-inv-name">${inv.sector}</span>
+        <div class="go-bar-bg"><div class="go-bar-fill" style="width:${w}%;background:var(--neg)"></div></div>
+        <span class="go-inv-val">${inv.bn} mia kr</span>
+      </div>`;
+    }).join('');
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>🌱 Grøn Omstilling</h2>
+      <div class="go-hero-progress">
+        <div class="go-progress-label">70%-målet 2030: ${progressPct}% reduceret</div>
+        <div class="go-progress-bg">
+          <div class="go-progress-fill" style="width:${progressPct}%;background:${progressPct>60?'var(--neg)':progressPct>40?'var(--warn)':'var(--pos)'}"></div>
+          <div class="go-progress-target" style="left:70%"></div>
+        </div>
+        <div class="go-progress-meta"><span>${d.current2023Mt} Mt CO₂e (2023)</span><span>Mål: ${d.target2030Mt} Mt CO₂e (2030)</span></div>
+      </div>
+      <div class="go-hero-grid">
+        <div class="go-hero-stat"><div class="go-hero-num" style="color:var(--neg)">${d.renewableElecPct}%</div><div class="go-hero-label">VE-andel af el</div></div>
+        <div class="go-hero-stat"><div class="go-hero-num" style="color:var(--neg)">${d.evShareNewCarsPct}%</div><div class="go-hero-label">Elbilers andel af nybil</div></div>
+        <div class="go-hero-stat"><div class="go-hero-num" style="color:var(--neg)">${d.districtHeatingPct}%</div><div class="go-hero-label">Fjernvarmedækning</div></div>
+        <div class="go-hero-stat"><div class="go-hero-num" style="color:var(--accent)">${(d.greenJobsCount/1000).toFixed(0)}k</div><div class="go-hero-label">Grønne job</div></div>
+        <div class="go-hero-stat"><div class="go-hero-num" style="color:var(--warn)">${d.euEtsCarbonPrice} €/t</div><div class="go-hero-label">CO₂-kvotepris</div></div>
+        <div class="go-hero-stat"><div class="go-hero-num" style="color:var(--accent)">${d.intlClimateFinanceBn} mia</div><div class="go-hero-label">Int'l klimafinansiering</div></div>
+      </div>
+      <h3>Sektorfremgang mod 70%-mål</h3>
+      <div class="go-sector-container">${sectorRows}</div>
+      <h3>Teknologiadoption</h3>
+      <div class="go-adopt-container">${adoptionRows}</div>
+      <h3>Klimainvesteringer (mia. kr.)</h3>
+      <div class="go-inv-container">${investRows}</div>
+      <div class="go-source">Kilde: Klimarådet 2024, Energistyrelsen, IEA, EU ETS 2024</div>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente data</div>';
+  } finally { panel._loading = false; }
+};
+
+// ── boligkrise ───────────────────────────────────────────────────────────────
+VG.render.boligkrise = async function() {
+  const panel = document.getElementById('panel-boligkrise');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="loading-spinner">Henter boligkrisedata…</div>';
+  try {
+    const d = await fetch('/api/livedata/boligkrise').then(r => r.json());
+    const cityRows = d.byCity.map(c =>
+      `<tr><td>${c.city}</td><td style="color:var(--pos)">${c.waitYears} år</td><td style="color:var(--warn)">${c.affordYears} årsløn</td><td>${c.rentM2} kr/m²</td></tr>`
+    ).join('');
+    const constructionBars = d.newConstructionTrend.map(t => {
+      const deficit = t.needed - t.built;
+      const wBuilt = Math.round((t.built / 40000) * 100);
+      const wNeeded = Math.round((t.needed / 40000) * 100);
+      return `<div class="bk-const-row">
+        <span class="bk-const-yr">${t.year}</span>
+        <div class="bk-const-bars">
+          <div class="bk-bar-built" style="width:${wBuilt}%;background:var(--accent)"></div>
+          <div class="bk-bar-needed" style="width:${wNeeded - wBuilt}%;background:var(--pos);opacity:0.4"></div>
+        </div>
+        <span class="bk-const-val">${(t.built/1000).toFixed(1)}k <span style="color:var(--pos);font-size:0.8em">(-${(deficit/1000).toFixed(1)}k)</span></span>
+      </div>`;
+    }).join('');
+    const rentBurdenBars = [
+      { label: 'Lav indkomst', pct: d.rentBurden.lowIncome, color: 'var(--pos)' },
+      { label: 'Middelindkomst', pct: d.rentBurden.middleIncome, color: 'var(--warn)' },
+      { label: 'Høj indkomst', pct: d.rentBurden.highIncome, color: 'var(--neg)' },
+    ].map(b => `<div class="bk-rent-row">
+      <span class="bk-rent-label">${b.label}</span>
+      <div class="bk-bar-bg"><div class="bk-bar-fill" style="width:${b.pct * 2}%;background:${b.color}"></div></div>
+      <span class="bk-rent-val">${b.pct}% af indkomst</span>
+    </div>`).join('');
+    panel.innerHTML = `<div class="panel-inner">
+      <h2>🏘 Boligkrise</h2>
+      <div class="bk-hero-grid">
+        <div class="bk-hero-stat"><div class="bk-hero-num" style="color:var(--pos)">${d.socialHousingWaitCph} år</div><div class="bk-hero-label">Venteliste almen bolig (KBH)</div></div>
+        <div class="bk-hero-stat"><div class="bk-hero-num" style="color:var(--pos)">${d.affordabilityYearsMedian}</div><div class="bk-hero-label">Årsløn for mediankøb (KBH)</div></div>
+        <div class="bk-hero-stat"><div class="bk-hero-num" style="color:var(--pos)">${d.constructionDeficitPerYear.toLocaleString('da-DK')}</div><div class="bk-hero-label">Boligunderskud/år</div></div>
+        <div class="bk-hero-stat"><div class="bk-hero-num" style="color:var(--warn)">+${d.rentIncreaseLastFiveYears}%</div><div class="bk-hero-label">Lejestigninger (5 år)</div></div>
+        <div class="bk-hero-stat"><div class="bk-hero-num" style="color:var(--warn)">${d.homelessCount.toLocaleString('da-DK')}</div><div class="bk-hero-label">Hjemløse</div></div>
+        <div class="bk-hero-stat"><div class="bk-hero-num" style="color:var(--accent)">${(d.housingBenefitRecipients/1000).toFixed(0)}k</div><div class="bk-hero-label">Boligstøttemodtagere</div></div>
+      </div>
+      <h3>Huslejebyrde efter indkomstgruppe</h3>
+      <div class="bk-rent-container">${rentBurdenBars}</div>
+      <h3>Boligbyggeri vs. behov</h3>
+      <div class="bk-const-container">${constructionBars}</div>
+      <p class="bk-legend"><span style="background:var(--accent)" class="bk-legend-box"></span> Bygget &nbsp; <span style="background:var(--pos);opacity:0.6" class="bk-legend-box"></span> Underskud</p>
+      <h3>By-sammenligning</h3>
+      <table class="bk-city-table"><thead><tr><th>By</th><th>Venteliste</th><th>Prisforhold</th><th>Leje pr. m²</th></tr></thead>
+      <tbody>${cityRows}</tbody></table>
+      <div class="bk-source">Kilde: Landsbyggefonden, BL, DST Boligstatistik 2024</div>
+    </div>`;
+  } catch(e) {
+    panel.innerHTML = '<div class="panel-error">Kunne ikke hente data</div>';
+  } finally { panel._loading = false; }
 };
