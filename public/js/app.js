@@ -264,9 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 'borger',           label: '🧮 Skatteberegner' },
       { id: 'bolig',            label: '🏠 Boligberegner' },
       { id: 'pension',          label: '💼 Pensionsberegner' },
-      { id: 'ventetider',       label: '⏳ Ventetider' },
-      { id: 'dsb',              label: '🚂 Transport' },
-      { id: 'aeldrepleje',      label: '👴 Ældrepleje' },
       { id: 'elpris',           label: '⚡ El-priser' },
     ]},
     samfund: { label: '🌍 Samfund', tabs: [
@@ -277,6 +274,9 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 'forbrug',          label: '🛍 Forbrug' },
       { id: 'energi',           label: '⚡ Energi' },
       { id: 'ledighed',         label: '📉 Ledighed' },
+      { id: 'ventetider',       label: '⏳ Ventetider' },
+      { id: 'dsb',              label: '🚂 Transport' },
+      { id: 'aeldrepleje',      label: '👴 Ældrepleje' },
     ]},
     politik: { label: '🏛 Politik', tabs: [
       { id: 'platform',         label: '⭐ Mit Parti' },
