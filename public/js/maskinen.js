@@ -110,21 +110,29 @@ VG.maskinen.renderDiagram = function() {
   VG.maskinen.NODES.forEach(n => { nodeMap[n.id] = n; });
   const CC = VG.maskinen.CLUSTER_COLORS;
 
+  const defs = `<defs>
+    ${Object.entries(CC).map(([k, c]) => `
+      <radialGradient id="mkgrad-${k}" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="${c}" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="${c}" stop-opacity="0.08"/>
+      </radialGradient>`).join('')}
+  </defs>`;
+
   const edges = VG.maskinen.EDGES.map(([a, b]) => {
     const na = nodeMap[a], nb = nodeMap[b];
     if (!na || !nb) return '';
     const mx = (na.x + nb.x) / 2;
     const my = (na.y + nb.y) / 2 - 20;
-    return `<path d="M${na.x},${na.y} Q${mx},${my} ${nb.x},${nb.y}" class="mk-edge"/>`;
+    return `<path data-a="${a}" data-b="${b}" d="M${na.x},${na.y} Q${mx},${my} ${nb.x},${nb.y}" class="mk-edge"/>`;
   }).join('');
 
   const nodes = VG.maskinen.NODES.map(n => {
     const c = CC[n.cluster];
-    return `<g class="mk-node" onclick="window.__mkClick('${n.id}')">
-      <circle cx="${n.x}" cy="${n.y}" r="30" fill="${c}" fill-opacity="0.15" stroke="${c}" stroke-width="1.5" class="mk-ring"/>
-      <text x="${n.x}" y="${n.y - 6}" text-anchor="middle" dominant-baseline="middle" class="mk-emoji">${n.emoji}</text>
-      <text x="${n.x}" y="${n.y + 18}" text-anchor="middle" class="mk-label">${n.label}</text>
-      <title>${n.label} — ${n.stat}</title>
+    return `<g class="mk-node" data-id="${n.id}" onclick="window.__mkClick('${n.id}')">
+      <circle cx="${n.x}" cy="${n.y}" r="44" class="mk-halo" fill="${c}"/>
+      <circle cx="${n.x}" cy="${n.y}" r="30" fill="url(#mkgrad-${n.cluster})" stroke="${c}" stroke-width="1.8" class="mk-ring"/>
+      <text x="${n.x}" y="${n.y - 5}" text-anchor="middle" dominant-baseline="middle" class="mk-emoji">${n.emoji}</text>
+      <text x="${n.x}" y="${n.y + 20}" text-anchor="middle" class="mk-label">${n.label}</text>
     </g>`;
   }).join('');
 
@@ -140,18 +148,95 @@ VG.maskinen.renderDiagram = function() {
   return `<div class="mk-wrap">
   <div class="mk-header">
     <h2>🇩🇰 Danmarksmaskinen</h2>
-    <p class="mk-sub">Klik på et emne for at udforske data. Linjerne viser hvor tingene hænger sammen.</p>
+    <p class="mk-sub">Hold musen over et emne — se hvad det hænger sammen med. Klik for at udforske data.</p>
   </div>
   <svg class="mk-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    ${defs}
     ${clusterTags}
     <g class="mk-edges">${edges}</g>
     <g class="mk-nodes">${nodes}</g>
   </svg>
-  <p class="mk-hint">💡 Tip: Ændr budgettet i Økonomi-fanen — sundhedsmåleren øverst opdateres i realtid</p>
+  <p class="mk-hint">💡 Ændr budgettet i Økonomi-fanen — sundhedsmålerne øverst opdateres i realtid</p>
 </div>`;
 };
 
-/* ── Health strip (6 live indicators) ───────────────────────────────── */
+/* ── Init interactive hover behaviour (called once after SVG is in DOM) ─*/
+VG.maskinen.initDiagram = function() {
+  const svg = document.querySelector('.mk-svg');
+  if (!svg || svg._mkInit) return;
+  svg._mkInit = true;
+
+  // Create floating tooltip
+  let tip = document.getElementById('mk-tooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'mk-tooltip';
+    tip.className = 'mk-tooltip';
+    document.body.appendChild(tip);
+  }
+
+  const nodeEls = Array.from(svg.querySelectorAll('.mk-node'));
+  const edgeEls = Array.from(svg.querySelectorAll('.mk-edge'));
+  const connMap = VG.maskinen._connMap;
+
+  nodeEls.forEach(el => {
+    const id = el.dataset.id;
+    const conns = new Set(connMap[id] || []);
+    const nodeData = VG.maskinen.NODES.find(n => n.id === id);
+    const clusterColor = nodeData ? VG.maskinen.CLUSTER_COLORS[nodeData.cluster] : '#888';
+
+    el.addEventListener('mouseenter', ev => {
+      svg.classList.add('mk-hovering');
+      el.classList.add('mk-hover');
+      nodeEls.forEach(other => {
+        if (other === el) return;
+        other.classList.toggle('mk-dim', !conns.has(other.dataset.id));
+        other.classList.toggle('mk-connected', conns.has(other.dataset.id));
+      });
+      edgeEls.forEach(edge => {
+        const lit = edge.dataset.a === id || edge.dataset.b === id;
+        edge.classList.toggle('mk-edge-lit', lit);
+        edge.classList.toggle('mk-edge-dim', !lit);
+      });
+      if (nodeData) {
+        tip.innerHTML = `<span class="mk-tip-row"><span class="mk-tip-emoji">${nodeData.emoji}</span><strong>${nodeData.label}</strong></span><span class="mk-tip-stat">${nodeData.stat}</span><span class="mk-tip-cta">Klik for at se data →</span>`;
+        tip.style.setProperty('--tc', clusterColor);
+        tip.classList.add('show');
+      }
+      positionTip(ev);
+    });
+
+    el.addEventListener('mousemove', positionTip);
+
+    el.addEventListener('mouseleave', () => {
+      svg.classList.remove('mk-hovering');
+      el.classList.remove('mk-hover');
+      nodeEls.forEach(n => n.classList.remove('mk-dim', 'mk-connected'));
+      edgeEls.forEach(e => e.classList.remove('mk-edge-lit', 'mk-edge-dim'));
+      tip.classList.remove('show');
+    });
+  });
+
+  function positionTip(ev) {
+    const vw = window.innerWidth;
+    const x = ev.clientX + 18;
+    tip.style.left = (x + 210 > vw ? ev.clientX - 228 : x) + 'px';
+    tip.style.top  = (ev.clientY - 12) + 'px';
+  }
+};
+
+/* ── Highlight the node for the currently open panel ─────────────────── */
+VG.maskinen.setActiveNode = function(tabId) {
+  const svg = document.querySelector('.mk-svg');
+  if (!svg) return;
+  svg.querySelectorAll('.mk-node').forEach(n => n.classList.remove('mk-current'));
+  if (tabId && tabId !== 'overview') {
+    const node = svg.querySelector(`.mk-node[data-id="${tabId}"]`);
+    if (node) node.classList.add('mk-current');
+  }
+};
+
+/* ── Health strip (6 live indicators with circular gauges) ───────────── */
 VG.maskinen.renderHealth = function() {
   const el = document.getElementById('health-strip');
   if (!el) return;
@@ -166,34 +251,33 @@ VG.maskinen.renderHealth = function() {
     }
   } catch(e) {}
 
-  // Scores 0-100
-  const oekoScore    = Math.max(5,  Math.min(98, 62 + balPct * 9));
+  const oekoScore     = Math.max(5,  Math.min(98, 62 + balPct * 9));
   const velfaerdScore = Math.max(10, Math.min(95, 65 + (expRatio - 1) * 90));
-  const klimaScore    = 52; // reflects ~47% CO₂ reduction vs 70% target
+  const klimaScore    = 52;
   const sikkerScore   = Math.max(10, Math.min(95, 54 + (expRatio - 1) * 60));
   const uddScore      = Math.max(10, Math.min(95, 62 + (expRatio - 1) * 70));
   const lighedScore   = Math.max(10, Math.min(95, 59 + (expRatio - 1) * 50 - (revRatio - 1) * 30));
 
   const dims = [
-    { label: 'Økonomi',    emoji: '💰', score: oekoScore,     note: `${balPct >= 0 ? '+' : ''}${balPct.toFixed(1)}% BNP saldo` },
-    { label: 'Velfærd',    emoji: '🏥', score: velfaerdScore, note: 'Sundhed & omsorg' },
-    { label: 'Klima',      emoji: '🌱', score: klimaScore,    note: '47% mod 70%-mål' },
-    { label: 'Sikkerhed',  emoji: '🛡️', score: sikkerScore,   note: '1,65% BNP forsvar' },
-    { label: 'Uddannelse', emoji: '🎓', score: uddScore,      note: 'Folkeskole → uni' },
-    { label: 'Lighed',     emoji: '⚖️', score: lighedScore,   note: 'Gini & overførsler' },
+    { label: 'Økonomi',    emoji: '💰', score: oekoScore,     note: `${balPct >= 0 ? '+' : ''}${balPct.toFixed(1)}% BNP saldo`, tab: 'overview' },
+    { label: 'Velfærd',    emoji: '🏥', score: velfaerdScore, note: 'Sundhed & omsorg', tab: 'sundhed' },
+    { label: 'Klima',      emoji: '🌱', score: klimaScore,    note: '47% mod 70%-mål', tab: 'co2' },
+    { label: 'Sikkerhed',  emoji: '🛡️', score: sikkerScore,   note: '1,65% BNP forsvar', tab: 'forsvar' },
+    { label: 'Uddannelse', emoji: '🎓', score: uddScore,      note: 'Folkeskole → uni', tab: 'folkeskolen' },
+    { label: 'Lighed',     emoji: '⚖️', score: lighedScore,   note: 'Gini & overførsler', tab: 'indkomst' },
   ];
 
   el.innerHTML = dims.map(d => {
     const sc  = Math.round(d.score);
-    const col = sc >= 68 ? 'var(--neg)' : sc >= 44 ? 'var(--warn)' : 'var(--pos)';
-    return `<div class="hs-item" title="${d.label}: ${d.note}">
-      <span class="hs-emoji">${d.emoji}</span>
+    const col = sc >= 68 ? '#2d8a50' : sc >= 44 ? '#b87333' : '#9a4040';
+    const deg = Math.round(sc * 3.6);
+    return `<div class="hs-item" onclick="window.__mkClick('${d.tab}')" title="${d.note}">
+      <div class="hs-gauge" style="--deg:${deg}deg;--col:${col}">
+        <div class="hs-gauge-inner"><span class="hs-score" style="color:${col}">${sc}</span></div>
+      </div>
       <div class="hs-body">
-        <div class="hs-row">
-          <span class="hs-label">${d.label}</span>
-          <span class="hs-score" style="color:${col}">${sc}</span>
-        </div>
-        <div class="hs-track"><div class="hs-fill" style="width:${sc}%;background:${col}"></div></div>
+        <div class="hs-label"><span class="hs-emoji">${d.emoji}</span>${d.label}</div>
+        <div class="hs-note">${d.note}</div>
       </div>
     </div>`;
   }).join('');

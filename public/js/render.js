@@ -600,7 +600,11 @@ VG.render.fast = function() {
     } catch (e) { console.error('[render] tab panel:', e); }
   }
   // Inject connection strip after async panels have had a tick to render
-  setTimeout(() => { try { if (VG.maskinen) VG.maskinen.injectConnections(tab); } catch(e) {} }, 80);
+  setTimeout(() => {
+    try { if (VG.maskinen) VG.maskinen.injectConnections(tab); } catch(e) {}
+    try { if (VG.maskinen) VG.maskinen.initDiagram(); } catch(e) {}
+    try { if (VG.maskinen) VG.maskinen.setActiveNode(tab); } catch(e) {}
+  }, 80);
   VG.bindControls();
 };
 
@@ -610,6 +614,11 @@ VG.render.all = function() {
   try { VG.render.liveIndicators(); } catch (e) { console.error('[render] liveIndicators:', e); }
 
   VG.render.safePanel('panel-overview',    () => VG.render.overview());
+  try { if (VG.maskinen) VG.maskinen.renderHealth(); } catch(e) {}
+  setTimeout(() => {
+    try { if (VG.maskinen) VG.maskinen.initDiagram(); } catch(e) {}
+    try { if (VG.maskinen) VG.maskinen.setActiveNode(VG.state.activeTab); } catch(e) {}
+  }, 80);
   VG.render.safePanel('panel-spending',    () => VG.render.sliders('expense'));
   VG.render.safePanel('panel-revenue',     () => VG.render.sliders('revenue'));
   VG.render.safePanel('panel-policy',      () => VG.render.policy());
