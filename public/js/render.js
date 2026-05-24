@@ -2374,3 +2374,4 @@ VG.render.innovation = async function() {
     </div>
   </div>
 </div>`;
+};
