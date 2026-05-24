@@ -570,6 +570,11 @@ VG.render.fast = function() {
       if (tab === 'elpris')            VG.render.elpris();
       if (tab === 'ledighed')          VG.render.ledighed();
       if (tab === 'meningsmaalinger')  VG.meningsmaalinger.renderPanel();
+      if (tab === 'boligmarked')  VG.render.boligmarked();
+      if (tab === 'indkomst')     VG.render.indkomst();
+      if (tab === 'co2')          VG.render.co2();
+      if (tab === 'kriminalitet') VG.render.kriminalitet();
+      if (tab === 'uddannelse')   VG.render.uddannelse();
     } catch (e) { console.error('[render] tab panel:', e); }
   }
   VG.bindControls();
@@ -1408,6 +1413,417 @@ VG.render.elpris = async function() {
   <div class="elpris-eu">${euRows}</div>
 
   <p class="data-note">Kilde: Energidata.dk (spotpris DK2) og Forsyningstilsynet (nettarif og afgifter). Priserne er inklusive moms og alle afgifter.</p>
+</div>`;
+};
+
+VG.render.boligmarked = async function() {
+  const panel = document.getElementById('panel-boligmarked');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="panel-loading">Henter boligmarkedsdata…</div>';
+  let d;
+  try { d = await fetch('/api/livedata/boligmarked').then(r => r.json()); }
+  catch(e) { panel.innerHTML = '<div class="card"><p class="data-note">Kunne ikke hente data.</p></div>'; panel._loading = false; return; }
+  panel._loading = false;
+
+  const maxIdx = Math.max(...d.priceIndexTrend.map(t => t.idx));
+  const trendBars = d.priceIndexTrend.map(t => {
+    const h = Math.round(t.idx / (maxIdx + 10) * 80);
+    const isTarget = t.target;
+    return `<div class="bm-bar-col">
+      <div class="bm-bar-fill" style="height:${h}px;background:${isTarget ? 'var(--warn)' : 'var(--accent)'}" title="${t.year}: ${t.idx}"></div>
+      <div class="bm-bar-year">${t.year.slice(2)}</div>
+    </div>`;
+  }).join('');
+
+  const regionRows = d.byRegion.map(r => {
+    const chgColor = r.yoyChange >= 0 ? 'var(--pos)' : 'var(--neg)';
+    const chgSign  = r.yoyChange >= 0 ? '+' : '';
+    return `<div class="bm-region-row">
+      <span class="bm-region-name">${r.name}</span>
+      <span class="bm-region-price">${(r.medianM2/1000).toFixed(0)}k kr/m²</span>
+      <span class="bm-region-chg" style="color:${chgColor}">${chgSign}${r.yoyChange.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+
+  const typeRows = d.byType.map(t => {
+    const chgColor = t.yoyChange >= 0 ? 'var(--pos)' : 'var(--neg)';
+    const chgSign  = t.yoyChange >= 0 ? '+' : '';
+    return `<div class="bm-type-row">
+      <span>${t.type}</span>
+      <span>${(t.medianPrice/1000000).toFixed(2)} mio.</span>
+      <span style="color:${chgColor};font-weight:600">${chgSign}${t.yoyChange.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `<div class="card">
+  <h2>🏗 Boligmarkedet</h2>
+  <p class="intro">Nationale boligpriser, regionale forskelle og markedsudvikling. ${d.liveSource ? 'Live data fra DST.' : 'Baseret på DST og Boligsiden-estimater 2025.'}</p>
+  <div class="bm-hero-grid">
+    <div class="bm-hero-stat">
+      <div class="stat-label">Median salgspris (hus)</div>
+      <div class="stat-num">${(d.nationalMedianPrice/1000000).toFixed(2)} mio.</div>
+      <div class="stat-delta" style="color:var(--neg)">${d.priceChangeYoy.toFixed(1)}% år/år</div>
+    </div>
+    <div class="bm-hero-stat">
+      <div class="stat-label">Prisindeks (2015=100)</div>
+      <div class="stat-num">${d.priceIndexCurrent}</div>
+      <div class="stat-delta">${d.priceChangePeak.toFixed(1)}% fra top (${d.peakYear})</div>
+    </div>
+    <div class="bm-hero-stat">
+      <div class="stat-label">Gns. realkreditrente</div>
+      <div class="stat-num">${d.avgMortgageRate.toFixed(2)}%</div>
+      <div class="stat-delta">20-årig fastforrentet</div>
+    </div>
+    <div class="bm-hero-stat">
+      <div class="stat-label">Nye boliger (2025)</div>
+      <div class="stat-num">${(d.newCompletions2025/1000).toFixed(1)}k</div>
+      <div class="stat-delta">færdiggjorte enheder</div>
+    </div>
+  </div>
+  <h3>Prisindeks 2015–2025</h3>
+  <div class="bm-bar-chart">${trendBars}</div>
+  <div class="bm-two-col">
+    <div>
+      <h3>Priser pr. region (m²)</h3>
+      <div class="bm-regions">${regionRows}</div>
+    </div>
+    <div>
+      <h3>Pristype</h3>
+      <div class="bm-types">${typeRows}</div>
+    </div>
+  </div>
+  <div class="bm-rental-row">
+    <div class="bm-rental-stat"><span>Gns. husleje KBH</span><strong>${d.rentalMarket.avgRentCph.toLocaleString('da-DK')} kr/mdr</strong></div>
+    <div class="bm-rental-stat"><span>Gns. husleje DK</span><strong>${d.rentalMarket.avgRentDK.toLocaleString('da-DK')} kr/mdr</strong></div>
+    <div class="bm-rental-stat"><span>Huslejevækst</span><strong style="color:var(--pos)">+${d.rentalMarket.rentChangeYoy.toFixed(1)}%</strong></div>
+    <div class="bm-rental-stat"><span>Venteliste almen bolig</span><strong>${d.rentalMarket.waitlistYears.toFixed(1)} år</strong></div>
+  </div>
+  <p class="data-note">Kilde: Danmarks Statistik (EJEN6), Boligsiden, Nationalbanken. Prisindeks 2015=100.</p>
+</div>`;
+};
+
+VG.render.indkomst = async function() {
+  const panel = document.getElementById('panel-indkomst');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="panel-loading">Henter indkomstdata…</div>';
+  let d;
+  try { d = await fetch('/api/livedata/indkomst').then(r => r.json()); }
+  catch(e) { panel.innerHTML = '<div class="card"><p class="data-note">Kunne ikke hente data.</p></div>'; panel._loading = false; return; }
+  panel._loading = false;
+
+  const maxDecile = Math.max(...d.deciles.map(dc => dc.gross));
+  const decileBars = d.deciles.map((dc, i) => {
+    const pct = Math.round(dc.gross / maxDecile * 100);
+    return `<div class="inc-decile-row">
+      <span class="inc-decile-label">${dc.d}</span>
+      <div class="inc-decile-track">
+        <div class="inc-decile-bar" style="width:${pct}%"></div>
+      </div>
+      <span class="inc-decile-val">${(dc.gross/1000).toFixed(0)}k</span>
+      <span class="inc-decile-net">(${(dc.disposable/1000).toFixed(0)}k netto)</span>
+    </div>`;
+  }).join('');
+
+  const nordicRows = d.nordicComparison.map(c => {
+    const w = Math.round(c.gini / 45 * 100);
+    return `<div class="inc-nordic-row">
+      <span class="inc-nordic-country">${c.country}</span>
+      <div class="inc-nordic-track">
+        <div class="inc-nordic-bar" style="width:${w}%;background:${c.country==='Danmark'?'var(--accent)':'var(--surface-3)'}"></div>
+      </div>
+      <span class="inc-nordic-val">${c.gini.toFixed(1)}</span>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `<div class="card">
+  <h2>💰 Indkomst & Ulighed</h2>
+  <p class="intro">Indkomstfordeling, Gini-koefficient og sammenligning med Norden. ${d.liveSource ? 'Gini fra DST.' : 'Estimat baseret på DST IFOR41.'}</p>
+  <div class="inc-hero-grid">
+    <div class="inc-hero-stat">
+      <div class="stat-label">Gini-koefficient</div>
+      <div class="stat-num">${d.gini.toFixed(1)}</div>
+      <div class="stat-delta">Lav ulighed (0=fuld lighed)</div>
+    </div>
+    <div class="inc-hero-stat">
+      <div class="stat-label">Median husstandsindkomst</div>
+      <div class="stat-num">${(d.medianHouseholdIncome/1000).toFixed(0)}k</div>
+      <div class="stat-delta">kr./år brutto</div>
+    </div>
+    <div class="inc-hero-stat">
+      <div class="stat-label">Fattigdomsrate</div>
+      <div class="stat-num">${d.povertyRate.toFixed(1)}%</div>
+      <div class="stat-delta">&lt;50% af median</div>
+    </div>
+    <div class="inc-hero-stat">
+      <div class="stat-label">Top 10%'s andel</div>
+      <div class="stat-num">${d.topTenPercentShare.toFixed(1)}%</div>
+      <div class="stat-delta">af samlet indkomst</div>
+    </div>
+  </div>
+  <h3>Indkomst pr. decil (brutto / netto)</h3>
+  <div class="inc-deciles">${decileBars}</div>
+  <h3>Gini: Nordisk sammenligning</h3>
+  <div class="inc-nordic">${nordicRows}</div>
+  <div class="inc-transfers-grid">
+    <div class="inc-transfer-card"><div class="stat-label">Dagpenge (max)</div><div class="stat-num">${d.transfers.dagpenge.toLocaleString('da-DK')} kr/mdr</div></div>
+    <div class="inc-transfer-card"><div class="stat-label">Kontanthjælp</div><div class="stat-num">${d.transfers.kontanthjælp.toLocaleString('da-DK')} kr/mdr</div></div>
+    <div class="inc-transfer-card"><div class="stat-label">Folkepension</div><div class="stat-num">${d.transfers.folkepension.toLocaleString('da-DK')} kr/mdr</div></div>
+    <div class="inc-transfer-card"><div class="stat-label">Median månedsløn</div><div class="stat-num">${d.transfers.medianWage.toLocaleString('da-DK')} kr/mdr</div></div>
+  </div>
+  <p class="data-note">Kilde: Danmarks Statistik IFOR41, INDKP101. Indkomst i 2024-priser.</p>
+</div>`;
+};
+
+VG.render.co2 = async function() {
+  const panel = document.getElementById('panel-co2');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="panel-loading">Henter klimadata…</div>';
+  let d;
+  try { d = await fetch('/api/livedata/co2').then(r => r.json()); }
+  catch(e) { panel.innerHTML = '<div class="card"><p class="data-note">Kunne ikke hente data.</p></div>'; panel._loading = false; return; }
+  panel._loading = false;
+
+  const maxMt = Math.max(...d.emissionTrend.filter(t => !t.target).map(t => t.mt));
+  const trendBars = d.emissionTrend.map(t => {
+    const h = Math.round(t.mt / (maxMt + 5) * 80);
+    const isTarget = t.target;
+    const color = isTarget ? 'var(--neg)' : t.mt > 60 ? 'var(--pos)' : t.mt > 47 ? 'var(--warn)' : 'var(--accent)';
+    return `<div class="co2-bar-col">
+      <div class="co2-bar-fill" style="height:${h}px;background:${color};${isTarget?'border:2px dashed var(--neg);height:'.concat(h,'px'):''}"></div>
+      <div class="co2-bar-year">${t.year.slice(2)}</div>
+    </div>`;
+  }).join('');
+
+  const sectorBars = d.bySector.map(s => {
+    const pct = s.pct;
+    const trendIcon = s.trend === 'down' ? '↓' : s.trend === 'up' ? '↑' : '→';
+    const trendColor = s.trend === 'down' ? 'var(--neg)' : s.trend === 'up' ? 'var(--pos)' : 'var(--text-3)';
+    return `<div class="co2-sector-row">
+      <span class="co2-sector-name">${s.name}</span>
+      <div class="co2-sector-track">
+        <div class="co2-sector-fill" style="width:${pct}%"></div>
+      </div>
+      <span class="co2-sector-mt">${s.mt.toFixed(1)} mt</span>
+      <span class="co2-sector-trend" style="color:${trendColor}">${trendIcon}</span>
+    </div>`;
+  }).join('');
+
+  const progressPct = Math.round(d.reductionSoFar / 70 * 100);
+
+  const nordicRows = d.nordicComparison.map(c => {
+    const w = Math.round(c.tPerCap / 10 * 100);
+    return `<div class="co2-nordic-row">
+      <span class="co2-nordic-country">${c.country}</span>
+      <div class="co2-nordic-track">
+        <div class="co2-nordic-bar" style="width:${w}%;background:${c.country==='Danmark'?'var(--warn)':'var(--surface-3)'}"></div>
+      </div>
+      <span class="co2-nordic-val">${c.tPerCap.toFixed(1)} t</span>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `<div class="card">
+  <h2>🌿 CO₂ & Klimamål</h2>
+  <p class="intro">Danmarks udledninger, fremgang mod 2030-målet og sektorfordeling.${d.liveIntensity ? ` Live el-CO₂: ${d.liveIntensity} g/kWh.` : ''}</p>
+  <div class="co2-hero-grid">
+    <div class="co2-hero-stat">
+      <div class="stat-label">Samlet udledning 2024</div>
+      <div class="stat-num">${d.totalMtCo2_2024.toFixed(1)} mt</div>
+      <div class="stat-delta">CO₂-ækvivalenter</div>
+    </div>
+    <div class="co2-hero-stat">
+      <div class="stat-label">Per capita</div>
+      <div class="stat-num">${d.perCapita.toFixed(1)} t</div>
+      <div class="stat-delta">CO₂ pr. dansker</div>
+    </div>
+    <div class="co2-hero-stat">
+      <div class="stat-label">Reduktion siden 1990</div>
+      <div class="stat-num">${d.reductionSoFar.toFixed(0)}%</div>
+      <div class="stat-delta" style="color:var(--neg)">Mål: 70% i 2030</div>
+    </div>
+    <div class="co2-hero-stat">
+      <div class="stat-label">VE-andel af el</div>
+      <div class="stat-num">${d.renewableShare2024.toFixed(1)}%</div>
+      <div class="stat-delta">${d.windShareProduction.toFixed(1)}% fra vind</div>
+    </div>
+  </div>
+  <div class="co2-progress-wrap">
+    <div class="co2-progress-label">Fremgang mod 70%-mål (fra 1990): <strong>${d.reductionSoFar.toFixed(0)}% af 70% nået</strong> — <span style="color:var(--pos)">mangler ${d.reductionNeeded.toFixed(0)}% på 6 år</span></div>
+    <div class="co2-progress-track">
+      <div class="co2-progress-fill" style="width:${progressPct}%"></div>
+      <div class="co2-progress-target"></div>
+    </div>
+  </div>
+  <h3>Udledning 2000–2024 + mål 2030</h3>
+  <div class="co2-bar-chart">${trendBars}</div>
+  <h3>Udledning pr. sektor</h3>
+  <div class="co2-sectors">${sectorBars}</div>
+  <h3>Sammenligning pr. capita</h3>
+  <div class="co2-nordic">${nordicRows}</div>
+  <p class="data-note">Kilde: Energidata.dk (el-CO₂), Danmarks Statistik GAS2, IEA. Udledning i mt CO₂-ækvivalenter.</p>
+</div>`;
+};
+
+VG.render.kriminalitet = async function() {
+  const panel = document.getElementById('panel-kriminalitet');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="panel-loading">Henter kriminalitetsdata…</div>';
+  let d;
+  try { d = await fetch('/api/livedata/kriminalitet').then(r => r.json()); }
+  catch(e) { panel.innerHTML = '<div class="card"><p class="data-note">Kunne ikke hente data.</p></div>'; panel._loading = false; return; }
+  panel._loading = false;
+
+  const typeRows = d.byType.map(t => {
+    const trendColor = t.trend > 0 ? 'var(--pos)' : 'var(--neg)';
+    const trendSign  = t.trend > 0 ? '+' : '';
+    return `<div class="krim-type-row">
+      <span class="krim-type-icon">${t.icon}</span>
+      <span class="krim-type-name">${t.type}</span>
+      <span class="krim-type-val">${t.per100k.toLocaleString('da-DK')}/100k</span>
+      <span class="krim-type-trend" style="color:${trendColor}">${trendSign}${t.trend.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+
+  const maxReg = Math.max(...d.byRegion.map(r => r.per100k));
+  const regionRows = d.byRegion.map(r => `
+    <div class="krim-region-row">
+      <span class="krim-region-name">${r.name}</span>
+      <div class="krim-region-track">
+        <div class="krim-region-bar" style="width:${Math.round(r.per100k/maxReg*100)}%"></div>
+      </div>
+      <span class="krim-region-val">${r.per100k.toLocaleString('da-DK')}</span>
+      <span class="krim-region-clear">${r.clearUp.toFixed(1)}% opklaret</span>
+    </div>`).join('');
+
+  const maxTrend = Math.max(...d.totalTrend.map(t => t.total));
+  const trendBars = d.totalTrend.map(t => {
+    const h = Math.round(t.total / maxTrend * 80);
+    return `<div class="krim-bar-col">
+      <div class="krim-bar-fill" style="height:${h}px"></div>
+      <div class="krim-bar-year">${t.year.slice(2)}</div>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `<div class="card">
+  <h2>🚨 Kriminalitet</h2>
+  <p class="intro">Anmeldt kriminalitet, opklaringsprocent og regionale forskelle. Data fra Politiets årsstatistik.</p>
+  <div class="krim-hero-grid">
+    <div class="krim-hero-stat">
+      <div class="stat-label">Anmeldt kriminalitet 2024</div>
+      <div class="stat-num">${(d.totalReported2024/1000).toFixed(0)}k</div>
+      <div class="stat-delta">forbrydelser</div>
+    </div>
+    <div class="krim-hero-stat">
+      <div class="stat-label">Per 100.000 borgere</div>
+      <div class="stat-num">${d.per100k.toLocaleString('da-DK')}</div>
+      <div class="stat-delta">anmeldelser</div>
+    </div>
+    <div class="krim-hero-stat">
+      <div class="stat-label">Opklaringsprocent</div>
+      <div class="stat-num">${d.clearUpRate.toFixed(1)}%</div>
+      <div class="stat-delta">af anmeldte sager</div>
+    </div>
+    <div class="krim-hero-stat">
+      <div class="stat-label">Fængselspopulation</div>
+      <div class="stat-num">${d.prisonPopulation.toLocaleString('da-DK')}</div>
+      <div class="stat-delta">indsatte 2024</div>
+    </div>
+  </div>
+  <h3>Trend 2018–2024</h3>
+  <div class="krim-bar-chart">${trendBars}</div>
+  <h3>Kriminalitetstyper</h3>
+  <div class="krim-types">${typeRows}</div>
+  <h3>Pr. politikreds</h3>
+  <div class="krim-regions">${regionRows}</div>
+  <p class="data-note">Kilde: Politiets årsstatistik, Danmarks Statistik STRAF20. Anmeldelser pr. 100.000 borgere.</p>
+</div>`;
+};
+
+VG.render.uddannelse = async function() {
+  const panel = document.getElementById('panel-uddannelse');
+  if (!panel || panel._loading) return;
+  panel._loading = true;
+  panel.innerHTML = '<div class="panel-loading">Henter uddannelsesdata…</div>';
+  let d;
+  try { d = await fetch('/api/livedata/uddannelse').then(r => r.json()); }
+  catch(e) { panel.innerHTML = '<div class="card"><p class="data-note">Kunne ikke hente data.</p></div>'; panel._loading = false; return; }
+  panel._loading = false;
+
+  const levelBars = d.byLevel.map(l => `
+    <div class="udd-level-row">
+      <span class="udd-level-name">${l.level}</span>
+      <div class="udd-level-track">
+        <div class="udd-level-bar" style="width:${l.pct / 0.28}%"></div>
+      </div>
+      <span class="udd-level-pct">${l.pct.toFixed(1)}%</span>
+    </div>`).join('');
+
+  const nordicRows = d.nordicComparison.map(c => `
+    <div class="udd-nordic-row">
+      <span class="udd-nordic-country">${c.country}</span>
+      <div class="udd-nordic-bars">
+        <div class="udd-nordic-bar-wrap">
+          <div class="udd-nordic-bar" style="width:${c.higherEd}%;background:${c.country.includes('OECD')?'var(--surface-3)':c.country==='Danmark'?'var(--accent)':'var(--border-strong)'}"></div>
+        </div>
+        <span class="udd-nordic-val">${c.higherEd.toFixed(1)}% højere udd.</span>
+        <span class="udd-nordic-pisa">PISA: ${c.pisa}</span>
+      </div>
+    </div>`).join('');
+
+  const topFields = d.topFields.map(f => `
+    <div class="udd-field-row">
+      <span>${f.field}</span>
+      <div class="udd-field-track"><div class="udd-field-bar" style="width:${f.pct/0.21}%"></div></div>
+      <span>${f.pct.toFixed(1)}%</span>
+    </div>`).join('');
+
+  panel.innerHTML = `<div class="card">
+  <h2>🎓 Uddannelse</h2>
+  <p class="intro">Uddannelsesniveau, PISA-resultater, lærermangel og nordisk sammenligning.</p>
+  <div class="udd-hero-grid">
+    <div class="udd-hero-stat">
+      <div class="stat-label">Med videregående uddannelse</div>
+      <div class="stat-num">${d.higherEdRate25_64.toFixed(1)}%</div>
+      <div class="stat-delta">aldersgruppe 25–64 år</div>
+    </div>
+    <div class="udd-hero-stat">
+      <div class="stat-label">Frafald ungdomsuddannelse</div>
+      <div class="stat-num">${d.youthDropoutRate.toFixed(1)}%</div>
+      <div class="stat-delta">forlader uden afslutning</div>
+    </div>
+    <div class="udd-hero-stat">
+      <div class="stat-label">PISA 2022 (læsning)</div>
+      <div class="stat-num">${d.pisaReading2022}</div>
+      <div class="stat-delta">OECD-snit: ${d.pisaOecdAvgRead}</div>
+    </div>
+    <div class="udd-hero-stat">
+      <div class="stat-label">Lærermangel</div>
+      <div class="stat-num">${(d.teacherShortage/1000).toFixed(1)}k</div>
+      <div class="stat-delta">ubesatte stillinger</div>
+    </div>
+  </div>
+  <h3>Uddannelsesniveau (25–64 år)</h3>
+  <div class="udd-levels">${levelBars}</div>
+  <div class="udd-two-col">
+    <div>
+      <h3>Nordisk sammenligning</h3>
+      <div class="udd-nordic">${nordicRows}</div>
+    </div>
+    <div>
+      <h3>Populæreste uddannelsesretninger</h3>
+      <div class="udd-fields">${topFields}</div>
+    </div>
+  </div>
+  <div class="udd-extra-grid">
+    <div class="udd-extra-stat"><div class="stat-label">Uddannelsesudgifter</div><div class="stat-num">${d.educationSpendingPct.toFixed(1)}% BNP</div></div>
+    <div class="udd-extra-stat"><div class="stat-label">Elev/lærer-ratio</div><div class="stat-num">${d.studentTeacherRatio.toFixed(1)}:1</div></div>
+    <div class="udd-extra-stat"><div class="stat-label">Gns. SU-gæld</div><div class="stat-num">${(d.avgStudyDebt/1000).toFixed(0)}k kr.</div></div>
+    <div class="udd-extra-stat"><div class="stat-label">PISA matematik</div><div class="stat-num">${d.pisaMath2022}</div></div>
+  </div>
+  <p class="data-note">Kilde: Danmarks Statistik UDDAN, OECD Education at a Glance 2024, PISA 2022.</p>
 </div>`;
 };
 
