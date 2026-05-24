@@ -13,12 +13,19 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@phosphor-icons/web": "^2.1.2",
     "compression": "^1.7.4",
     "express": "^4.19.2",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0"
   },
-  "keywords": ["danmark", "finanslov", "budget", "simulator", "open-data"],
+  "keywords": [
+    "danmark",
+    "finanslov",
+    "budget",
+    "simulator",
+    "open-data"
+  ],
   "license": "MIT",
   "author": "Virtuel Regering"
 }
