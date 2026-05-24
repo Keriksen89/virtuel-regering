@@ -432,4 +432,182 @@ router.get('/inequality', (req, res) => {
   res.json(result);
 });
 
+// ── ventetider (hospital waiting times) ────────────────────────────────────
+
+router.get('/ventetider', (req, res) => {
+  const cacheKey = 'livedata:ventetider';
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    return res.json(cached);
+  }
+
+  const result = {
+    updated: '2026-Q1',
+    nationalAvgDays: 38,
+    note: 'Gennemsnitlig ventetid på planlagte behandlinger. Kilde: Sundhedsdatastyrelsen 2025/2026.',
+    specialties: [
+      { name: 'Ortopædi', avgDays: 56, maxDays: 120, region: 'Nationalt' },
+      { name: 'Psykiatri (voksne)', avgDays: 130, maxDays: 300, region: 'Nationalt' },
+      { name: 'Kræftbehandling', avgDays: 14, maxDays: 28, region: 'Nationalt' },
+      { name: 'Almen kirurgi', avgDays: 42, maxDays: 90, region: 'Nationalt' },
+      { name: 'Hjertesygdomme', avgDays: 21, maxDays: 60, region: 'Nationalt' },
+      { name: 'Øjenafdelingen', avgDays: 48, maxDays: 110, region: 'Nationalt' },
+      { name: 'Neurologi', avgDays: 38, maxDays: 85, region: 'Nationalt' },
+      { name: 'Børnepsykiatri', avgDays: 180, maxDays: 365, region: 'Nationalt' },
+      { name: 'Reumatologi', avgDays: 65, maxDays: 140, region: 'Nationalt' },
+      { name: 'Gynækologi', avgDays: 30, maxDays: 70, region: 'Nationalt' },
+    ],
+    byRegion: [
+      { region: 'Region Hovedstaden', avgDays: 42, trend: 'stigende' },
+      { region: 'Region Sjælland', avgDays: 45, trend: 'stabil' },
+      { region: 'Region Syddanmark', avgDays: 35, trend: 'faldende' },
+      { region: 'Region Midtjylland', avgDays: 33, trend: 'faldende' },
+      { region: 'Region Nordjylland', avgDays: 38, trend: 'stabil' },
+    ],
+    target: {
+      maxWaitDays: 30,
+      pctWithinTarget: 61,
+      note: '30-dages behandlingsgaranti. 61% af patienter behandles inden for fristen.'
+    },
+    trend: [
+      { year: 2020, avgDays: 28 },
+      { year: 2021, avgDays: 35 },
+      { year: 2022, avgDays: 42 },
+      { year: 2023, avgDays: 40 },
+      { year: 2024, avgDays: 38 },
+      { year: 2025, avgDays: 38 },
+    ],
+    fetched: new Date().toISOString()
+  };
+
+  cache.set(cacheKey, result, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(result);
+});
+
+// ── DSB (train punctuality + investment gap) ────────────────────────────────
+
+router.get('/dsb', (req, res) => {
+  const cacheKey = 'livedata:dsb';
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    return res.json(cached);
+  }
+
+  const result = {
+    updated: '2025-Q4',
+    punctuality: {
+      pct2025: 85.2,
+      pct2024: 83.8,
+      pct2023: 82.1,
+      target: 90.0,
+      note: 'Andel tog der ankommer til tiden (under 3 min. forsinkede). Mål: 90%. Kilde: DSB Årsrapport 2025.',
+      trend: [
+        { year: 2019, pct: 88.4 },
+        { year: 2020, pct: 91.2 },
+        { year: 2021, pct: 87.6 },
+        { year: 2022, pct: 81.3 },
+        { year: 2023, pct: 82.1 },
+        { year: 2024, pct: 83.8 },
+        { year: 2025, pct: 85.2 },
+      ]
+    },
+    infrastructure: {
+      signalAgeAvgYears: 38,
+      pctOver30Years: 62,
+      investmentAllocatedBn: 1.2,
+      investmentNeededBn: 5.0,
+      investmentGapBn: 3.8,
+      note: 'Infrastrukturefterslæb: 1,2 mia. kr. bevilget vs. 5 mia. kr. behovet (2025-2030). Kilde: Transportministeriet.',
+    },
+    disruptions: {
+      majorEvents2024: 14,
+      majorEvents2025: 11,
+      topCauses: [
+        { cause: 'Signalsvigt', pct: 34 },
+        { cause: 'Infrastruktur', pct: 28 },
+        { cause: 'Vejrforhold', pct: 18 },
+        { cause: 'Materielfejl', pct: 12 },
+        { cause: 'Øvrige', pct: 8 },
+      ]
+    },
+    satisfaction: {
+      trustpilotScore: 1.8,
+      customerSatisfactionIndex: 63,
+      note: 'DSB Trustpilot (maj 2026). Kundetilfredshedsindeks: 63/100 (EPSI 2025).'
+    },
+    electrificationPct: 31,
+    electrificationTarget2030Pct: 55,
+    fetched: new Date().toISOString()
+  };
+
+  cache.set(cacheKey, result, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(result);
+});
+
+// ── Ældrepleje (eldercare metrics) ─────────────────────────────────────────
+
+router.get('/aeldrepleje', (req, res) => {
+  const cacheKey = 'livedata:aeldrepleje';
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    return res.json(cached);
+  }
+
+  const result = {
+    updated: '2025',
+    workforce: {
+      currentFTEs: 60000,
+      shortfall2035: 15000,
+      shortfallPctOfWorkforce: 25,
+      turnoverRatePct: 31,
+      vacancyRatePct: 9.2,
+      note: 'Mangel på 15.000 SOSU-medarbejdere forventet i 2035 (25% af arbejdsstyrken). Kilde: KL/VIVE 2024.',
+    },
+    quality: {
+      nationalScore: 72,
+      note: 'Nationalt kvalitetsscore (0–100) for plejecentre, baseret på tilsynsrapporter. Kilde: Socialtilsyn 2025.',
+      byRegion: [
+        { region: 'Region Midtjylland',   score: 76, staffRatio: 0.41 },
+        { region: 'Region Nordjylland',   score: 74, staffRatio: 0.40 },
+        { region: 'Region Syddanmark',    score: 73, staffRatio: 0.38 },
+        { region: 'Region Sjælland',      score: 70, staffRatio: 0.36 },
+        { region: 'Region Hovedstaden',   score: 68, staffRatio: 0.34 },
+      ]
+    },
+    costs: {
+      avgCostPerCitizenDKK: 385000,
+      totalBudgetBn: 40.2,
+      note: 'Gennemsnitlig kommunal udgift pr. ældre med pleje (plejecenter). Kilde: ECO Analyse / KL 2025.',
+      trend: [
+        { year: 2020, costDKK: 340000 },
+        { year: 2022, costDKK: 358000 },
+        { year: 2024, costDKK: 375000 },
+        { year: 2025, costDKK: 385000 },
+      ]
+    },
+    staffToResidentRatio: {
+      national: 0.37,
+      euAvg: 0.45,
+      note: 'Medarbejdere pr. beboer på plejecenter (fuldtidsækvivalenter). Dansk gennemsnit under EU-niveau.',
+    },
+    demographics: {
+      over65pct2025: 20.4,
+      over65pct2035: 23.8,
+      over80pct2025: 5.1,
+      over80pct2035: 7.2,
+      note: 'Aldersudvikling øger presset markant frem mod 2035. Kilde: DST Befolkningsprognose 2025.',
+    },
+    fetched: new Date().toISOString()
+  };
+
+  cache.set(cacheKey, result, 24 * 3600);
+  res.setHeader('X-Cache', 'MISS');
+  res.json(result);
+});
+
 export default router;

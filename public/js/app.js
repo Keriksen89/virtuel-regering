@@ -281,7 +281,15 @@ document.addEventListener('DOMContentLoaded', () => {
     demokrati: { label: '🇩🇰 Demokrati', tabs: [
       { id: 'borger',  label: 'Din stemme' },
       { id: 'sundhed', label: '🏥 Sundhed' },
-      { id: 'forbrug', label: '🛍 Forbrug' }
+      { id: 'forbrug', label: '🛍 Forbrug' },
+      { id: 'rygter',  label: '📰 Politiske rygter' }
+    ]},
+    hverdag: { label: '🏠 Hverdag', tabs: [
+      { id: 'bolig',       label: '🏠 Boligberegner' },
+      { id: 'pension',     label: '💼 Pension' },
+      { id: 'ventetider',  label: '⏳ Ventetider' },
+      { id: 'dsb',         label: '🚂 Transport' },
+      { id: 'aeldrepleje', label: '👴 Ældrepleje' }
     ]}
   };
 

@@ -561,6 +561,12 @@ VG.render.fast = function() {
       if (tab === 'kommuner')     VG.kommuner.renderPanel();
       if (tab === 'sundhed')      VG.render.sundhed();
       if (tab === 'forbrug')      VG.render.forbrug();
+      if (tab === 'rygter')       VG.rygter.renderPanel();
+      if (tab === 'bolig')        VG.bolig.renderPanel();
+      if (tab === 'pension')      VG.pension.renderPanel();
+      if (tab === 'ventetider')   VG.render.ventetider();
+      if (tab === 'dsb')          VG.render.dsb();
+      if (tab === 'aeldrepleje')  VG.render.aeldrepleje();
     } catch (e) { console.error('[render] tab panel:', e); }
   }
   VG.bindControls();
@@ -946,6 +952,311 @@ VG.render.forbrug = async function() {
       <p class="data-note">Kilde: ${d.savings.source}</p>
     </div>
   `;
+};
+
+// ── Ventetider ─────────────────────────────────────────────────────────────
+
+VG.render.ventetider = async function() {
+  const panel = document.getElementById('panel-ventetider');
+  if (!panel) return;
+  panel.innerHTML = '<div class="panel-loading">Henter ventetidsdata…</div>';
+
+  let d;
+  try {
+    d = await fetch('/api/livedata/ventetider').then(r => r.json());
+  } catch (e) {
+    panel.innerHTML = '<p class="text-muted">Ventetidsdata midlertidigt utilgængelig.</p>';
+    return;
+  }
+
+  const specialtyBars = d.specialties.map(sp => {
+    const pct = Math.min(100, sp.avgDays / 200 * 100).toFixed(0);
+    const color = sp.avgDays > 90 ? 'var(--pos)' : sp.avgDays > 45 ? 'var(--warn)' : 'var(--neg)';
+    return `<div class="e-bar-row">
+      <div class="e-bar-label" style="font-size:12px">${sp.name}</div>
+      <div class="e-bar-track"><div class="e-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="e-bar-val" style="color:${color}">${sp.avgDays} dage</div>
+    </div>`;
+  }).join('');
+
+  const regionRows = d.byRegion.map(r => {
+    const trendIcon = r.trend === 'stigende' ? '↑' : r.trend === 'faldende' ? '↓' : '→';
+    const trendColor = r.trend === 'stigende' ? 'var(--pos)' : r.trend === 'faldende' ? 'var(--neg)' : 'var(--text-3)';
+    return `<tr><td>${r.region}</td><td>${r.avgDays} dage</td><td style="color:${trendColor}">${trendIcon} ${r.trend}</td></tr>`;
+  }).join('');
+
+  const trendPoints = d.trend.map(t =>
+    `<div class="hist-point"><span>${t.year}</span><strong>${t.avgDays}</strong></div>`
+  ).join('');
+
+  const targetColor = d.target.pctWithinTarget >= 80 ? 'var(--neg)' : d.target.pctWithinTarget >= 60 ? 'var(--warn)' : 'var(--pos)';
+
+  panel.innerHTML = `
+<div class="section-header">
+  <h2>⏳ Ventetider på sygehuse</h2>
+  <p class="section-desc">Gennemsnitlige ventetider på planlagte behandlinger — opdateret Q1 2026</p>
+</div>
+
+<div class="e-hero-grid">
+  <div class="e-hero-card accent-card">
+    <div class="e-hero-num">${d.nationalAvgDays}</div>
+    <div class="e-hero-label">Dages gns. ventetid</div>
+    <div class="e-hero-sub">nationalt gennemsnit</div>
+  </div>
+  <div class="e-hero-card ${d.target.pctWithinTarget >= 80 ? 'accent-card' : ''}">
+    <div class="e-hero-num" style="color:${targetColor}">${d.target.pctWithinTarget}%</div>
+    <div class="e-hero-label">Inden for 30-dages garanti</div>
+    <div class="e-hero-sub">mål: 100%</div>
+  </div>
+  <div class="e-hero-card">
+    <div class="e-hero-num" style="color:var(--pos)">180</div>
+    <div class="e-hero-label">Børnepsykiatri (dage)</div>
+    <div class="e-hero-sub">op til 1 år ventetid</div>
+  </div>
+  <div class="e-hero-card">
+    <div class="e-hero-num" style="color:var(--neg)">14</div>
+    <div class="e-hero-label">Kræft (dage)</div>
+    <div class="e-hero-sub">inden for pakkeforløb</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Ventetid efter speciale</h3>
+  <p class="intro">Gennemsnitlig ventetid for ikke-akutte behandlinger. Rød = over 90 dage, gul = 45–90, grøn = under 45 dage.</p>
+  <div class="e-bars">${specialtyBars}</div>
+  <p class="data-note">Kilde: Sundhedsdatastyrelsen 2025/2026</p>
+</div>
+
+<div class="sundhed-grid">
+  <div class="card">
+    <h3>Ventetid pr. region</h3>
+    <table style="width:100%;font-size:13px;border-collapse:collapse">
+      <thead><tr style="font-size:11px;color:var(--text-2)"><th style="text-align:left;padding:6px 0">Region</th><th style="text-align:left;padding:6px 0">Gns. ventetid</th><th style="text-align:left;padding:6px 0">Trend</th></tr></thead>
+      <tbody>${regionRows}</tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h3>Udvikling 2020–2025</h3>
+    <div class="hist-timeline">${trendPoints}</div>
+    <p class="data-note">${d.target.note}</p>
+  </div>
+</div>`;
+};
+
+// ── DSB / Transport ─────────────────────────────────────────────────────────
+
+VG.render.dsb = async function() {
+  const panel = document.getElementById('panel-dsb');
+  if (!panel) return;
+  panel.innerHTML = '<div class="panel-loading">Henter transportdata…</div>';
+
+  let d;
+  try {
+    d = await fetch('/api/livedata/dsb').then(r => r.json());
+  } catch (e) {
+    panel.innerHTML = '<p class="text-muted">Transportdata midlertidigt utilgængelig.</p>';
+    return;
+  }
+
+  const pctColor = d.punctuality.pct2025 >= d.punctuality.target
+    ? 'var(--neg)' : d.punctuality.pct2025 >= 85 ? 'var(--warn)' : 'var(--pos)';
+
+  const punctTrend = d.punctuality.trend.map(t => {
+    const color = t.pct >= d.punctuality.target ? 'var(--neg)' : t.pct >= 85 ? 'var(--warn)' : 'var(--pos)';
+    return `<div class="hist-point"><span>${t.year}</span><strong style="color:${color}">${t.pct}%</strong></div>`;
+  }).join('');
+
+  const causesBars = d.disruptions.topCauses.map(c => {
+    const pct = c.pct;
+    return `<div class="e-bar-row">
+      <div class="e-bar-label" style="font-size:12px">${c.cause}</div>
+      <div class="e-bar-track"><div class="e-bar-fill" style="width:${pct*2}%;background:var(--accent)"></div></div>
+      <div class="e-bar-val">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  const investGapPct = (d.infrastructure.investmentAllocatedBn / d.infrastructure.investmentNeededBn * 100).toFixed(0);
+
+  panel.innerHTML = `
+<div class="section-header">
+  <h2>🚂 Transport & DSB</h2>
+  <p class="section-desc">DSB rettidighed, infrastrukturefterslæb og togstatistik 2025</p>
+</div>
+
+<div class="e-hero-grid">
+  <div class="e-hero-card accent-card">
+    <div class="e-hero-num" style="color:${pctColor}">${d.punctuality.pct2025}%</div>
+    <div class="e-hero-label">Rettidighed 2025</div>
+    <div class="e-hero-sub">Mål: ${d.punctuality.target}% · 2024: ${d.punctuality.pct2024}%</div>
+  </div>
+  <div class="e-hero-card">
+    <div class="e-hero-num" style="color:var(--pos)">${d.infrastructure.signalAgeAvgYears}</div>
+    <div class="e-hero-label">Gns. alder signalsystem (år)</div>
+    <div class="e-hero-sub">${d.infrastructure.pctOver30Years}% er over 30 år gammelt</div>
+  </div>
+  <div class="e-hero-card">
+    <div class="e-hero-num" style="color:var(--pos)">${d.infrastructure.investmentGapBn.toFixed(1).replace('.', ',')} mia.</div>
+    <div class="e-hero-label">Investeringsefterslæb</div>
+    <div class="e-hero-sub">${d.infrastructure.investmentAllocatedBn} mia. bevilget / ${d.infrastructure.investmentNeededBn} mia. behov</div>
+  </div>
+  <div class="e-hero-card">
+    <div class="e-hero-num" style="color:var(--warn)">${d.satisfaction.trustpilotScore}</div>
+    <div class="e-hero-label">Trustpilot-score</div>
+    <div class="e-hero-sub">Tilfredshed: ${d.satisfaction.customerSatisfactionIndex}/100</div>
+  </div>
+</div>
+
+<div class="sundhed-grid">
+  <div class="card">
+    <h3>Rettidighed over tid</h3>
+    <div class="hist-timeline">${punctTrend}</div>
+    <div style="margin-top:12px">
+      <div class="e-bar-row">
+        <div class="e-bar-label">Rettidighed 2025</div>
+        <div class="e-bar-track"><div class="e-bar-fill" style="width:${d.punctuality.pct2025}%;background:${pctColor}"></div></div>
+        <div class="e-bar-val" style="color:${pctColor}">${d.punctuality.pct2025}%</div>
+      </div>
+      <div class="e-bar-row">
+        <div class="e-bar-label">Mål</div>
+        <div class="e-bar-track"><div class="e-bar-fill" style="width:${d.punctuality.target}%;background:var(--border-strong)"></div></div>
+        <div class="e-bar-val">${d.punctuality.target}%</div>
+      </div>
+    </div>
+    <p class="data-note">${d.punctuality.note}</p>
+  </div>
+  <div class="card">
+    <h3>Årsager til forsinkelser 2024</h3>
+    <div class="e-bars">${causesBars}</div>
+    <p class="data-note">Større forstyrrelser: ${d.disruptions.majorEvents2025} i 2025 (mod ${d.disruptions.majorEvents2024} i 2024)</p>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Infrastruktur & Elektrificering</h3>
+  <div class="e-bar-row">
+    <div class="e-bar-label">Bevilget investering</div>
+    <div class="e-bar-track"><div class="e-bar-fill" style="width:${investGapPct}%;background:var(--accent)"></div></div>
+    <div class="e-bar-val">${d.infrastructure.investmentAllocatedBn} mia. kr.</div>
+  </div>
+  <div class="e-bar-row">
+    <div class="e-bar-label">Samlet behov</div>
+    <div class="e-bar-track"><div class="e-bar-fill" style="width:100%;background:var(--surface-3)"></div></div>
+    <div class="e-bar-val">${d.infrastructure.investmentNeededBn} mia. kr.</div>
+  </div>
+  <div class="e-bar-row">
+    <div class="e-bar-label">Elektrificeret bane</div>
+    <div class="e-bar-track"><div class="e-bar-fill" style="width:${d.electrificationPct}%;background:#22c5d4"></div></div>
+    <div class="e-bar-val">${d.electrificationPct}% (mål 2030: ${d.electrificationTarget2030Pct}%)</div>
+  </div>
+  <p class="data-note">${d.infrastructure.note}</p>
+</div>`;
+};
+
+// ── Ældrepleje ──────────────────────────────────────────────────────────────
+
+VG.render.aeldrepleje = async function() {
+  const panel = document.getElementById('panel-aeldrepleje');
+  if (!panel) return;
+  panel.innerHTML = '<div class="panel-loading">Henter ældreplejedata…</div>';
+
+  let d;
+  try {
+    d = await fetch('/api/livedata/aeldrepleje').then(r => r.json());
+  } catch (e) {
+    panel.innerHTML = '<p class="text-muted">Ældreplejedata midlertidigt utilgængelig.</p>';
+    return;
+  }
+
+  const regionRows = d.quality.byRegion.map(r => {
+    const scoreColor = r.score >= 75 ? 'var(--neg)' : r.score >= 70 ? 'var(--warn)' : 'var(--pos)';
+    return `<tr>
+      <td>${r.region}</td>
+      <td><span style="color:${scoreColor};font-weight:700">${r.score}</span>/100</td>
+      <td>${r.staffRatio.toFixed(2)} per beboer</td>
+    </tr>`;
+  }).join('');
+
+  const costTrend = d.costs.trend.map(t =>
+    `<div class="hist-point"><span>${t.year}</span><strong>${(t.costDKK/1000).toFixed(0)}k</strong></div>`
+  ).join('');
+
+  const demogRows = [
+    { label: 'Over 65 år (2025)', val: d.demographics.over65pct2025 + '%' },
+    { label: 'Over 65 år (2035)', val: d.demographics.over65pct2035 + '%' },
+    { label: 'Over 80 år (2025)', val: d.demographics.over80pct2025 + '%' },
+    { label: 'Over 80 år (2035)', val: d.demographics.over80pct2035 + '%' },
+  ].map(r => `<tr><td>${r.label}</td><td><strong>${r.val}</strong></td></tr>`).join('');
+
+  const staffRatioBarWidth = (d.staffToResidentRatio.national / d.staffToResidentRatio.euAvg * 100).toFixed(0);
+
+  panel.innerHTML = `
+<div class="section-header">
+  <h2>👴 Ældrepleje</h2>
+  <p class="section-desc">Kvalitet, bemanding og økonomi i den danske ældrepleje — 2025-data</p>
+</div>
+
+<div class="e-hero-grid">
+  <div class="e-hero-card accent-card">
+    <div class="e-hero-num" style="color:var(--pos)">${d.workforce.shortfall2035.toLocaleString('da-DK')}</div>
+    <div class="e-hero-label">Mangel på medarbejdere 2035</div>
+    <div class="e-hero-sub">${d.workforce.shortfallPctOfWorkforce}% af SOSU-arbejdsstyrken</div>
+  </div>
+  <div class="e-hero-card">
+    <div class="e-hero-num">${d.quality.nationalScore}</div>
+    <div class="e-hero-label">Nationalt kvalitetsscore</div>
+    <div class="e-hero-sub">ud af 100 (tilsynsrapporter)</div>
+  </div>
+  <div class="e-hero-card">
+    <div class="e-hero-num">${(d.costs.avgCostPerCitizenDKK/1000).toFixed(0)}k</div>
+    <div class="e-hero-label">Udgift pr. borger (kr./år)</div>
+    <div class="e-hero-sub">plejecenter, 2025</div>
+  </div>
+  <div class="e-hero-card">
+    <div class="e-hero-num" style="color:var(--warn)">${d.workforce.turnoverRatePct}%</div>
+    <div class="e-hero-label">Personaleudskiftning</div>
+    <div class="e-hero-sub">${d.workforce.vacancyRatePct}% ledige stillinger</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Kvalitetsscore & bemanding pr. region</h3>
+  <table style="width:100%;font-size:13px;border-collapse:collapse">
+    <thead><tr style="font-size:11px;color:var(--text-2)"><th style="text-align:left;padding:6px 0">Region</th><th style="text-align:left;padding:6px 0">Kvalitet</th><th style="text-align:left;padding:6px 0">Personale/beboer</th></tr></thead>
+    <tbody>${regionRows}</tbody>
+  </table>
+  <p class="data-note">${d.quality.note}</p>
+</div>
+
+<div class="sundhed-grid">
+  <div class="card">
+    <h3>Udgift pr. borger (kr./år)</h3>
+    <div class="hist-timeline">${costTrend}</div>
+    <p class="data-note">Total budget: ${d.costs.totalBudgetBn.toFixed(1)} mia. kr. Kilde: ${d.costs.note}</p>
+  </div>
+  <div class="card">
+    <h3>Aldersudvikling 2025–2035</h3>
+    <table style="width:100%;font-size:13px;border-collapse:collapse">
+      <tbody>${demogRows}</tbody>
+    </table>
+    <p class="data-note">${d.demographics.note}</p>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Bemanding: Danmark vs. EU</h3>
+  <div class="e-bar-row">
+    <div class="e-bar-label">Danmark</div>
+    <div class="e-bar-track"><div class="e-bar-fill" style="width:${staffRatioBarWidth}%;background:var(--accent)"></div></div>
+    <div class="e-bar-val">${d.staffToResidentRatio.national} per beboer</div>
+  </div>
+  <div class="e-bar-row">
+    <div class="e-bar-label">EU-gennemsnit</div>
+    <div class="e-bar-track"><div class="e-bar-fill" style="width:100%;background:var(--surface-3)"></div></div>
+    <div class="e-bar-val">${d.staffToResidentRatio.euAvg} per beboer</div>
+  </div>
+  <p class="data-note">${d.staffToResidentRatio.note}</p>
+  <p class="data-note" style="margin-top:8px">${d.workforce.note}</p>
+</div>`;
 };
 
 VG.loadScenario = function(key) {
