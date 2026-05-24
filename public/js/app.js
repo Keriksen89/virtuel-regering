@@ -347,8 +347,8 @@ document.addEventListener('DOMContentLoaded', () => {
     switchTab(btn.dataset.tab);
   });
 
-  // Initialise: show overview group
-  switchGroup('oversigt');
+  // Initialise: show samfund group (overview is the first tab there)
+  switchGroup('samfund');
   window.__switchGroup = switchGroup; // allow onboarding to navigate
   VG.onboarding.init();
 
