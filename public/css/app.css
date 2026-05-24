@@ -2303,4 +2303,117 @@ canvas { display: block; max-width: 100%; }
 .elpris-eu-track { height: 10px; background: var(--surface-3); border-radius: 5px; overflow: hidden; }
 .elpris-eu-fill { height: 100%; background: var(--accent); border-radius: 5px; }
 .elpris-eu-highlight .elpris-eu-fill { background: var(--warn); }
+
+/* ── Boligmarked panel ────────────────────────────────────────────────── */
+.bm-hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.bm-hero-stat { background:var(--surface-2); border-radius:8px; padding:14px 16px; }
+.bm-bar-chart { display:flex; align-items:flex-end; gap:3px; height:100px; padding:8px 0; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.bm-bar-col { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+.bm-bar-fill { width:100%; min-height:4px; border-radius:2px 2px 0 0; transition:height .4s; }
+.bm-bar-year { font-size:9px; color:var(--text-3); }
+.bm-two-col { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:20px; }
+@media (max-width:640px) { .bm-two-col { grid-template-columns:1fr; } }
+.bm-regions, .bm-types { display:flex; flex-direction:column; gap:7px; }
+.bm-region-row { display:grid; grid-template-columns:1fr 90px 55px; align-items:center; gap:8px; font-size:12px; }
+.bm-region-name { font-size:12px; color:var(--text-2); }
+.bm-region-price { font-weight:600; text-align:right; }
+.bm-region-chg { font-weight:700; text-align:right; font-size:12px; }
+.bm-type-row { display:grid; grid-template-columns:1fr 80px 55px; font-size:12px; padding:5px 8px; background:var(--surface-2); border-radius:5px; gap:8px; }
+.bm-rental-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-top:20px; }
+.bm-rental-stat { background:var(--surface-2); padding:10px 14px; border-radius:6px; display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--text-2); }
+.bm-rental-stat strong { font-size:14px; font-weight:700; color:var(--text); }
+
+/* ── Indkomst panel ───────────────────────────────────────────────────── */
+.inc-hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.inc-hero-stat { background:var(--surface-2); border-radius:8px; padding:14px 16px; }
+.inc-deciles { display:flex; flex-direction:column; gap:6px; margin-bottom:24px; }
+.inc-decile-row { display:grid; grid-template-columns:130px 1fr 60px 80px; align-items:center; gap:8px; font-size:12px; }
+@media (max-width:640px) { .inc-decile-row { grid-template-columns:100px 1fr 55px; } .inc-decile-net { display:none; } }
+.inc-decile-label { font-size:11px; color:var(--text-2); }
+.inc-decile-track { height:10px; background:var(--surface-3); border-radius:5px; overflow:hidden; }
+.inc-decile-bar { height:100%; background:var(--accent); border-radius:5px; }
+.inc-decile-val { font-weight:700; text-align:right; }
+.inc-decile-net { font-size:11px; color:var(--text-3); }
+.inc-nordic { display:flex; flex-direction:column; gap:7px; margin-bottom:20px; }
+.inc-nordic-row { display:grid; grid-template-columns:80px 1fr 50px; align-items:center; gap:8px; font-size:12px; }
+.inc-nordic-country { font-size:12px; color:var(--text-2); }
+.inc-nordic-track { height:10px; background:var(--surface-3); border-radius:5px; overflow:hidden; }
+.inc-nordic-bar { height:100%; border-radius:5px; }
+.inc-nordic-val { font-weight:700; text-align:right; }
+.inc-transfers-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:20px; }
+.inc-transfer-card { background:var(--surface-2); padding:12px 14px; border-radius:6px; }
+
+/* ── CO2 panel ────────────────────────────────────────────────────────── */
+.co2-hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.co2-hero-stat { background:var(--surface-2); border-radius:8px; padding:14px 16px; }
+.co2-progress-wrap { margin:16px 0 20px; }
+.co2-progress-label { font-size:12px; color:var(--text-2); margin-bottom:6px; }
+.co2-progress-track { height:14px; background:var(--surface-3); border-radius:7px; overflow:hidden; position:relative; }
+.co2-progress-fill { height:100%; background:var(--accent); border-radius:7px; transition:width .6s; }
+.co2-bar-chart { display:flex; align-items:flex-end; gap:3px; height:100px; padding:8px 0; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.co2-bar-col { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+.co2-bar-fill { width:100%; min-height:4px; border-radius:2px 2px 0 0; }
+.co2-bar-year { font-size:9px; color:var(--text-3); }
+.co2-sectors { display:flex; flex-direction:column; gap:8px; margin-bottom:24px; }
+.co2-sector-row { display:grid; grid-template-columns:130px 1fr 60px 24px; align-items:center; gap:8px; font-size:12px; }
+.co2-sector-name { font-size:12px; color:var(--text-2); }
+.co2-sector-track { height:10px; background:var(--surface-3); border-radius:5px; overflow:hidden; }
+.co2-sector-fill { height:100%; background:var(--accent); border-radius:5px; }
+.co2-sector-mt { font-weight:700; text-align:right; }
+.co2-sector-trend { font-size:14px; font-weight:700; text-align:center; }
+.co2-nordic { display:flex; flex-direction:column; gap:7px; }
+.co2-nordic-row { display:grid; grid-template-columns:80px 1fr 55px; align-items:center; gap:8px; font-size:12px; }
+.co2-nordic-country { font-size:12px; color:var(--text-2); }
+.co2-nordic-track { height:10px; background:var(--surface-3); border-radius:5px; overflow:hidden; }
+.co2-nordic-bar { height:100%; border-radius:5px; }
+.co2-nordic-val { font-weight:700; text-align:right; }
+
+/* ── Kriminalitet panel ───────────────────────────────────────────────── */
+.krim-hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.krim-hero-stat { background:var(--surface-2); border-radius:8px; padding:14px 16px; }
+.krim-bar-chart { display:flex; align-items:flex-end; gap:5px; height:90px; padding:8px 0; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.krim-bar-col { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+.krim-bar-fill { width:100%; min-height:4px; border-radius:2px 2px 0 0; background:var(--accent); }
+.krim-bar-year { font-size:10px; color:var(--text-3); }
+.krim-types { display:flex; flex-direction:column; gap:6px; margin-bottom:24px; }
+.krim-type-row { display:grid; grid-template-columns:28px 1fr 110px 60px; align-items:center; gap:8px; padding:7px 10px; background:var(--surface-2); border-radius:6px; font-size:12px; }
+.krim-type-icon { font-size:16px; text-align:center; }
+.krim-type-name { font-size:12px; }
+.krim-type-val { font-weight:600; text-align:right; }
+.krim-type-trend { font-weight:700; text-align:right; }
+.krim-regions { display:flex; flex-direction:column; gap:7px; }
+.krim-region-row { display:grid; grid-template-columns:160px 1fr 70px 100px; align-items:center; gap:8px; font-size:12px; }
+@media (max-width:640px) { .krim-region-row { grid-template-columns:1fr 55px; } .krim-region-track, .krim-region-clear { display:none; } }
+.krim-region-name { font-size:11px; color:var(--text-2); }
+.krim-region-track { height:8px; background:var(--surface-3); border-radius:4px; overflow:hidden; }
+.krim-region-bar { height:100%; background:var(--warn); border-radius:4px; }
+.krim-region-val { font-weight:700; text-align:right; }
+.krim-region-clear { font-size:11px; color:var(--text-3); }
+
+/* ── Uddannelse panel ─────────────────────────────────────────────────── */
+.udd-hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin:16px 0 24px; }
+.udd-hero-stat { background:var(--surface-2); border-radius:8px; padding:14px 16px; }
+.udd-levels { display:flex; flex-direction:column; gap:7px; margin-bottom:24px; }
+.udd-level-row { display:grid; grid-template-columns:200px 1fr 45px; align-items:center; gap:8px; font-size:12px; }
+@media (max-width:500px) { .udd-level-row { grid-template-columns:1fr 40px; } }
+.udd-level-name { font-size:12px; color:var(--text-2); }
+.udd-level-track { height:10px; background:var(--surface-3); border-radius:5px; overflow:hidden; }
+.udd-level-bar { height:100%; background:var(--accent); border-radius:5px; }
+.udd-level-pct { font-weight:700; text-align:right; }
+.udd-two-col { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:20px 0; }
+@media (max-width:640px) { .udd-two-col { grid-template-columns:1fr; } }
+.udd-nordic { display:flex; flex-direction:column; gap:8px; }
+.udd-nordic-row { display:flex; flex-direction:column; gap:3px; }
+.udd-nordic-country { font-size:12px; font-weight:600; }
+.udd-nordic-bars { display:grid; grid-template-columns:1fr 130px 70px; align-items:center; gap:8px; }
+.udd-nordic-bar-wrap { height:8px; background:var(--surface-3); border-radius:4px; overflow:hidden; }
+.udd-nordic-bar { height:100%; border-radius:4px; }
+.udd-nordic-val { font-size:11px; color:var(--text-2); }
+.udd-nordic-pisa { font-size:11px; font-weight:600; text-align:right; }
+.udd-fields { display:flex; flex-direction:column; gap:6px; }
+.udd-field-row { display:grid; grid-template-columns:1fr 100px 40px; align-items:center; gap:8px; font-size:12px; }
+.udd-field-track { height:8px; background:var(--surface-3); border-radius:4px; overflow:hidden; }
+.udd-field-bar { height:100%; background:var(--accent); border-radius:4px; }
+.udd-extra-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-top:20px; }
+.udd-extra-stat { background:var(--surface-2); padding:12px 14px; border-radius:6px; }
 .elpris-eu-val { font-size: 12px; font-weight: 600; }
