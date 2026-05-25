@@ -198,9 +198,7 @@ VG.render.overview = function() {
   <p style="font-size:10px;color:var(--text-3);margin-top:10px">Kilde: Eurostat 2024–2025 · OECD Revenue Statistics 2024</p>
 </div>`;
 
-  const diagram = (typeof VG.maskinen !== 'undefined') ? VG.maskinen.renderDiagram() : '';
-
-  return `${diagram}<div class="grid-2" style="margin-top:16px">
+  return `<div class="grid-2" style="margin-top:16px">
     <div class="card"><h2>Hvor pengene bruges</h2><p class="intro">Statslige, regionale og kommunale udgifter — i alt ${VG.fmt(totalExp)} kr/år</p>${expRows}</div>
     <div class="card"><h2>Hvor pengene kommer fra</h2><p class="intro">Skatter, afgifter og andre offentlige indtægter — i alt ${VG.fmt(totalRev)} kr/år</p>${revRows}</div>
   </div>
@@ -535,8 +533,6 @@ VG.render.safePanel = function(id, fn) {
 VG.render.fast = function() {
   VG.applyPolicy();
   try { VG.render.summary(); } catch (e) { console.error('[render] summary:', e); }
-  try { if (VG.maskinen) VG.maskinen.renderHealth(); } catch(e) {}
-
   const tab = VG.state.activeTab;
   const simple = {
     overview:   () => VG.render.safePanel('panel-overview',   () => VG.render.overview()),
@@ -599,12 +595,6 @@ VG.render.fast = function() {
       if (tab === 'forsvar')      VG.render.forsvar();
     } catch (e) { console.error('[render] tab panel:', e); }
   }
-  // Inject connection strip after async panels have had a tick to render
-  setTimeout(() => {
-    try { if (VG.maskinen) VG.maskinen.injectConnections(tab); } catch(e) {}
-    try { if (VG.maskinen) VG.maskinen.initDiagram(); } catch(e) {}
-    try { if (VG.maskinen) VG.maskinen.setActiveNode(tab); } catch(e) {}
-  }, 80);
   VG.bindControls();
 };
 
@@ -614,11 +604,6 @@ VG.render.all = function() {
   try { VG.render.liveIndicators(); } catch (e) { console.error('[render] liveIndicators:', e); }
 
   VG.render.safePanel('panel-overview',    () => VG.render.overview());
-  try { if (VG.maskinen) VG.maskinen.renderHealth(); } catch(e) {}
-  setTimeout(() => {
-    try { if (VG.maskinen) VG.maskinen.initDiagram(); } catch(e) {}
-    try { if (VG.maskinen) VG.maskinen.setActiveNode(VG.state.activeTab); } catch(e) {}
-  }, 80);
   VG.render.safePanel('panel-spending',    () => VG.render.sliders('expense'));
   VG.render.safePanel('panel-revenue',     () => VG.render.sliders('revenue'));
   VG.render.safePanel('panel-policy',      () => VG.render.policy());
