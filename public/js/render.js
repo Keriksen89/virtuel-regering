@@ -198,7 +198,23 @@ VG.render.overview = function() {
   <p style="font-size:10px;color:var(--text-3);margin-top:10px">Kilde: Eurostat 2024–2025 · OECD Revenue Statistics 2024</p>
 </div>`;
 
-  return `<div class="grid-2" style="margin-top:16px">
+  const todaySection = `<div class="today-section">
+  <div class="today-header">
+    <div>
+      <h2 class="today-title">Danmark i dag</h2>
+      <p class="today-sub">Aktuelle nyheder — klik for at se data og statistik bag historien</p>
+    </div>
+    <span class="today-ts" id="today-ts"></span>
+  </div>
+  <div class="today-grid" id="today-grid">
+    <div class="today-skeleton"></div>
+    <div class="today-skeleton"></div>
+    <div class="today-skeleton"></div>
+    <div class="today-skeleton"></div>
+  </div>
+</div>`;
+
+  return `${todaySection}<div class="grid-2" style="margin-top:24px">
     <div class="card"><h2>Hvor pengene bruges</h2><p class="intro">Statslige, regionale og kommunale udgifter — i alt ${VG.fmt(totalExp)} kr/år</p>${expRows}</div>
     <div class="card"><h2>Hvor pengene kommer fra</h2><p class="intro">Skatter, afgifter og andre offentlige indtægter — i alt ${VG.fmt(totalRev)} kr/år</p>${revRows}</div>
   </div>
@@ -529,13 +545,79 @@ VG.render.safePanel = function(id, fn) {
   }
 };
 
+/* ── Key stats shown under each news card ────────────────────────────── */
+VG.render._todayStats = {
+  inflation:    'KPI 2,1% · Nationalbankens rente 3,35%',
+  ledighed:     '4,8% ledige · ca. 140.000 personer',
+  boligmarked:  'Medianpris 2,35 mio. kr. · +1,8% kvartal',
+  sundhed:      '184 mia. kr. offentlige udgifter · 32 dages ventetid',
+  co2:          '47% CO₂-reduktion siden 1990 · mål: 70% i 2030',
+  energi:       '84% vedvarende el · netto-eksportør',
+  forsvar:      'Budget 1,65% af BNP · NATO-mål: 3% inden 2030',
+  overview:     'Finanslov 2026: 1.444 mia. kr. · overskud +80 mia.',
+  folkeskolen:  '560.000 elever · 1 af 4 mangler gode læsefærdigheder',
+  integration:  '15,2% indvandrere/efterkommere · 59% i beskæftigelse',
+  kriminalitet: 'Kriminalitet ↓31% siden 2005 · recidiv 54%',
+  erhverv:      'BNP-vækst +2,3% · eksport udgør 65% af BNP',
+  landbrug:     '14,8 mio. svin · landbrugseksport 175 mia. kr./år',
+  psykiatri:    '250.000 i behandling · 2,1 år ventetid (børn)',
+  aeldrepleje:  '135.000 modtager hjemmehjælp · ~105 mia. kr./år',
+  indkomst:     'Gini 29,2 · medianindkomst 342.000 kr./år',
+  statsgaeld:   '30,4% af BNP · AAA-kreditvurdering',
+  pension:      'Folkepensionsalder 67 år · efterløn fra 62',
+  ventetider:   '18% venter over 2 måneder · kræft: 84% i tid',
+  naturvand:    '39 mg/l nitrat · 62% søer har god vandkvalitet',
+  demographics: '5,97 mio. indbyggere · gennemsnitsalder 42,3 år',
+};
+
+/* Load live news into the #today-grid placeholder ───────────────────── */
+VG.render.loadToday = function() {
+  const grid = document.getElementById('today-grid');
+  const ts   = document.getElementById('today-ts');
+  if (!grid) return;
+
+  fetch('/api/news')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(({ items, fetchedAt }) => {
+      if (!items || !items.length) {
+        grid.innerHTML = '<p class="today-empty">Ingen aktuelle nyheder fundet — prøv igen om lidt.</p>';
+        return;
+      }
+      grid.innerHTML = items.map(n => {
+        const stat = VG.render._todayStats[n.panel] || '';
+        const srcClass = n.source === 'TV2' ? 'today-src-tv2' : 'today-src-dr';
+        return `<button class="today-card" onclick="window.__mkClick('${n.panel}')">
+          <div class="today-card-news">
+            <div class="today-card-meta">
+              <span class="today-src ${srcClass}">${n.source}</span>
+              <span class="today-age">${n.age}</span>
+            </div>
+            <div class="today-headline">${n.headline}</div>
+          </div>
+          <div class="today-card-data">
+            <div class="today-topic">${n.topicLabel}</div>
+            ${stat ? `<div class="today-stat">${stat}</div>` : ''}
+            <div class="today-cta">Se data og statistik</div>
+          </div>
+        </button>`;
+      }).join('');
+      if (ts && fetchedAt) {
+        const t = new Date(fetchedAt);
+        ts.textContent = `Opdateret ${t.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+    })
+    .catch(() => {
+      if (grid) grid.innerHTML = '<p class="today-empty">Nyheder utilgængelige — brug menuen til at navigere.</p>';
+    });
+};
+
 // Re-render only the currently active panel (fast path for slider updates)
 VG.render.fast = function() {
   VG.applyPolicy();
   try { VG.render.summary(); } catch (e) { console.error('[render] summary:', e); }
   const tab = VG.state.activeTab;
   const simple = {
-    overview:   () => VG.render.safePanel('panel-overview',   () => VG.render.overview()),
+    overview:   () => { VG.render.safePanel('panel-overview', () => VG.render.overview()); VG.render.loadToday(); },
     spending:   () => VG.render.safePanel('panel-spending',   () => VG.render.sliders('expense')),
     revenue:    () => VG.render.safePanel('panel-revenue',    () => VG.render.sliders('revenue')),
     policy:     () => VG.render.safePanel('panel-policy',     () => VG.render.policy()),
@@ -604,6 +686,7 @@ VG.render.all = function() {
   try { VG.render.liveIndicators(); } catch (e) { console.error('[render] liveIndicators:', e); }
 
   VG.render.safePanel('panel-overview',    () => VG.render.overview());
+  VG.render.loadToday();
   VG.render.safePanel('panel-spending',    () => VG.render.sliders('expense'));
   VG.render.safePanel('panel-revenue',     () => VG.render.sliders('revenue'));
   VG.render.safePanel('panel-policy',      () => VG.render.policy());

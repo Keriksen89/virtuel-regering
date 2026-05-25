@@ -216,6 +216,7 @@ VG.bootstrap = async function() {
         VG.render.liveIndicators();
         if (VG.state.activeTab === 'overview') {
           VG.render.safePanel('panel-overview', () => VG.render.overview());
+          VG.render.loadToday();
         }
       });
 
@@ -373,12 +374,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialise: show samfund group (overview is the first tab there)
   switchGroup('samfund');
-  window.__switchGroup = switchGroup; // allow onboarding to navigate
+  window.__switchGroup = switchGroup;
   window.__switchTab = switchTab;
-  window.__goHome = function() {
-    switchGroup('samfund');
+  window.__goHome = function() { switchGroup('samfund'); };
+
+  // Navigate directly to a panel by ID — used by news cards
+  window.__mkClick = function(panelId) {
+    let targetGroup = 'samfund';
+    for (const [gk, g] of Object.entries(GROUPS)) {
+      if (g.tabs.some(t => t.id === panelId)) { targetGroup = gk; break; }
+    }
+    switchGroup(targetGroup);
+    if (panelId && panelId !== GROUPS[targetGroup].tabs[0].id) {
+      setTimeout(() => {
+        const btn = document.querySelector(`.sub-tab[data-tab="${panelId}"]`);
+        if (btn) btn.click();
+      }, 30);
+    }
   };
-  VG.onboarding.init();
 
   document.getElementById('btn-reset').addEventListener('click', () => {
     VG.reset();

@@ -2852,3 +2852,47 @@ canvas { display: block; max-width: 100%; }
 /* ── Panel entrance animation ─────────────────────────────────────────── */
 @keyframes panel-in { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 .panel.active { animation:panel-in .22s ease; }
+
+/* ── Danmark i dag (news dashboard on Overview) ───────────────────────── */
+.today-section { margin-bottom:8px; }
+.today-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.today-title { font-size:20px; font-weight:700; color:var(--text); margin:0 0 4px; }
+.today-sub { font-size:13px; color:var(--text-2); margin:0; }
+.today-ts { font-size:11px; color:var(--text-3); white-space:nowrap; padding-top:4px; }
+.today-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+.today-card {
+  display:flex; flex-direction:column; justify-content:space-between;
+  background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius);
+  padding:14px 16px; cursor:pointer; text-align:left; width:100%;
+  transition:border-color .15s, box-shadow .15s, transform .15s;
+  position:relative; overflow:hidden;
+}
+.today-card::before {
+  content:''; position:absolute; inset:0; background:var(--accent);
+  opacity:0; transition:opacity .15s;
+}
+.today-card:hover { border-color:var(--accent); box-shadow:0 2px 12px color-mix(in srgb,var(--accent) 20%,transparent); transform:translateY(-2px); }
+.today-card:hover::before { opacity:.04; }
+.today-card-news { margin-bottom:12px; }
+.today-card-meta { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.today-src { font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; color:#fff; letter-spacing:.3px; text-transform:uppercase; }
+.today-src-dr  { background:#003d7a; }
+.today-src-tv2 { background:#e4282e; }
+.today-age { font-size:11px; color:var(--text-3); }
+.today-headline { font-size:13px; font-weight:500; color:var(--text); line-height:1.45; }
+.today-card-data { border-top:1px solid var(--border); padding-top:10px; margin-top:auto; }
+.today-topic { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:3px; text-transform:uppercase; letter-spacing:.4px; }
+.today-stat { font-size:11px; color:var(--text-2); margin-bottom:6px; line-height:1.4; }
+.today-cta { font-size:11px; color:var(--accent); font-weight:600; }
+.today-card:hover .today-cta::after { content:' →'; }
+.today-empty { font-size:13px; color:var(--text-2); padding:16px; text-align:center; grid-column:1/-1; }
+@keyframes today-shimmer {
+  0% { background-position:200% 0; }
+  100% { background-position:-200% 0; }
+}
+.today-skeleton {
+  border-radius:var(--radius); height:160px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+  background-size:200% 100%;
+  animation:today-shimmer 1.6s infinite;
+}
