@@ -169,9 +169,11 @@ VG.theme.toggle = function() {
 VG.theme.init = function() {
   let saved = null;
   try { saved = localStorage.getItem('vg-theme'); } catch {}
-  VG.theme.apply(saved || 'dark');
-  const icon = document.getElementById('theme-icon');
-  if (icon) icon.textContent = VG.theme._isDark() ? '☾' : '☀';
+  if (saved && saved !== 'system') {
+    VG.theme.apply(saved);
+  }
+  // Always sync icon to effective theme (handles system dark mode on first visit)
+  document.getElementById('theme-icon').textContent = VG.theme._isDark() ? '☾' : '☀';
 };
 
 VG.bootstrap = async function() {
@@ -340,40 +342,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const nav = document.getElementById('sb-nav');
     if (!nav) return;
 
-    const GROUP_ICONS = {
-      personligt:  '<i class="ph ph-user-circle"></i>',
-      samfund:     '<i class="ph ph-globe-hemisphere-west"></i>',
-      politik:     '<i class="ph ph-buildings"></i>',
-      oekonomi:    '<i class="ph ph-chart-line-up"></i>',
-    };
-    // Strip leading emoji/icon from label strings
-    const stripEmoji = s => s.replace(/^[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}🏛🌍👤💰📊🗳⭐🧮🏠💼⚡🌿📉📈🏗💰🚨🎓🏥🌾🌐🌱🏘🧠🏫🌊🛡️⚖️🏦🌍👴🚂🛍🏳⏳🔬🛡👶🏢📰🗺🏛📊🌍]+\s*/u, '').trim();
-
     let html = `
-      <a class="sb-item" data-sb="dashboard" data-tip="Dashboard">
-        <span class="sb-item-icon"><i class="ph ph-squares-four"></i></span>
+      <a class="sb-item" data-sb="dashboard">
+        <span class="sb-item-icon">📌</span>
         <span class="sb-item-label">Dashboard</span>
       </a>
-      <a class="sb-item" data-sb="feed" data-tip="Nyheder & Indsigter">
-        <span class="sb-item-icon"><i class="ph ph-newspaper"></i></span>
+      <a class="sb-item" data-sb="feed">
+        <span class="sb-item-icon">⚡</span>
         <span class="sb-item-label">Nyheder & Indsigter</span>
         <span class="sb-item-live"></span>
       </a>
       <div class="sb-section-label">Udforsk data</div>`;
 
     for (const [gk, group] of Object.entries(GROUPS)) {
-      const icon    = GROUP_ICONS[gk] || '<i class="ph ph-circle"></i>';
-      const rawName = group.label.replace(/^\S+\s*/, '');
-      const name    = stripEmoji(rawName) || rawName;
+      const parts = group.label.match(/^(\S+)\s+(.+)$/);
+      const icon  = parts ? parts[1] : '●';
+      const name  = parts ? parts[2] : group.label;
       html += `
         <div class="sb-group" data-sb-group="${gk}">
-          <button class="sb-group-btn" data-tip="${name}">
+          <button class="sb-group-btn">
             <span class="sb-group-icon">${icon}</span>
             <span class="sb-group-name">${name}</span>
             <span class="sb-group-chevron">▾</span>
           </button>
           <div class="sb-group-items">
-            ${group.tabs.map(t => `<a class="sb-sub-item" data-sb="${t.id}">${stripEmoji(t.label)}</a>`).join('')}
+            ${group.tabs.map(t => `<a class="sb-sub-item" data-sb="${t.id}">${t.label}</a>`).join('')}
           </div>
         </div>`;
     }
@@ -390,8 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const grp    = btn.closest('.sb-group');
         const isOpen = grp.classList.toggle('open');
         if (isOpen) {
-          const sb = document.getElementById('sidebar');
-          if (sb && !sb.classList.contains('sb-expanded')) sb.classList.add('sb-expanded');
           nav.querySelectorAll('.sb-group.open').forEach(g => { if (g !== grp) g.classList.remove('open'); });
           const firstId = GROUPS[grp.dataset.sbGroup]?.tabs[0]?.id;
           if (firstId) navigateTo(firstId);
@@ -472,50 +463,44 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sb-overlay')?.classList.remove('active');
   }
 
-  // Sidebar expand/collapse toggle
-  const sbExpandBtn = document.getElementById('sb-expand-btn');
-  if (sbExpandBtn) {
-    sbExpandBtn.addEventListener('click', () => {
-      const sb = document.getElementById('sidebar');
-      if (!sb) return;
-      const expanded = sb.classList.toggle('sb-expanded');
-      sbExpandBtn.textContent = expanded ? '‹' : '›';
-    });
-  }
+  // Sidebar collapse (desktop)
   document.getElementById('sb-collapse')?.addEventListener('click', () => {
-    const sb = document.getElementById('sidebar');
+    const sb  = document.getElementById('sidebar');
+    const btn = document.getElementById('sb-collapse');
     if (!sb) return;
-    sb.classList.remove('sb-expanded');
-    const btn = document.getElementById('sb-expand-btn');
-    if (btn) btn.textContent = '›';
+    const collapsed = sb.classList.toggle('collapsed');
+    if (btn) btn.textContent = collapsed ? '›' : '‹';
   });
 
   // Mobile hamburger
   document.getElementById('topbar-hamburger')?.addEventListener('click', () => {
-    const sb = document.getElementById('sidebar');
-    sb?.classList.add('mobile-open');
-    sb?.classList.add('sb-expanded');
+    document.getElementById('sidebar')?.classList.add('mobile-open');
     document.getElementById('sb-overlay')?.classList.add('active');
   });
-  document.getElementById('sb-overlay')?.addEventListener('click', () => {
-    document.getElementById('sidebar')?.classList.remove('mobile-open');
-    document.getElementById('sidebar')?.classList.remove('sb-expanded');
-    document.getElementById('sb-overlay')?.classList.remove('active');
-  });
+  document.getElementById('sb-overlay')?.addEventListener('click', _closeMobileSidebar);
 
   // Sidebar search filter
   document.getElementById('sb-search')?.addEventListener('input', e => {
     const q   = e.target.value.toLowerCase().trim();
     const nav = document.getElementById('sb-nav');
     if (!nav) return;
-    if (!q) { nav.querySelectorAll('.sb-group, .sb-sub-item, .sb-item').forEach(el => el.style.display = ''); return; }
+    if (!q) {
+      nav.querySelectorAll('.sb-group, .sb-sub-item, .sb-item').forEach(el => el.style.display = '');
+      return;
+    }
     nav.querySelectorAll('.sb-group').forEach(grp => {
       let any = false;
-      grp.querySelectorAll('.sb-sub-item').forEach(item => { const m = item.textContent.toLowerCase().includes(q); item.style.display = m ? '' : 'none'; if (m) any = true; });
+      grp.querySelectorAll('.sb-sub-item').forEach(item => {
+        const match = item.textContent.toLowerCase().includes(q);
+        item.style.display = match ? '' : 'none';
+        if (match) any = true;
+      });
       grp.style.display = any ? '' : 'none';
       if (any) grp.classList.add('open');
     });
-    nav.querySelectorAll('.sb-item').forEach(item => { item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+    nav.querySelectorAll('.sb-item').forEach(item => {
+      item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
   });
 
   // ── Init ────────────────────────────────────────────────────────────────────
