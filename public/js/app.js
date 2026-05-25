@@ -389,6 +389,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.group === groupKey);
     });
+    // Budget summary only visible in Økonomi section
+    const summaryEl = document.getElementById('summary');
+    if (summaryEl) summaryEl.classList.toggle('summary-visible', groupKey === 'oekonomi');
     const secondary = document.getElementById('nav-secondary');
     if (groupKey === 'samfund') {
       // Hub mode: no sub-tab bar — navigation happens via the hub grid
