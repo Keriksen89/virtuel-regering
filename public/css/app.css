@@ -3933,6 +3933,27 @@ body {
 .dw-kpi-big.dw-ok   { color: var(--neg); }
 .dw-kpi-big.dw-warn { color: var(--warn); }
 .dw-kpi-big.dw-bad  { color: var(--pos); }
+.dw-kpi-trend {
+  font-size: 11px; font-weight: 600; margin-top: 6px;
+  color: var(--text-3);
+}
+.dw-kpi-trend.dw-ok   { color: var(--neg); }
+.dw-kpi-trend.dw-warn { color: var(--warn); }
+.dw-kpi-trend.dw-bad  { color: var(--pos); }
+.dw-kpi-detail {
+  font-size: 10px; color: var(--text-3); margin-top: 6px;
+  border-top: 1px solid var(--border); padding-top: 5px;
+  line-height: 1.5;
+}
+
+/* Clickable KPI cards */
+.dw-static .dw-card-clickable { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.dw-static .dw-card-clickable:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.dw-static .dw-card-clickable .dw-card-goto { opacity: 0.55; }
+.dw-static .dw-card-clickable:hover .dw-card-goto { opacity: 1; color: var(--accent); }
 
 /* News widget */
 .dw-news-body { display: flex; flex-direction: column; gap: 8px; }
