@@ -199,8 +199,8 @@ const DASH_WIDGETS = [
   },
 ];
 
-const DASH_LS_KEY  = 'vg_dashboard_v2';
-const DASH_DEFAULTS = ['budget', 'polls', 'ledighed', 'inflation', 'co2', 'rente'];
+const DASH_LS_KEY  = 'vg_dashboard_v3';
+const DASH_DEFAULTS = ['budget', 'polls', 'ledighed', 'inflation', 'co2', 'rente', 'xdeck'];
 
 // ── Source badge colour map ───────────────────────────────────────────────────
 const DASH_SRC_CLS = {
