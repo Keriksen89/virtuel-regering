@@ -311,6 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 'meningsmaalinger', label: '📊 Meningsmålinger' },
     ]},
     oekonomi: { label: '💰 Økonomi', tabs: [
+      { id: 'laboratorium',     label: '🧪 Politisk Lab' },
       { id: 'rygter',           label: '📰 Nyheder & Analyse' },
       { id: 'policy',           label: 'Økonomi & Politik' },
       { id: 'spending',         label: 'Udgifter' },
@@ -327,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Pinned sub-tabs shown in the secondary bar (others go in "Alle ▾" dropdown)
   const PINNED_TABS = {
     politik:  ['platform', 'party', 'partier', 'regering', 'folketing', 'meningsmaalinger'],
-    oekonomi: ['rygter', 'policy', 'spending', 'revenue', 'projection', 'historik'],
+    oekonomi: ['laboratorium', 'policy', 'spending', 'revenue', 'projection', 'rygter'],
   };
 
   let activeGroup = null;

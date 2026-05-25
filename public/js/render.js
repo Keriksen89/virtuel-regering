@@ -693,6 +693,7 @@ VG.render.fast = function() {
     simple[tab]();
   } else {
     try {
+      if (tab === 'laboratorium') VG.lab.renderPanel();
       if (tab === 'party')        VG.party.renderPanel();
       if (tab === 'demographics') VG.demo.renderPanel();
       if (tab === 'platform')     VG.platform.renderPanel();
