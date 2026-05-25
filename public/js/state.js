@@ -49,6 +49,7 @@ VG.baseRev = function() {
 VG.applyPolicy = function() {
   const s = VG.state.current;
   const b = VG.state.baseline;
+  if (!s || !b) return;
   for (const k in s.expense) s.expense[k].val = b.expense[k].val;
   for (const k in s.revenue) s.revenue[k].val = b.revenue[k].val;
   for (const pk in s.policy) {
