@@ -25,11 +25,11 @@ const XDECK_ACCOUNTS = [
   { handle: 'RizaAkdeniz',     name: 'Riza Akdeniz',            role: 'Politisk journalist, DR',       cat: 'Kommentatorer' },
   { handle: 'hannaheandersen',  name: 'Hannah Engelby Andersen', role: 'Politisk kommentator, TV2',     cat: 'Kommentatorer' },
   // Tænketanke & økonomi
+  { handle: 'Statsmin',        name: 'Statsministeriet',        role: 'Statsministerens kontor',       cat: 'Tænketanke' },
+  { handle: 'finansmin',       name: 'Finansministeriet',       role: 'Statens finanser',              cat: 'Tænketanke' },
   { handle: 'CEPOS_dk',        name: 'CEPOS',                   role: 'Liberal tænketank',             cat: 'Tænketanke' },
   { handle: 'AERaadet',        name: 'AE-rådet',                role: 'Arbejderbevægelsens Erhvervsråd', cat: 'Tænketanke' },
   { handle: 'DreamGruppen',    name: 'DREAM',                   role: 'Makroøkonomisk modelgruppe',    cat: 'Tænketanke' },
-  { handle: 'Statsmin',        name: 'Statsministeriet',        role: 'Statsministerens kontor',       cat: 'Tænketanke' },
-  { handle: 'finansmin',       name: 'Finansministeriet',       role: 'Statens finanser',              cat: 'Tænketanke' },
   // Medier
   { handle: 'drnyheder',       name: 'DR Nyheder',              role: 'Public service medie',          cat: 'Medier' },
   { handle: 'tv2newsdk',       name: 'TV 2 News',               role: 'Nyhedskanal',                   cat: 'Medier' },
@@ -54,11 +54,8 @@ VG.xdeck.setFollowed = function(handles) {
   localStorage.setItem(XDECK_LS_KEY, JSON.stringify(handles));
 };
 
-VG.xdeck.load = function() {
-  // Unused standalone panel — deck lives inside the dashboard widget
-};
+VG.xdeck.load = function() {};
 
-// Primary render target is any container element (used by dashboard widget)
 VG.xdeck.renderInto = function(container) {
   if (!container) return;
   VG.xdeck._renderHTML(container);
@@ -67,82 +64,104 @@ VG.xdeck.renderInto = function(container) {
 VG.xdeck._renderHTML = function(root) {
   const followed = VG.xdeck.getFollowed();
   const isDark   = document.documentElement.getAttribute('data-theme') === 'dark';
+  const theme    = isDark ? 'dark' : 'light';
 
-  // Sidebar — accounts grouped by category
+  // Curator drawer — grouped account list
   const cats = {};
   XDECK_ACCOUNTS.forEach(a => { (cats[a.cat] = cats[a.cat] || []).push(a); });
 
-  const sidebar = Object.entries(cats).map(([cat, list]) => `
-    <div class="xd-cat">
-      <div class="xd-cat-lbl">${cat}</div>
-      ${list.map(a => {
-        const on = followed.includes(a.handle);
-        return `<div class="xd-acct${on ? ' on' : ''}" data-handle="${a.handle}">
-          <div class="xd-avatar">${a.handle[0].toUpperCase()}</div>
-          <div class="xd-acct-info">
-            <div class="xd-acct-name">${a.name}</div>
-            <div class="xd-acct-role">${a.role}</div>
-          </div>
-          <button class="xd-follow${on ? ' on' : ''}" data-toggle="${a.handle}">${on ? '✓' : '+'}</button>
-        </div>`;
-      }).join('')}
+  const curatorHtml = Object.entries(cats).map(([cat, list]) => `
+    <div class="xdc-cat">
+      <div class="xdc-cat-lbl">${cat}</div>
+      <div class="xdc-cat-list">
+        ${list.map(a => {
+          const on = followed.includes(a.handle);
+          return `
+            <button class="xdc-acct${on ? ' on' : ''}" data-toggle="${a.handle}" title="${a.role}">
+              <span class="xdc-av">${a.name[0]}</span>
+              <span class="xdc-acct-name">${a.name}</span>
+              <span class="xdc-check"><i class="ph ${on ? 'ph-check-circle' : 'ph-plus-circle'}"></i></span>
+            </button>`;
+        }).join('')}
+      </div>
     </div>`).join('');
 
-  // Deck columns
-  const deck = followed.length ? followed.map(h => {
-    const acc = XDECK_ACCOUNTS.find(a => a.handle === h);
-    const name = acc ? acc.name : h;
-    return `
-      <div class="xd-col" id="xdeck-col-${h}">
-        <div class="xd-col-hd">
-          <div>
-            <div class="xd-col-name">${name}</div>
-            <a class="xd-col-handle" href="https://x.com/${h}" target="_blank" rel="noopener">@${h}</a>
-          </div>
-          <button class="xd-col-close" data-unfollow="${h}" title="Fjern kolonne">×</button>
-        </div>
-        <div class="xd-embed-wrap">
-          <a class="twitter-timeline"
-             data-height="560"
-             data-chrome="noheader nofooter noborders transparent"
-             data-theme="${isDark ? 'dark' : 'light'}"
-             href="https://twitter.com/${h}">Tweets by @${h}</a>
-        </div>
-      </div>`;
-  }).join('') : `
-    <div class="xd-empty">
-      <div class="xd-empty-icon">📱</div>
-      <p>Vælg konti at følge i panelet til venstre — deres indlæg vises her som kolonner.</p>
-    </div>`;
+  // Feed items — one embed per followed account
+  const feedHtml = followed.length
+    ? followed.map(h => {
+        const acc  = XDECK_ACCOUNTS.find(a => a.handle === h);
+        const name = acc ? acc.name : h;
+        const role = acc ? acc.role : '';
+        const av   = name[0].toUpperCase();
+        return `
+          <div class="xdf-item">
+            <div class="xdf-hd">
+              <div class="xdf-av">${av}</div>
+              <div class="xdf-meta">
+                <span class="xdf-name">${name}</span>
+                <a class="xdf-handle" href="https://x.com/${h}" target="_blank" rel="noopener">@${h}</a>
+                ${role ? `<span class="xdf-role">${role}</span>` : ''}
+              </div>
+              <button class="xdf-remove" data-unfollow="${h}" title="Fjern fra feed">
+                <i class="ph ph-x"></i>
+              </button>
+            </div>
+            <div class="xdf-embed">
+              <a class="twitter-timeline"
+                 data-tweet-limit="4"
+                 data-chrome="noheader nofooter noborders transparent"
+                 data-theme="${theme}"
+                 data-dnt="true"
+                 href="https://twitter.com/${h}">Indlæg fra @${h}</a>
+            </div>
+          </div>`;
+      }).join('')
+    : `<div class="xdf-empty">
+        <i class="ph ph-x-logo xdf-empty-icon"></i>
+        <p>Dit X-feed er tomt. Klik <strong>Tilpas feed</strong> for at tilføje politikere, partier og medier.</p>
+       </div>`;
 
   root.innerHTML = `
-    <div class="xd-layout">
-      <div class="xd-sidebar">
-        <div class="xd-sidebar-hd">Hvem vil du følge?</div>
-        <div class="xd-sidebar-scroll">${sidebar}</div>
+    <div class="xdf-wrap">
+      <div class="xdf-toolbar">
+        <span class="xdf-toolbar-count">
+          <i class="ph ph-rss"></i>
+          ${followed.length} konto${followed.length !== 1 ? 'er' : ''}
+        </span>
+        <button class="xdf-curator-btn" id="xdf-curator-btn">
+          <i class="ph ph-sliders-horizontal"></i> Tilpas feed
+        </button>
       </div>
-      <div class="xd-deck">${deck}</div>
+      <div class="xdf-curator" id="xdf-curator" hidden>
+        <div class="xdf-curator-inner">${curatorHtml}</div>
+      </div>
+      <div class="xdf-feed" id="xdf-feed">${feedHtml}</div>
     </div>`;
 
-  // Bind follow/unfollow — re-renders just this widget section
+  // Toggle curator
+  root.querySelector('#xdf-curator-btn').onclick = () => {
+    const c = root.querySelector('#xdf-curator');
+    c.hidden = !c.hidden;
+    const btn = root.querySelector('#xdf-curator-btn');
+    btn.classList.toggle('active', !c.hidden);
+  };
+
+  // Follow / unfollow
   root.querySelectorAll('[data-toggle]').forEach(btn => {
-    btn.onclick = () => { VG.xdeck.toggle(btn.dataset.toggle); };
+    btn.onclick = () => VG.xdeck.toggle(btn.dataset.toggle);
   });
   root.querySelectorAll('[data-unfollow]').forEach(btn => {
-    btn.onclick = () => { VG.xdeck.toggle(btn.dataset.unfollow); };
+    btn.onclick = () => VG.xdeck.toggle(btn.dataset.unfollow);
   });
 
-  // Load Twitter widget script (once per page load)
   VG.xdeck._loadWidgets();
 };
 
-// toggle re-renders only the xdeck widget body, not the full dashboard
 VG.xdeck.toggle = function(handle) {
   const f = VG.xdeck.getFollowed();
   const i = f.indexOf(handle);
   if (i === -1) f.push(handle); else f.splice(i, 1);
   VG.xdeck.setFollowed(f);
-  // Re-render into existing body if it exists, otherwise full dashboard repaint
   const body = document.getElementById('dw-wide-body-xdeck');
   if (body) VG.xdeck._renderHTML(body);
 };
