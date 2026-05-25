@@ -261,75 +261,69 @@ document.addEventListener('DOMContentLoaded', () => {
   VG.bootstrap();
 
   const GROUPS = {
-    personligt: { label: '👤 Personligt', tabs: [
-      { id: 'dashboard',        label: '📌 Mit Dashboard' },
-      { id: 'borger',           label: '🧮 Skatteberegner' },
-      { id: 'bolig',            label: '🏠 Boligberegner' },
-      { id: 'pension',          label: '💼 Pensionsberegner' },
-      { id: 'elpris',           label: '⚡ El-priser' },
+    personligt: { label: 'Personligt', tabs: [
+      { id: 'borger',              label: 'Skatteberegner' },
+      { id: 'bolig',               label: 'Boligberegner' },
+      { id: 'pension',             label: 'Pensionsberegner' },
+      { id: 'elpris',              label: 'El-priser' },
     ]},
-    samfund: { label: '🌍 Samfund', tabs: [
-      { id: 'overview',         label: 'Oversigt' },
-      { id: 'demographics',     label: '📊 Demografi' },
-      { id: 'kommuner',         label: '🏘 Kommuner' },
-      { id: 'sundhed',          label: '🏥 Sundhed' },
-      { id: 'forbrug',          label: '🛍 Forbrug' },
-      { id: 'energi',           label: '⚡ Energi' },
-      { id: 'ledighed',         label: '📉 Ledighed' },
-      { id: 'ventetider',       label: '⏳ Ventetider' },
-      { id: 'dsb',              label: '🚂 Transport' },
-      { id: 'aeldrepleje',      label: '👴 Ældrepleje' },
-      { id: 'boligmarked',    label: '🏗 Boligmarked' },
-      { id: 'indkomst',       label: '💰 Indkomst' },
-      { id: 'co2',            label: '🌿 CO₂ & Klima' },
-      { id: 'kriminalitet',   label: '🚨 Kriminalitet' },
-      { id: 'uddannelse',     label: '🎓 Uddannelse' },
-      { id: 'inflation',      label: '📈 Inflation' },
-      { id: 'udenrigshandel', label: '🌐 Udenrigshandel' },
-      { id: 'landbrug',       label: '🌾 Landbrug' },
-      { id: 'folkesundhed',  label: '🏥 Folkesundhed' },
-      { id: 'ligestilling',  label: '⚖️ Ligestilling' },
-      { id: 'velfaerdsstat', label: '🌍 Velfærdsstat' },
-      { id: 'generationsregnskab', label: '👶 Generationsregnskab' },
-      { id: 'arbejdsmiljoe', label: '💼 Arbejdsmiljø' },
-      { id: 'medietillid',   label: '📰 Medie & Tillid' },
-      { id: 'groenomstilling', label: '🌱 Grøn Omstilling' },
-      { id: 'boligkrise',    label: '🏘 Boligkrise' },
-      { id: 'psykiatri',     label: '🧠 Psykiatri' },
-      { id: 'folkeskolen',   label: '🏫 Folkeskolen' },
-      { id: 'naturvand',     label: '🌊 Natur & Drikkevand' },
-      { id: 'integration',   label: '🌍 Integration' },
-      { id: 'forsvar',       label: '🛡️ Forsvar' },
+    samfund: { label: 'Samfund', tabs: [
+      { id: 'demographics',        label: 'Demografi & Befolkning' },
+      { id: 'kommuner',            label: 'Kommuner' },
+      { id: 'sundhed',             label: 'Sundhed & Sygehuse' },
+      { id: 'psykiatri',           label: 'Psykiatri' },
+      { id: 'ventetider',          label: 'Ventetider' },
+      { id: 'aeldrepleje',         label: 'Ældrepleje' },
+      { id: 'ledighed',            label: 'Ledighed' },
+      { id: 'indkomst',            label: 'Indkomst & Ulighed' },
+      { id: 'arbejdsmiljoe',       label: 'Arbejdsmiljø' },
+      { id: 'ligestilling',        label: 'Ligestilling' },
+      { id: 'boligmarked',         label: 'Boligmarked' },
+      { id: 'forbrug',             label: 'Forbrug' },
+      { id: 'dsb',                 label: 'Transport & DSB' },
+      { id: 'co2',                 label: 'Klima & CO₂' },
+      { id: 'energi',              label: 'Energi & Strøm' },
+      { id: 'naturvand',           label: 'Natur & Drikkevand' },
+      { id: 'uddannelse',          label: 'Uddannelse' },
+      { id: 'integration',         label: 'Integration' },
+      { id: 'kriminalitet',        label: 'Kriminalitet' },
+      { id: 'forsvar',             label: 'Forsvar & Sikkerhed' },
+      { id: 'landbrug',            label: 'Landbrug' },
+      { id: 'medietillid',         label: 'Medie & Tillid' },
+      { id: 'velfaerdsstat',       label: 'Velfærdsstat' },
+      { id: 'generationsregnskab', label: 'Generationsregnskab' },
     ]},
-    politik: { label: '🏛 Politik', tabs: [
-      { id: 'platform',         label: '⭐ Mit Parti' },
-      { id: 'party',            label: '🗳 Borgerstemmer' },
-      { id: 'partier',          label: '📊 Partier' },
-      { id: 'regering',         label: '🏛 Regering' },
-      { id: 'folketing',        label: 'Folketing' },
-      { id: 'mandater',         label: '🧮 Mandater' },
-      { id: 'valgkort',         label: '🗺 Valgkort' },
-      { id: 'meningsmaalinger', label: '📊 Meningsmålinger' },
+    politik: { label: 'Politik', tabs: [
+      { id: 'platform',            label: 'Mit Parti' },
+      { id: 'party',               label: 'Borgerstemmer' },
+      { id: 'partier',             label: 'Partier' },
+      { id: 'regering',            label: 'Regering' },
+      { id: 'folketing',           label: 'Folketing' },
+      { id: 'mandater',            label: 'Mandater' },
+      { id: 'valgkort',            label: 'Valgkort' },
+      { id: 'meningsmaalinger',    label: 'Meningsmålinger' },
     ]},
-    oekonomi: { label: '💰 Økonomi', tabs: [
-      { id: 'laboratorium',     label: '🧪 Politisk Lab' },
-      { id: 'rygter',           label: '📰 Nyheder & Analyse' },
-      { id: 'policy',           label: 'Økonomi & Politik' },
-      { id: 'spending',         label: 'Udgifter' },
-      { id: 'revenue',          label: 'Indtægter' },
-      { id: 'projection',       label: 'Fremskrivning' },
-      { id: 'historik',         label: '📈 Historik' },
-      { id: 'scenarios',        label: 'Scenarier' },
-      { id: 'statsgaeld',       label: '🏦 Statsgæld' },
-      { id: 'erhverv',          label: '🏢 Erhverv' },
-      { id: 'innovation',       label: '🔬 Innovation' },
+    oekonomi: { label: 'Økonomi', tabs: [
+      { id: 'laboratorium',        label: 'Politisk Lab' },
+      { id: 'rygter',              label: 'Nyheder & DREAM-analyse' },
+      { id: 'policy',              label: 'Politiske parametre' },
+      { id: 'spending',            label: 'Udgifter' },
+      { id: 'revenue',             label: 'Indtægter' },
+      { id: 'projection',          label: 'Fremskrivning' },
+      { id: 'historik',            label: 'Historik' },
+      { id: 'scenarios',           label: 'Scenarier' },
+      { id: 'statsgaeld',          label: 'Statsgæld' },
+      { id: 'erhverv',             label: 'Erhverv & Vækst' },
+      { id: 'innovation',          label: 'Innovation' },
+      { id: 'inflation',           label: 'Inflation' },
+      { id: 'udenrigshandel',      label: 'Udenrigshandel' },
     ]},
   };
 
   // Pinned sub-tabs shown in the secondary bar (others go in "Alle ▾" dropdown)
   const PINNED_TABS = {
-    personligt: ['dashboard', 'borger', 'bolig', 'pension', 'elpris'],
-    samfund:    ['overview', 'demographics', 'sundhed', 'ledighed', 'co2', 'boligmarked', 'uddannelse'],
+    personligt: ['borger', 'bolig', 'pension', 'elpris'],
+    samfund:    ['demographics', 'sundhed', 'ledighed', 'co2', 'boligmarked', 'uddannelse'],
     politik:    ['platform', 'party', 'partier', 'regering', 'folketing', 'meningsmaalinger'],
     oekonomi:   ['laboratorium', 'policy', 'spending', 'revenue', 'projection', 'rygter'],
   };
@@ -439,6 +433,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function navigateTo(panelId) {
+    // Redirect removed/duplicate panel IDs to their canonical equivalents
+    const REDIRECTS = { overview: 'dashboard', folkesundhed: 'sundhed', groenomstilling: 'co2', boligkrise: 'boligmarked', folkeskolen: 'uddannelse' };
+    if (REDIRECTS[panelId]) panelId = REDIRECTS[panelId];
+
     // Lazy-load panel-specific modules
     if (panelId === 'party')     VG.party     && VG.party.load();
     if (panelId === 'dashboard') VG.dashboard && VG.dashboard.load();

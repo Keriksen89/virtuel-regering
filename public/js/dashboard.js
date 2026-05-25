@@ -176,6 +176,19 @@ const DASH_WIDGETS = [
       return { big: 'r/Denmark', sub: 'hot topics live', arrow: null };
     },
   },
+  // ── Extra panel widgets ───────────────────────────────────────────────────────
+  { id: 'demographics', icon: '<i class="ph ph-users"></i>', title: 'Demografi', panel: 'demographics', render() { return { big: '6,03 mio', sub: 'indbyggere i Danmark', arrow: null }; }},
+  { id: 'sundhed',      icon: '<i class="ph ph-first-aid"></i>', title: 'Sundhed', panel: 'sundhed', render() { return { big: '184 mia', sub: 'sundhedsudgifter/år', arrow: null }; }},
+  { id: 'ventetider',   icon: '<i class="ph ph-clock"></i>', title: 'Ventetider', panel: 'ventetider', render() { return { big: '18%', sub: 'venter over 2 mdr.', status: 'warn', arrow: null }; }},
+  { id: 'aeldrepleje',  icon: '<i class="ph ph-heart"></i>', title: 'Ældrepleje', panel: 'aeldrepleje', render() { return { big: '135k', sub: 'modtagere af hjemmehjælp', arrow: null }; }},
+  { id: 'psykiatri',    icon: '<i class="ph ph-brain"></i>', title: 'Psykiatri', panel: 'psykiatri', render() { return { big: '2,1 år', sub: 'ventetid børn & unge', status: 'bad', arrow: null }; }},
+  { id: 'uddannelse',   icon: '<i class="ph ph-graduation-cap"></i>', title: 'Uddannelse', panel: 'uddannelse', render() { return { big: '560k', sub: 'folkeskoleelever', arrow: null }; }},
+  { id: 'integration',  icon: '<i class="ph ph-globe"></i>', title: 'Integration', panel: 'integration', render() { return { big: '15,2%', sub: 'af befolkning er indvandrere/efterkommere', arrow: null }; }},
+  { id: 'kriminalitet', icon: '<i class="ph ph-siren"></i>', title: 'Kriminalitet', panel: 'kriminalitet', render() { return { big: '↓31%', sub: 'siden 2005', status: 'ok', arrow: null }; }},
+  { id: 'forsvar',      icon: '<i class="ph ph-shield"></i>', title: 'Forsvar', panel: 'forsvar', render() { return { big: '1,65%', sub: 'af BNP · NATO-mål 3%', status: 'warn', arrow: null }; }},
+  { id: 'landbrug',     icon: '<i class="ph ph-plant"></i>', title: 'Landbrug', panel: 'landbrug', render() { return { big: '175 mia', sub: 'eksport om året', arrow: null }; }},
+  { id: 'statsgaeld',   icon: '<i class="ph ph-bank"></i>', title: 'Statsgæld', panel: 'statsgaeld', render() { return { big: '29%', sub: 'af BNP', status: 'ok', arrow: null }; }},
+  { id: 'erhverv',      icon: '<i class="ph ph-briefcase"></i>', title: 'Erhverv', panel: 'erhverv', render() { return { big: '+2,3%', sub: 'BNP-vækst', status: 'ok', arrow: null }; }},
   // ── Wide widgets ─────────────────────────────────────────────────────────────
   {
     id: 'xdeck',
@@ -188,6 +201,16 @@ const DASH_WIDGETS = [
 
 const DASH_LS_KEY  = 'vg_dashboard_v2';
 const DASH_DEFAULTS = ['budget', 'polls', 'ledighed', 'inflation', 'co2', 'rente'];
+
+// ── Source badge colour map ───────────────────────────────────────────────────
+const DASH_SRC_CLS = {
+  DR: 'source-dr',
+  TV2: 'source-tv2',
+  JP: 'source-jp',
+  Berlingske: 'source-berlingske',
+  Politiken: 'source-politiken',
+  Weekendavisen: 'source-weekendavisen',
+};
 
 VG.dashboard.getCatalog = () => DASH_WIDGETS;
 VG.dashboard.getActive  = function() {
@@ -220,7 +243,56 @@ VG.dashboard.renderPanel = function() {
 
   const statusClass = { ok: 'dw-ok', warn: 'dw-warn', bad: 'dw-bad' };
 
-  // ── Metric cards
+  // ── Section 1 — Danmark i dag (news cards)
+  const todaySection = `
+    <section class="dash-today-section">
+      <div class="dash-today-hd">
+        <div>
+          <h2 class="dash-today-title">Danmark i dag</h2>
+          <p class="dash-today-sub">Aktuelle nyheder fra DR, TV2, JP, Berlingske, Politiken og Weekendavisen — klik for data bag historien</p>
+        </div>
+        <span class="dash-today-ts" id="dash-today-ts"></span>
+      </div>
+      <div class="dash-today-grid" id="dash-today-grid">
+        <div class="dash-today-skeleton"></div>
+        <div class="dash-today-skeleton"></div>
+        <div class="dash-today-skeleton"></div>
+        <div class="dash-today-skeleton"></div>
+      </div>
+    </section>`;
+
+  // ── Section 2 — AI Insights strip
+  let insightsHtml = '';
+  if (VG.feed && VG.feed._generateInsights) {
+    const insights = VG.feed._generateInsights().slice(0, 3);
+    const tagCls = { alert: 'ft-alert', warn: 'ft-warn', ok: 'ft-ok', info: 'ft-info' };
+    const cards = insights.map(item => {
+      const tc = tagCls[item.tagType] || 'ft-info';
+      const voteHtml = VG.votes ? VG.votes.renderBar(item.id, item.basePos, item.baseNeg) : '';
+      return `
+        <div class="dash-insight-card">
+          <div class="dash-insight-title">
+            <span class="feed-tag ${tc}" style="margin-right:6px">${item.tag}</span>
+            ${item.headline}
+          </div>
+          <div class="dash-insight-body">${item.body}</div>
+          <div class="dash-insight-foot">
+            ${voteHtml}
+            <button class="feed-explore" data-goto="${item.panel}" style="flex-shrink:0">Se data →</button>
+          </div>
+        </div>`;
+    }).join('');
+    insightsHtml = `
+      <section class="dash-insights-section">
+        <div class="dash-section-hd">
+          <h3 class="dash-section-title"><i class="ph ph-sparkle"></i> AI Indsigter</h3>
+          <button class="dash-section-more" data-goto="feed">Se alle →</button>
+        </div>
+        <div class="dash-insights-strip">${cards}</div>
+      </section>`;
+  }
+
+  // ── Section 3 — Metric cards
   const metricCards = metricWidgets.map(w => {
     const d  = w.render();
     const sc = statusClass[d.status] || '';
@@ -241,7 +313,7 @@ VG.dashboard.renderPanel = function() {
       <span class="dw-add-lbl">Tilpas dashboard</span>
     </div>` : '';
 
-  // ── Wide widget sections (rendered after grid, each gets a placeholder div)
+  // ── Wide widget sections
   const wideSections = wideWidgets.map(w => `
     <div class="dw-wide-section" data-wide="${w.id}">
       <div class="dw-wide-hd">
@@ -270,6 +342,9 @@ VG.dashboard.renderPanel = function() {
       </div>
     </div>` : '';
 
+  // ── Section 4 — Alle Emner hub grid
+  const hubSection = VG.render && VG.render.hubGrid ? VG.render.hubGrid() : '';
+
   panel.innerHTML = `
     <div class="dash-toolbar">
       <div>
@@ -280,13 +355,19 @@ VG.dashboard.renderPanel = function() {
         ${editing ? '✓ Gem' : '✎ Tilpas'}
       </button>
     </div>
+    ${todaySection}
+    ${insightsHtml}
     <div class="dw-grid">
       ${metricCards}
       ${addCard}
     </div>
     ${wideSections}
     ${catalog}
+    ${hubSection}
   `;
+
+  // ── Load news after HTML is injected
+  VG.dashboard._loadNews();
 
   // ── Render wide widget bodies after HTML is injected
   wideWidgets.forEach(w => {
@@ -317,4 +398,46 @@ VG.dashboard.renderPanel = function() {
   panel.querySelectorAll('[data-goto]').forEach(btn => btn.onclick = () => {
     window.__mkClick && window.__mkClick(btn.dataset.goto);
   });
+};
+
+// ── Load live news into #dash-today-grid ─────────────────────────────────────
+VG.dashboard._loadNews = function() {
+  const grid = document.getElementById('dash-today-grid');
+  const ts   = document.getElementById('dash-today-ts');
+  if (!grid) return;
+
+  fetch('/api/news')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(({ items, fetchedAt }) => {
+      if (!items || !items.length) {
+        grid.innerHTML = '<p class="today-empty">Ingen aktuelle nyheder fundet — prøv igen om lidt.</p>';
+        return;
+      }
+      const stat = VG.render && VG.render._todayStats ? VG.render._todayStats : {};
+      grid.innerHTML = items.map(n => {
+        const srcClass = DASH_SRC_CLS[n.source] || 'source-dr';
+        const ageBadge = n.age ? `<span class="dash-news-age">${n.age}</span>` : '';
+        const voteHtml = VG.votes ? VG.votes.renderBar('dash-news-' + (n.id || n.panel), 10, 3) : '';
+        const topicStat = stat[n.panel] || '';
+        return `
+          <div class="dash-news-card" onclick="window.__mkClick && window.__mkClick('${n.panel}')">
+            <div class="dash-news-meta">
+              <span class="rygte-source-badge ${srcClass}">${n.source}</span>
+              ${ageBadge}
+            </div>
+            <div class="dash-news-headline">${n.headline}</div>
+            ${topicStat ? `<div class="dash-news-topic">${n.topicLabel}</div><div class="dash-news-cta">${topicStat}</div>` : `<div class="dash-news-topic">${n.topicLabel}</div><div class="dash-news-cta">Se data og statistik</div>`}
+            <div class="dash-news-card-foot">
+              ${voteHtml}
+            </div>
+          </div>`;
+      }).join('');
+      if (ts && fetchedAt) {
+        const t = new Date(fetchedAt);
+        ts.textContent = `Opdateret ${t.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+    })
+    .catch(() => {
+      if (grid) grid.innerHTML = '<p class="today-empty">Nyheder utilgængelige — brug menuen til at navigere.</p>';
+    });
 };

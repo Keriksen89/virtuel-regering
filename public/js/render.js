@@ -506,15 +506,16 @@ VG.render.loadToday = function() {
         grid.innerHTML = '<p class="today-empty">Ingen aktuelle nyheder fundet — prøv igen om lidt.</p>';
         return;
       }
+      const SRC_CLS = { DR: 'source-dr', TV2: 'source-tv2', JP: 'source-jp', Berlingske: 'source-berlingske', Politiken: 'source-politiken', Weekendavisen: 'source-weekendavisen' };
       grid.innerHTML = items.map(n => {
         const stat = VG.render._todayStats[n.panel] || '';
-        const srcClass = n.source === 'TV2' ? 'today-src-tv2' : 'today-src-dr';
+        const srcClass = SRC_CLS[n.source] || 'source-dr';
         const ageBadge = n.age ? `<span class="today-age">${n.age}</span>` : '';
         const isLive = !!n.link;
         return `<button class="today-card${isLive ? '' : ' today-card-static'}" onclick="window.__mkClick('${n.panel}')">
           <div class="today-card-news">
             <div class="today-card-meta">
-              <span class="today-src ${srcClass}">${n.source}</span>
+              <span class="rygte-source-badge ${srcClass}">${n.source}</span>
               ${ageBadge}
             </div>
             <div class="today-headline">${n.headline}</div>
