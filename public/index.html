@@ -24,6 +24,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/css/app.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 </head>
 <body>
 
@@ -36,6 +37,7 @@
     </div>
     <button class="sb-collapse" id="sb-collapse" title="Skjul menu" aria-label="Skjul sidebar">‹</button>
   </div>
+  <button class="sb-expand-btn" id="sb-expand-btn" title="Udvid menu" aria-label="Udvid sidebar">›</button>
 
   <div class="sb-search-wrap">
     <input class="sb-search" type="text" id="sb-search" placeholder="Søg i data og emner…" autocomplete="off">
@@ -96,6 +98,7 @@
   <!-- ALL PANELS — keep every single panel div exactly as-is -->
   <main class="panels-main" id="panels-main">
     <div id="panel-feed" class="panel"></div>
+    <div id="panel-reddit" class="panel"></div>
     <div id="panel-dashboard" class="panel active"></div>
     <div id="panel-overview" class="panel"></div>
     <div id="panel-platform" class="panel"></div>
@@ -197,6 +200,7 @@
 <script src="/js/xdeck.js"></script>
 <script src="/js/votes.js"></script>
 <script src="/js/feed.js"></script>
+<script src="/js/reddit.js"></script>
 <script src="/js/app.js"></script>
 
 </body>
