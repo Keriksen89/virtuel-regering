@@ -3995,3 +3995,49 @@ body {
 }
 .grid-stack-item:hover > .ui-resizable-se { opacity: 1; }
 
+/* ════════════════════════════════════════════════════════════════════
+   X FEED — native tweet cards (API mode)
+════════════════════════════════════════════════════════════════════ */
+@keyframes xf-spin { to { transform: rotate(360deg); } }
+
+.xdf-loading {
+  padding: 32px 16px; text-align: center; color: var(--text-3); font-size: 13px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+
+.xf-tweets { display: flex; flex-direction: column; gap: 0; }
+
+.xf-tweet {
+  display: block; padding: 10px 14px; text-decoration: none;
+  border-top: 1px solid var(--border);
+  transition: background .1s;
+}
+.xf-tweet:hover { background: var(--surface-2); }
+.xf-tweet:first-child { border-top: none; }
+
+.xf-tweet-text {
+  font-size: 13px; color: var(--text); line-height: 1.45; margin: 0 0 6px;
+  white-space: pre-wrap; word-break: break-word;
+}
+
+.xf-tweet-foot {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.xf-tweet-age  { font-size: 11px; color: var(--text-3); }
+.xf-tweet-stat { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 3px; }
+.xf-tweet-stat i { font-size: 12px; }
+
+.xf-no-tweets { padding: 10px 14px; font-size: 12px; color: var(--text-3); margin: 0; }
+
+/* Setup prompt when no API token */
+.xf-setup {
+  margin: 12px 0; padding: 14px 16px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: var(--radius); font-size: 12px; color: var(--text-2); line-height: 1.5;
+}
+.xf-setup code {
+  display: block; margin-top: 6px; padding: 4px 8px;
+  background: var(--surface-2); border-radius: 4px;
+  font-family: monospace; font-size: 11px; color: var(--text);
+}
