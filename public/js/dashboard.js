@@ -157,7 +157,7 @@ const DASH_WIDGETS = [
   {
     id: 'xdeck',
     icon: '<i class="ph ph-x-logo"></i>',
-    title: 'Politisk Debat',
+    title: 'X feed',
     panel: null,
     w: 6, h: 8,
     content: 'xdeck',

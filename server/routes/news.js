@@ -138,7 +138,7 @@ const FALLBACK = [
 
 /* ── Cache ───────────────────────────────────────────────────────────── */
 let _cache = null, _cacheAt = 0;
-const TTL = 20 * 60 * 1000;
+const TTL = 3 * 60 * 1000;
 
 router.get('/', async (req, res, next) => {
   try {
