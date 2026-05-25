@@ -3642,8 +3642,17 @@ body {
     z-index: 200; width: 280px; min-width: 280px;
   }
   .sidebar.mobile-open { transform: translateX(0); }
-  .app { height: 100dvh; }
-  .panels-main { padding: 16px; }
+  .app { height: 100dvh; overflow: hidden; }
+  .panels-main { padding: 12px 12px 80px; }
+  /* Show only 2 ticker items, smaller text */
+  .topbar-ticker { overflow: hidden; max-width: 200px; }
+  .topbar-ticker .live-indicator:nth-child(n+3) { display: none; }
+  .live-indicator { font-size: 11px; gap: 4px; }
+  /* Hide expand button on mobile */
+  .sb-expand-btn { display: none !important; }
+}
+
+@media (max-width: 480px) {
   .topbar-ticker { display: none; }
 }
 
@@ -4069,4 +4078,123 @@ body {
 
 /* "Seneste data" age badge in news widget */
 .dw-news-age[style] { font-style: normal; }
+
+/* ════════════════════════════════════════════════════════════════════
+   MOBILE  (≤ 768px)
+════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Shell ─────────────────────────────────────────────── */
+  .panels-main { padding: 12px 12px 80px; }
+
+  /* ── Topbar ─────────────────────────────────────────────── */
+  .topbar { height: 52px; padding: 0 12px; gap: 8px; }
+  .topbar-bc-section { display: none; }
+  .topbar-bc-sep     { display: none; }
+  .topbar-bc-page    { font-size: 15px; }
+  .topbar-actions    { gap: 6px; }
+  .topbar-actions .btn, .topbar-actions button { padding: 6px 10px; font-size: 12px; }
+  /* Hide share/analyze on very small screens */
+  @media (max-width: 400px) {
+    #btn-changes, #btn-share { display: none; }
+  }
+
+  /* ── GridStack dashboard ─────────────────────────────────── */
+  .dw-toolbar { padding: 0 0 12px; }
+  .dw-toolbar-title { font-size: 18px; }
+  .dw-toolbar-sub   { font-size: 11px; }
+  .dw-edit-btn      { padding: 6px 12px; font-size: 12px; }
+
+  /* KPI cards: larger numbers, comfortable touch height */
+  .dw-kpi-big { font-size: 26px; }
+  .dw-card-header { padding: 9px 10px; }
+  .dw-card-title  { font-size: 10px; }
+  .dw-card-body   { padding: 10px; }
+
+  /* GridStack single-col override — belt-and-suspenders */
+  .grid-stack-item { min-height: 140px; }
+  .dw-card-inner   { min-height: 130px; }
+
+  /* Catalog responsive */
+  .dw-catalog-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* ── Feed panel ──────────────────────────────────────────── */
+  .feed-page-header { gap: 10px; margin-bottom: 14px; }
+  .feed-page-title  { font-size: 18px; }
+  .feed-filters     { gap: 6px; flex-wrap: wrap; }
+  .feed-filter-btn  { padding: 5px 10px; font-size: 12px; }
+  .feed-card        { padding: 12px; }
+  .feed-card-headline { font-size: 14px; }
+  .feed-card-meta   { flex-wrap: wrap; gap: 4px; }
+
+  /* ── News/rygter ─────────────────────────────────────────── */
+  .rygte-grid { grid-template-columns: 1fr !important; }
+  .rygte-card { padding: 12px; }
+  .rygte-title { font-size: 13px; }
+
+  /* ── Dashboard news widget ───────────────────────────────── */
+  .dw-news-hl   { font-size: 12px; }
+  .dw-news-meta { gap: 4px; }
+
+  /* ── Charts / tables: horizontal scroll ─────────────────── */
+  .chart-wrap, .table-wrap, .proj-chart-area,
+  .lab-chart, .statsgaeld-chart { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ── Sliders panel ───────────────────────────────────────── */
+  .slider-section { padding: 12px; }
+  .slider-group-title { font-size: 13px; }
+
+  /* ── Summary bar ─────────────────────────────────────────── */
+  .summary { flex-wrap: wrap; gap: 6px; padding: 8px 12px; font-size: 11px; }
+  .summary-item { min-width: auto; }
+
+  /* ── Polling table ───────────────────────────────────────── */
+  .poll-seats-col, .poll-trend-badge { display: none !important; }
+  .poll-row { grid-template-columns: 28px 1fr 70px !important; }
+
+  /* ── Tab filter buttons (various panels) ─────────────────── */
+  .tab-btn, .feed-filter-btn { min-height: 36px; padding: 6px 12px; }
+
+  /* ── Touch target floors ─────────────────────────────────── */
+  button, .sb-item, .sb-sub-item, .xdc-acct,
+  .dw-catalog-item, .feed-explore { min-height: 40px; }
+  .dw-card-goto, .dw-card-remove  { padding: 6px 8px; }
+
+  /* ── X deck ─────────────────────────────────────────────── */
+  .xdf-curator-inner { flex-direction: column; }
+  .xdc-cat           { min-width: 100%; }
+  .xdf-item          { border-radius: 8px; }
+
+  /* ── Reddit ──────────────────────────────────────────────── */
+  .feed-card-body { font-size: 13px; }
+
+  /* ── Two-col layouts → single col on mobile ─────────────── */
+  .hub-grid { grid-template-columns: 1fr !important; }
+  .dash-today-grid  { grid-template-columns: 1fr !important; }
+  .dash-insights-strip { grid-template-columns: 1fr !important; }
+
+  /* ── Vote bars ───────────────────────────────────────────── */
+  .vote-bar-wrap { gap: 4px; }
+  .vote-label    { font-size: 11px; }
+}
+
+/* ── Tablet (769–1024px) ─────────────────────────────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .panels-main { padding: 16px 20px; }
+  .dw-kpi-big  { font-size: 24px; }
+  .dw-catalog-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Bottom nav for mobile (optional future slot) ─────────────────── */
+@media (max-width: 768px) {
+  /* Prevent horizontal overflow on any panel */
+  .panel { overflow-x: hidden; }
+  .panel > * { max-width: 100%; }
+
+  /* Make demographic / stats tables scroll horizontally */
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Range input larger touch area */
+  input[type=range] { height: 28px; }
+}
 

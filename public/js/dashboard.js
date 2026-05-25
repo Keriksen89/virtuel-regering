@@ -326,16 +326,19 @@ VG.dashboard.renderPanel = function() {
     ${catalogHtml}
     <div class="grid-stack dw-gridstack" id="dw-gridstack"></div>`;
 
+  const isMobile = window.innerWidth < 768;
+
   // ── Init GridStack
   const gs = GridStack.init({
-    cellHeight: 80,
-    margin: 8,
+    cellHeight: isMobile ? 70 : 80,
+    margin: isMobile ? 6 : 8,
     column: 12,
-    animate: true,
+    columnOpts: { breakpoints: [{ w: 768, c: 1 }, { w: 1024, c: 6 }] },
+    animate: !isMobile,
     draggable: { handle: '.dw-card-header' },
     resizable: { handles: 'se' },
-    disableDrag: !editing,
-    disableResize: !editing,
+    disableDrag: !editing || isMobile,
+    disableResize: !editing || isMobile,
   }, '#dw-gridstack');
   VG.dashboard._grid = gs;
 
