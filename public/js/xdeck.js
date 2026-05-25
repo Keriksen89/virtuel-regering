@@ -53,22 +53,17 @@ VG.xdeck.setFollowed = function(handles) {
   localStorage.setItem(XDECK_LS_KEY, JSON.stringify(handles));
 };
 
-VG.xdeck.toggle = function(handle) {
-  const f = VG.xdeck.getFollowed();
-  const i = f.indexOf(handle);
-  if (i === -1) f.push(handle); else f.splice(i, 1);
-  VG.xdeck.setFollowed(f);
-  VG.xdeck.renderPanel();
-};
-
 VG.xdeck.load = function() {
-  VG.xdeck.renderPanel();
+  // Unused standalone panel — deck lives inside the dashboard widget
 };
 
-VG.xdeck.renderPanel = function() {
-  const panel = document.getElementById('panel-xdeck');
-  if (!panel) return;
+// Primary render target is any container element (used by dashboard widget)
+VG.xdeck.renderInto = function(container) {
+  if (!container) return;
+  VG.xdeck._renderHTML(container);
+};
 
+VG.xdeck._renderHTML = function(root) {
   const followed = VG.xdeck.getFollowed();
   const isDark   = document.documentElement.getAttribute('data-theme') === 'dark';
 
@@ -107,7 +102,7 @@ VG.xdeck.renderPanel = function() {
         </div>
         <div class="xd-embed-wrap">
           <a class="twitter-timeline"
-             data-height="600"
+             data-height="560"
              data-chrome="noheader nofooter noborders transparent"
              data-theme="${isDark ? 'dark' : 'light'}"
              href="https://twitter.com/${h}">Tweets by @${h}</a>
@@ -119,29 +114,36 @@ VG.xdeck.renderPanel = function() {
       <p>Vælg konti at følge i panelet til venstre — deres indlæg vises her som kolonner.</p>
     </div>`;
 
-  panel.innerHTML = `
-    <div class="section-header" style="margin-bottom:16px">
-      <h2>Politisk Debat</h2>
-      <p class="section-desc">Følg politikere, partier og kommentatorer på X — live indlæg i realtid.</p>
-    </div>
+  root.innerHTML = `
     <div class="xd-layout">
       <div class="xd-sidebar">
         <div class="xd-sidebar-hd">Hvem vil du følge?</div>
         <div class="xd-sidebar-scroll">${sidebar}</div>
       </div>
-      <div class="xd-deck" id="xd-deck">${deck}</div>
+      <div class="xd-deck">${deck}</div>
     </div>`;
 
-  // Bind follow toggles
-  panel.querySelectorAll('[data-toggle]').forEach(btn => {
-    btn.onclick = () => VG.xdeck.toggle(btn.dataset.toggle);
+  // Bind follow/unfollow — re-renders just this widget section
+  root.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.onclick = () => { VG.xdeck.toggle(btn.dataset.toggle); };
   });
-  panel.querySelectorAll('[data-unfollow]').forEach(btn => {
-    btn.onclick = () => VG.xdeck.toggle(btn.dataset.unfollow);
+  root.querySelectorAll('[data-unfollow]').forEach(btn => {
+    btn.onclick = () => { VG.xdeck.toggle(btn.dataset.unfollow); };
   });
 
   // Load Twitter widget script (once per page load)
   VG.xdeck._loadWidgets();
+};
+
+// toggle re-renders only the xdeck widget body, not the full dashboard
+VG.xdeck.toggle = function(handle) {
+  const f = VG.xdeck.getFollowed();
+  const i = f.indexOf(handle);
+  if (i === -1) f.push(handle); else f.splice(i, 1);
+  VG.xdeck.setFollowed(f);
+  // Re-render into existing body if it exists, otherwise full dashboard repaint
+  const body = document.getElementById('dw-wide-body-xdeck');
+  if (body) VG.xdeck._renderHTML(body);
 };
 
 VG.xdeck._loadWidgets = function() {

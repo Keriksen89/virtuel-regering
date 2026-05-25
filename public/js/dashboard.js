@@ -1,6 +1,7 @@
 VG.dashboard = {};
 
 // ── Widget catalog ────────────────────────────────────────────────────────────
+// wide: true  → renders full-width below the metric grid via VG[id].renderInto(el)
 const DASH_WIDGETS = [
   {
     id: 'budget',
@@ -166,19 +167,27 @@ const DASH_WIDGETS = [
       return { big: '83%', sub: 'tog til tiden', status: 'warn', arrow: '→' };
     },
   },
+  // ── Wide widgets ─────────────────────────────────────────────────────────────
+  {
+    id: 'xdeck',
+    icon: '𝕏',
+    title: 'Politisk Debat',
+    wide: true,
+    desc: 'Følg politikere, partier og kommentatorer på X — live feeds som kolonner.',
+  },
 ];
 
-const DASH_LS_KEY = 'vg_dashboard_v2';
+const DASH_LS_KEY  = 'vg_dashboard_v2';
 const DASH_DEFAULTS = ['budget', 'polls', 'ledighed', 'inflation', 'co2', 'rente'];
 
-VG.dashboard.getCatalog  = () => DASH_WIDGETS;
-VG.dashboard.getActive   = function() {
+VG.dashboard.getCatalog = () => DASH_WIDGETS;
+VG.dashboard.getActive  = function() {
   try {
     const s = JSON.parse(localStorage.getItem(DASH_LS_KEY));
     return Array.isArray(s) && s.length ? s : [...DASH_DEFAULTS];
   } catch(e) { return [...DASH_DEFAULTS]; }
 };
-VG.dashboard.saveActive  = ids => localStorage.setItem(DASH_LS_KEY, JSON.stringify(ids));
+VG.dashboard.saveActive = ids => localStorage.setItem(DASH_LS_KEY, JSON.stringify(ids));
 
 VG.dashboard.load = function() {
   const panel = document.getElementById('panel-dashboard');
@@ -197,10 +206,14 @@ VG.dashboard.renderPanel = function() {
   const active    = activeIds.map(id => byId[id]).filter(Boolean);
   const inactive  = DASH_WIDGETS.filter(w => !activeIds.includes(w.id));
 
+  const metricWidgets = active.filter(w => !w.wide);
+  const wideWidgets   = active.filter(w =>  w.wide);
+
   const statusClass = { ok: 'dw-ok', warn: 'dw-warn', bad: 'dw-bad' };
 
-  const cards = active.map(w => {
-    const d = w.render();
+  // ── Metric cards
+  const metricCards = metricWidgets.map(w => {
+    const d  = w.render();
     const sc = statusClass[d.status] || '';
     return `
       <div class="dw-card ${sc}" data-wid="${w.id}">
@@ -219,14 +232,29 @@ VG.dashboard.renderPanel = function() {
       <span class="dw-add-lbl">Tilpas dashboard</span>
     </div>` : '';
 
+  // ── Wide widget sections (rendered after grid, each gets a placeholder div)
+  const wideSections = wideWidgets.map(w => `
+    <div class="dw-wide-section" data-wide="${w.id}">
+      <div class="dw-wide-hd">
+        <span class="dw-wide-icon">${w.icon}</span>
+        <span class="dw-wide-title">${w.title}</span>
+        ${editing ? `<button class="dw-remove dw-wide-remove" data-remove="${w.id}" title="Fjern">× Fjern</button>` : ''}
+      </div>
+      <div class="dw-wide-body" id="dw-wide-body-${w.id}"></div>
+    </div>`).join('');
+
+  // ── Catalog (shown only in edit mode)
   const catalog = editing ? `
     <div class="dw-catalog-section">
       <div class="dw-catalog-hd">Tilgængelige widgets</div>
       <div class="dw-catalog-grid">
         ${inactive.map(w => `
-          <button class="dw-catalog-item" data-add="${w.id}">
+          <button class="dw-catalog-item${w.wide ? ' dw-catalog-wide' : ''}" data-add="${w.id}">
             <span class="dw-cat-icon">${w.icon}</span>
-            <span class="dw-cat-name">${w.title}</span>
+            <div class="dw-cat-info">
+              <span class="dw-cat-name">${w.title}</span>
+              ${w.wide ? `<span class="dw-cat-badge">Bred widget</span>` : ''}
+            </div>
             <span class="dw-cat-plus">+</span>
           </button>`).join('')}
         ${inactive.length === 0 ? '<p class="dw-catalog-empty">Alle widgets er allerede tilføjet.</p>' : ''}
@@ -237,31 +265,37 @@ VG.dashboard.renderPanel = function() {
     <div class="dash-toolbar">
       <div>
         <h2 class="dash-page-title">Mit Dashboard</h2>
-        <p class="dash-page-sub">Vælg de nøgletal du vil følge tættest.</p>
+        <p class="dash-page-sub">Din personlige oversigt — vælg de nøgletal og feeds du vil følge.</p>
       </div>
       <button class="dash-edit-btn${editing ? ' active' : ''}" id="dash-edit-btn">
         ${editing ? '✓ Gem' : '✎ Tilpas'}
       </button>
     </div>
     <div class="dw-grid">
-      ${cards}
+      ${metricCards}
       ${addCard}
     </div>
+    ${wideSections}
     ${catalog}
   `;
 
-  // Bind events
+  // ── Render wide widget bodies after HTML is injected
+  wideWidgets.forEach(w => {
+    const body = panel.querySelector(`#dw-wide-body-${w.id}`);
+    if (!body) return;
+    if (w.id === 'xdeck' && VG.xdeck) VG.xdeck.renderInto(body);
+  });
+
+  // ── Event bindings
   panel.querySelector('#dash-edit-btn').onclick = () => {
     panel._dashEditMode = !panel._dashEditMode;
     VG.dashboard.renderPanel();
   };
-  panel.querySelector('#dw-add-open') && (panel.querySelector('#dw-add-open').onclick = () => {
-    panel._dashEditMode = true;
-    VG.dashboard.renderPanel();
-  });
+  const addBtn = panel.querySelector('#dw-add-open');
+  if (addBtn) addBtn.onclick = () => { panel._dashEditMode = true; VG.dashboard.renderPanel(); };
+
   panel.querySelectorAll('[data-remove]').forEach(btn => btn.onclick = () => {
-    const updated = VG.dashboard.getActive().filter(id => id !== btn.dataset.remove);
-    VG.dashboard.saveActive(updated);
+    VG.dashboard.saveActive(VG.dashboard.getActive().filter(id => id !== btn.dataset.remove));
     VG.dashboard.renderPanel();
   });
   panel.querySelectorAll('[data-add]').forEach(btn => btn.onclick = () => {

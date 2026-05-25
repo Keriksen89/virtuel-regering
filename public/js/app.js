@@ -310,7 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 'mandater',         label: '🧮 Mandater' },
       { id: 'valgkort',         label: '🗺 Valgkort' },
       { id: 'meningsmaalinger', label: '📊 Meningsmålinger' },
-      { id: 'xdeck',            label: '𝕏 Politisk Debat' },
     ]},
     oekonomi: { label: '💰 Økonomi', tabs: [
       { id: 'laboratorium',     label: '🧪 Politisk Lab' },
@@ -331,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const PINNED_TABS = {
     personligt: ['dashboard', 'borger', 'bolig', 'pension', 'elpris'],
     samfund:    ['overview', 'demographics', 'sundhed', 'ledighed', 'co2', 'boligmarked', 'uddannelse'],
-    politik:    ['platform', 'party', 'partier', 'regering', 'folketing', 'meningsmaalinger', 'xdeck'],
+    politik:    ['platform', 'party', 'partier', 'regering', 'folketing', 'meningsmaalinger'],
     oekonomi:   ['laboratorium', 'policy', 'spending', 'revenue', 'projection', 'rygter'],
   };
 
@@ -381,9 +380,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.sub-tab').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tabId);
     });
-    if (tabId === 'party')      VG.party.load();
-    if (tabId === 'dashboard')  VG.dashboard && VG.dashboard.load();
-    if (tabId === 'xdeck')      VG.xdeck     && VG.xdeck.load();
+    if (tabId === 'party')     VG.party.load();
+    if (tabId === 'dashboard') VG.dashboard && VG.dashboard.load();
     VG.render.fast();
   }
 

@@ -3412,3 +3412,35 @@ canvas { display: block; max-width: 100%; }
   .xd-sidebar-scroll { max-height: 260px; }
   .xd-col       { width: 280px; }
 }
+
+/* ── Dashboard wide widget sections ────────────────────────────────────────── */
+.dw-wide-section {
+  margin-top: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.dw-wide-hd {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+.dw-wide-icon  { font-size: 16px; }
+.dw-wide-title { font-size: 14px; font-weight: 700; flex: 1; }
+.dw-wide-remove {
+  position: static; width: auto; height: auto; border-radius: var(--radius);
+  padding: 4px 10px; font-size: 11px; font-weight: 600;
+  background: var(--surface-2); border-color: var(--border);
+  color: var(--text-2);
+}
+.dw-wide-remove:hover { background: var(--pos); color: #fff; border-color: var(--pos); }
+.dw-wide-body { padding: 0; }
+
+/* Catalog wide-widget items */
+.dw-catalog-wide { grid-column: 1 / -1; }
+.dw-cat-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.dw-cat-badge {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--accent);
+}
