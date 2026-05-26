@@ -58,83 +58,17 @@ VG.xdeck.load = function() {};
 
 VG.xdeck.renderInto = function(container) {
   if (!container) return;
-  VG.xdeck._fetchAndRender(container);
+  VG.xdeck._render(container);
 };
 
-// ── API-backed native tweet feed ─────────────────────────────────────────────
-VG.xdeck._fetchAndRender = function(root, handles) {
-  const followed = handles || VG.xdeck.getFollowed();
-  if (!followed.length) { VG.xdeck._renderHTML(root, followed); return; }
-
-  root.innerHTML = '<div class="xdf-loading"><i class="ph ph-circle-notch" style="animation:xf-spin .8s linear infinite;display:inline-block"></i> Henter X-feed…</div>';
-
-  fetch(`/api/xfeed?handles=${followed.join(',')}&limit=4`)
-    .then(r => r.ok ? r.json() : Promise.reject())
-    .then(data => {
-      if (data.configured && data.accounts && data.accounts.some(a => a.items && a.items.length)) {
-        VG.xdeck._renderNative(root, data.accounts, followed);
-      } else {
-        VG.xdeck._renderHTML(root, followed);
-      }
-    })
-    .catch(() => VG.xdeck._renderHTML(root, followed));
-};
-
-// ── Native tweet card render (API mode) ──────────────────────────────────────
-VG.xdeck._renderNative = function(root, accounts, followed) {
-  const feedHtml = accounts.map(acc => {
-    const meta = XDECK_ACCOUNTS.find(a => a.handle.toLowerCase() === acc.handle.toLowerCase());
-    const role = meta ? meta.role : '';
-    const tweetsHtml = (acc.items || []).map(t => {
-      const txt = (t.text || '').replace(/https?:\/\/t\.co\/\S+/g, '').trim();
-      return `
-        <a class="xf-tweet" href="${t.url}" target="_blank" rel="noopener">
-          <p class="xf-tweet-text">${txt.replace(/</g, '&lt;').replace(/\n/g, '<br>')}</p>
-          <div class="xf-tweet-foot">
-            <span class="xf-tweet-age">${t.age || ''}</span>
-            ${t.likes    ? `<span class="xf-tweet-stat"><i class="ph ph-heart"></i> ${t.likes.toLocaleString('da-DK')}</span>` : ''}
-            ${t.retweets ? `<span class="xf-tweet-stat"><i class="ph ph-repeat"></i> ${t.retweets.toLocaleString('da-DK')}</span>` : ''}
-          </div>
-        </a>`;
-    }).join('');
-    return `
-      <div class="xdf-item">
-        <div class="xdf-hd">
-          <div class="xdf-av">${(acc.name || acc.handle)[0].toUpperCase()}</div>
-          <div class="xdf-meta">
-            <span class="xdf-name">${acc.name || acc.handle}</span>
-            <a class="xdf-handle" href="https://x.com/${acc.handle}" target="_blank" rel="noopener">@${acc.handle}</a>
-            ${role ? `<span class="xdf-role">${role}</span>` : ''}
-          </div>
-          <button class="xdf-remove" data-unfollow="${acc.handle}" title="Fjern fra feed"><i class="ph ph-x"></i></button>
-        </div>
-        <div class="xf-tweets">${tweetsHtml || '<p class="xf-no-tweets">Ingen nylige posts</p>'}</div>
-      </div>`;
-  }).join('');
-
-  root.innerHTML = `
-    <div class="xdf-wrap">
-      <div class="xdf-toolbar">
-        <span class="xdf-toolbar-count"><i class="ph ph-rss"></i> ${followed.length} konto${followed.length !== 1 ? 'er' : ''}</span>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="xdf-curator-btn" id="xdf-curator-btn"><i class="ph ph-sliders-horizontal"></i> Tilpas feed</button>
-          <button class="xdf-curator-btn" id="xdf-refresh-btn" title="Genindlæs feed"><i class="ph ph-arrows-clockwise"></i></button>
-        </div>
-      </div>
-      <div class="xdf-curator" id="xdf-curator" hidden>
-        <div class="xdf-curator-inner">${VG.xdeck._curatorHtml(followed)}</div>
-      </div>
-      <div class="xdf-feed" id="xdf-feed">${feedHtml || VG.xdeck._emptyHtml()}</div>
-    </div>`;
-
-  VG.xdeck._bindEvents(root, followed);
-};
-
-// ── Embed-widget render (no API token — uses Twitter's JS widget) ─────────────
-VG.xdeck._renderHTML = function(root, followed) {
-  followed = followed || VG.xdeck.getFollowed();
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const theme  = isDark ? 'dark' : 'light';
+// ── Render using X's own embed widgets (zero server cost) ────────────────────
+// Tweets load in the user's own browser context via platform.twitter.com.
+// If the visitor is logged in to X they get the full experience; if not,
+// X shows public posts and a prompt to log in — all handled by X, not us.
+VG.xdeck._render = function(root) {
+  const followed = VG.xdeck.getFollowed();
+  const isDark   = document.documentElement.getAttribute('data-theme') !== 'light';
+  const theme    = isDark ? 'dark' : 'light';
 
   const feedHtml = followed.length
     ? followed.map(h => {
@@ -162,13 +96,27 @@ VG.xdeck._renderHTML = function(root, followed) {
             </div>
           </div>`;
       }).join('')
-    : VG.xdeck._emptyHtml();
+    : `<div class="xdf-empty">
+        <i class="ph ph-x-logo xdf-empty-icon"></i>
+        <p>Dit X-feed er tomt. Klik <strong>Tilpas feed</strong> for at tilføje politikere, partier og medier.</p>
+       </div>`;
 
   root.innerHTML = `
     <div class="xdf-wrap">
       <div class="xdf-toolbar">
         <span class="xdf-toolbar-count"><i class="ph ph-rss"></i> ${followed.length} konto${followed.length !== 1 ? 'er' : ''}</span>
-        <button class="xdf-curator-btn" id="xdf-curator-btn"><i class="ph ph-sliders-horizontal"></i> Tilpas feed</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <a class="xdf-login-btn" href="https://x.com/login" target="_blank" rel="noopener"
+             title="Log ind på X for at se alle indlæg">
+            <i class="ph ph-x-logo"></i> Log ind på X
+          </a>
+          <button class="xdf-curator-btn" id="xdf-curator-btn"><i class="ph ph-sliders-horizontal"></i> Tilpas feed</button>
+        </div>
+      </div>
+      <div class="xdf-notice">
+        <i class="ph ph-info"></i>
+        Indlæg vises via X's egne indlejrede widgets — indlæses direkte i din browser.
+        <a href="https://x.com/login" target="_blank" rel="noopener">Log ind på X</a> for den fulde oplevelse.
       </div>
       <div class="xdf-curator" id="xdf-curator" hidden>
         <div class="xdf-curator-inner">${VG.xdeck._curatorHtml(followed)}</div>
@@ -201,13 +149,6 @@ VG.xdeck._curatorHtml = function(followed) {
     </div>`).join('');
 };
 
-VG.xdeck._emptyHtml = function() {
-  return `<div class="xdf-empty">
-    <i class="ph ph-x-logo xdf-empty-icon"></i>
-    <p>Dit X-feed er tomt. Klik <strong>Tilpas feed</strong> for at tilføje politikere, partier og medier.</p>
-  </div>`;
-};
-
 VG.xdeck._bindEvents = function(root, followed) {
   const curatorBtn = root.querySelector('#xdf-curator-btn');
   const curator    = root.querySelector('#xdf-curator');
@@ -216,10 +157,6 @@ VG.xdeck._bindEvents = function(root, followed) {
       curator.hidden = !curator.hidden;
       curatorBtn.classList.toggle('active', !curator.hidden);
     };
-  }
-  const refreshBtn = root.querySelector('#xdf-refresh-btn');
-  if (refreshBtn) {
-    refreshBtn.onclick = () => VG.xdeck._fetchAndRender(root, followed);
   }
   root.querySelectorAll('[data-toggle]').forEach(btn => {
     btn.onclick = () => VG.xdeck.toggle(btn.dataset.toggle, root);
@@ -235,7 +172,7 @@ VG.xdeck.toggle = function(handle, root) {
   if (i === -1) f.push(handle); else f.splice(i, 1);
   VG.xdeck.setFollowed(f);
   const target = root || document.getElementById('dw-xdeck-body');
-  if (target) VG.xdeck._fetchAndRender(target);
+  if (target) VG.xdeck._render(target);
 };
 
 VG.xdeck._loadWidgets = function() {
