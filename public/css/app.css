@@ -122,8 +122,6 @@ html, body {
 }
 
 .app {
-  max-width: 1240px;
-  margin: 0 auto;
   padding: 0 28px 80px;
   border-top: 4px solid var(--accent);
 }
@@ -3575,6 +3573,8 @@ body {
 .app {
   flex: 1 !important;
   min-width: 0;
+  max-width: none !important;
+  width: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
