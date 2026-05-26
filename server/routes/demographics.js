@@ -187,6 +187,52 @@ const DEMO = {
     { type: 'Øvrige husholdninger',      count: 111000,  pct: 4.0  }
   ],
 
+  // ── Adults by household type — DST FAM122N 2024 ─────────────────────────────
+  // Unit: PERSONS (16+), not households. Source: DST Statistikbank tabel FAM122N.
+  adultsByHousehold: [
+    {
+      type: 'Enlig uden børn',
+      desc: 'Voksne der bor alene (ingen børn i husstand)',
+      persons: 1163000, pct: 26.2,
+      men: 648000, women: 515000,
+      ageGroups: { '16–29': 18, '30–44': 20, '45–64': 33, '65+': 29 },
+    },
+    {
+      type: 'Eneforsørger',
+      desc: 'Enlig voksen med hjemmeboende børn',
+      persons: 271000, pct: 6.1,
+      men: 52000, women: 219000,
+      ageGroups: { '16–29': 8, '30–44': 38, '45–64': 47, '65+': 7 },
+    },
+    {
+      type: 'Par uden hjemmeboende børn',
+      desc: 'To voksne i husstand, ingen hjemmeboende børn',
+      persons: 1418000, pct: 31.9,
+      men: 709000, women: 709000,
+      ageGroups: { '16–29': 8, '30–44': 12, '45–64': 38, '65+': 42 },
+    },
+    {
+      type: 'Par med hjemmeboende børn',
+      desc: 'To voksne i husstand med hjemmeboende børn',
+      persons: 1295000, pct: 29.1,
+      men: 648000, women: 647000,
+      ageGroups: { '16–29': 5, '30–44': 45, '45–64': 48, '65+': 2 },
+    },
+    {
+      type: 'Øvrige husholdninger',
+      desc: 'Flerfamiliehusholdninger, kollektiver m.m.',
+      persons: 300000, pct: 6.7,
+      men: 155000, women: 145000,
+      ageGroups: { '16–29': 45, '30–44': 25, '45–64': 20, '65+': 10 },
+    },
+  ],
+  adultsByHouseholdMeta: {
+    total: 4447000,
+    year: 2024,
+    source: 'DST Statistikbank, tabel FAM122N',
+    note: 'Voksne borgere 16+ fordelt på husholdningstype. Enlige inkluderer alderspensionister og unge under uddannelse.',
+  },
+
   // ── Fiscal implications of demographics ──────────────────────────────────────
   fiscalPressure: {
     pensionCostPerElderlyBn: 0.240,   // ~240 mia / 1.0M elderly = 0.24 mia per person (rough avg)

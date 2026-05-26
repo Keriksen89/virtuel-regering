@@ -191,6 +191,70 @@ VG.demo.buildHTML = function() {
     </div>`;
   }).join('');
 
+  // ── FAM122N: adults (16+) by household type ─────────────────────────────────────
+  const fam = d.adultsByHousehold || [];
+  const famMeta = d.adultsByHouseholdMeta || {};
+  const famMax = Math.max(...fam.map(f => f.persons));
+  const famRows = fam.map(f => {
+    const barW = (f.persons / famMax * 100).toFixed(1);
+    const menPct  = Math.round(f.men  / f.persons * 100);
+    const womenPct= Math.round(f.women / f.persons * 100);
+    const agePills = Object.entries(f.ageGroups || {}).map(([grp, pct]) =>
+      `<span class="fam-age-pill">${grp}: ${pct}%</span>`
+    ).join('');
+    return `
+    <div class="fam-row">
+      <div class="fam-row-header">
+        <div class="fam-row-name">${f.type}</div>
+        <div class="fam-row-count">${(f.persons/1000).toFixed(0)}k · <strong>${f.pct}%</strong></div>
+      </div>
+      <div class="fam-row-desc">${f.desc}</div>
+      <div class="fam-bar-wrap">
+        <div class="fam-bar" style="width:${barW}%"></div>
+      </div>
+      <div class="fam-row-detail">
+        <div class="fam-gender">
+          <span class="fam-men" style="width:${menPct}%"></span><span class="fam-women" style="width:${womenPct}%"></span>
+          <span class="fam-gender-label">♂ ${menPct}% mænd · ♀ ${womenPct}% kvinder</span>
+        </div>
+        <div class="fam-age-pills">${agePills}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const famSection = fam.length ? `
+  <div class="card" style="margin-bottom:20px">
+    <h2>Voksne borgere fordelt på husholdningstype</h2>
+    <p class="intro">
+      ${(famMeta.total/1e6).toFixed(2).replace('.',',')} mio. voksne (16+) i alt · ${famMeta.year} · Kilde: ${famMeta.source}
+    </p>
+    <p class="intro" style="margin-top:4px">${famMeta.note || ''}</p>
+    <div class="fam-legend">
+      <span><span class="fam-dot fam-dot-main"></span>Andel af voksne</span>
+      <span><span class="fam-dot fam-dot-men"></span>Mænd</span>
+      <span><span class="fam-dot fam-dot-women"></span>Kvinder</span>
+    </div>
+    <div class="fam-grid">${famRows}</div>
+    <div class="fam-highlights">
+      <div class="fam-highlight-item">
+        <div class="fam-hl-num">${fam[0]?.pct}%</div>
+        <div class="fam-hl-label">bor alene — ${(fam[0]?.persons/1000).toFixed(0)}k voksne</div>
+      </div>
+      <div class="fam-highlight-item">
+        <div class="fam-hl-num">${fam[2]?.pct}%</div>
+        <div class="fam-hl-label">par uden børn — typisk 45+ år</div>
+      </div>
+      <div class="fam-highlight-item">
+        <div class="fam-hl-num">${((fam[1]?.women||0)/(fam[1]?.persons||1)*100).toFixed(0)}%</div>
+        <div class="fam-hl-label">af eneforsørgere er kvinder</div>
+      </div>
+      <div class="fam-highlight-item">
+        <div class="fam-hl-num">${fam[3]?.pct}%</div>
+        <div class="fam-hl-label">bor i par med børn</div>
+      </div>
+    </div>
+  </div>` : '';
+
   // ── Fiscal implications ─────────────────────────────────────────────────────────
   const fp = d.fiscalPressure;
   const fiscal = `
@@ -290,9 +354,11 @@ VG.demo.buildHTML = function() {
     </div>
   </div>
 
+  ${famSection}
+
   ${fiscal}
 
-  <p class="demo-source-note">Kilde: Danmarks Statistik — FOLK1A, FRDK117, FODSL, DODE, RAS, HFUDD, FAMILIE · Data kalibreret jan. 2026. Se <a href="https://www.dst.dk" target="_blank" rel="noopener">dst.dk</a></p>`;
+  <p class="demo-source-note">Kilde: Danmarks Statistik — FOLK1A, FRDK117, FODSL, DODE, RAS, HFUDD, FAMILIE, FAM122N · Data kalibreret jan. 2026. Se <a href="https://www.dst.dk" target="_blank" rel="noopener">dst.dk</a></p>`;
 };
 
 VG.demo.vitalCard = function(label, value, sub) {
