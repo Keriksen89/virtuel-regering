@@ -5,93 +5,93 @@
 ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --bg:            #2a2a2a;
-  --surface:       #353535;
-  --surface-1:     #3a3a3a;
-  --surface-2:     #424242;
-  --surface-3:     #4a4a4a;
+  --bg:            #000000;
+  --surface:       #111111;
+  --surface-1:     #161616;
+  --surface-2:     #1e1e1e;
+  --surface-3:     #262626;
   --text:          #f0f0f0;
   --text-1:        #f0f0f0;
-  --text-2:        #d0d0d0;
-  --text-3:        #999999;
+  --text-2:        #c8c8c8;
+  --text-3:        #888888;
   --accent:        #d4af37;
   --accent-2:      #c9a961;
   --pos:           #ff6b6b;
   --neg:           #51cf66;
   --warn:          #ffc107;
-  --border:        #4a4a4a;
-  --border-strong: #5a5a5a;
+  --border:        #2a2a2a;
+  --border-strong: #3a3a3a;
   --radius:        4px;
   --radius-lg:     8px;
-  --shadow:        0 2px 8px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.3);
-  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --shadow:        0 2px 8px rgba(0,0,0,0.6), 0 6px 16px rgba(0,0,0,0.5);
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.5);
   --font:          'DM Sans', -apple-system, system-ui, sans-serif;
   --font-display:  'Fraunces', Georgia, serif;
 }
 
 [data-theme="dark"] {
-  --bg:            #2a2a2a;
-  --surface:       #353535;
-  --surface-1:     #3a3a3a;
-  --surface-2:     #424242;
-  --surface-3:     #4a4a4a;
+  --bg:            #000000;
+  --surface:       #111111;
+  --surface-1:     #161616;
+  --surface-2:     #1e1e1e;
+  --surface-3:     #262626;
   --text:          #f0f0f0;
   --text-1:        #f0f0f0;
-  --text-2:        #d0d0d0;
-  --text-3:        #999999;
+  --text-2:        #c8c8c8;
+  --text-3:        #888888;
   --accent:        #d4af37;
   --accent-2:      #c9a961;
   --pos:           #ff6b6b;
   --neg:           #51cf66;
   --warn:          #ffc107;
-  --border:        #4a4a4a;
-  --border-strong: #5a5a5a;
-  --shadow:        0 2px 8px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.3);
-  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --border:        #2a2a2a;
+  --border-strong: #3a3a3a;
+  --shadow:        0 2px 8px rgba(0,0,0,0.6), 0 6px 16px rgba(0,0,0,0.5);
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.5);
 }
 
 /* Explicit light override — wins over system dark media query */
 [data-theme="light"] {
-  --bg:            #2a2a2a;
-  --surface:       #353535;
-  --surface-1:     #3a3a3a;
-  --surface-2:     #424242;
-  --surface-3:     #4a4a4a;
+  --bg:            #000000;
+  --surface:       #111111;
+  --surface-1:     #161616;
+  --surface-2:     #1e1e1e;
+  --surface-3:     #262626;
   --text:          #f0f0f0;
   --text-1:        #f0f0f0;
-  --text-2:        #d0d0d0;
-  --text-3:        #999999;
+  --text-2:        #c8c8c8;
+  --text-3:        #888888;
   --accent:        #d4af37;
   --accent-2:      #c9a961;
   --pos:           #ff6b6b;
   --neg:           #51cf66;
   --warn:          #ffc107;
-  --border:        #4a4a4a;
-  --border-strong: #5a5a5a;
-  --shadow:        0 2px 8px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.3);
-  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --border:        #2a2a2a;
+  --border-strong: #3a3a3a;
+  --shadow:        0 2px 8px rgba(0,0,0,0.6), 0 6px 16px rgba(0,0,0,0.5);
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.5);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg:            #2a2a2a;
-    --surface:       #353535;
-    --surface-1:     #3a3a3a;
-    --surface-2:     #424242;
-    --surface-3:     #4a4a4a;
+    --bg:            #000000;
+    --surface:       #111111;
+    --surface-1:     #161616;
+    --surface-2:     #1e1e1e;
+    --surface-3:     #262626;
     --text:          #f0f0f0;
     --text-1:        #f0f0f0;
-    --text-2:        #d0d0d0;
-    --text-3:        #999999;
+    --text-2:        #c8c8c8;
+    --text-3:        #888888;
     --accent:        #d4af37;
     --accent-2:      #c9a961;
     --pos:           #ff6b6b;
     --neg:           #51cf66;
     --warn:          #ffc107;
-    --border:        #4a4a4a;
-    --border-strong: #5a5a5a;
-    --shadow:        0 2px 8px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.3);
-    --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+    --border:        #2a2a2a;
+    --border-strong: #3a3a3a;
+    --shadow:        0 2px 8px rgba(0,0,0,0.6), 0 6px 16px rgba(0,0,0,0.5);
+    --shadow-sm:     0 1px 3px rgba(0,0,0,0.5);
   }
 }
 
@@ -3400,7 +3400,7 @@ body {
   width: 240px;
   min-width: 240px;
   height: 100dvh;
-  background: #1f1f1f;
+  background: #0a0a0a;
   color: #e0e0e0;
   display: flex;
   flex-direction: column;
