@@ -6,8 +6,10 @@ VG.danmarkskort = {};
 
   const GEO_URL  = '/geo/municipalities.geojson';
   const DECK_URL = '/vendor/deck.gl.min.js';
-  const OPENSKY_URL = '/api/opensky';
-  const AIRCRAFT_REFRESH_MS = 15000;
+  const OPENSKY_URL = '/api/opensky';   // real ADS-B proxy (adsb.lol → adsb.fi → opensky)
+  const AIS_URL = '/api/ais';           // real AIS proxy (aisstream.io)
+  const AIRCRAFT_REFRESH_MS = 10000;
+  const SHIP_REFRESH_MS = 12000;
 
   // ── Municipality data ──────────────────────────────────────────────────────
   // Keys match label_dk property in the GeoJSON
@@ -144,7 +146,7 @@ VG.danmarkskort = {};
     { name: 'HERNING',   pos: [ 8.9737, 56.1326], pop:  91000 },
   ];
 
-  // ── Air traffic ──────────────────────────────────────────────────────────────
+  // ── Airports (real, for markers in LUFTTRAFIK view) ─────────────────────────
   const AIRPORTS = [
     { name: 'CPH', pos: [12.6476, 55.6181] }, // Kastrup
     { name: 'BLL', pos: [ 9.1518, 55.7403] }, // Billund
@@ -152,7 +154,6 @@ VG.danmarkskort = {};
     { name: 'AAR', pos: [10.6190, 56.3000] }, // Aarhus
     { name: 'RKE', pos: [12.1314, 55.5856] }, // Roskilde
   ];
-  const AIRLINES = ['SAS', 'DLH', 'KLM', 'BAW', 'NOZ', 'RYR', 'EWG', 'THY', 'AFR', 'FIN', 'WZZ', 'EZY'];
 
   // ── Satellites ────────────────────────────────────────────────────────────────
   // Live positions are computed in-browser from TLE orbital elements via
@@ -241,109 +242,37 @@ VG.danmarkskort = {};
     'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
   ];
 
-  // ── Shipping routes ────────────────────────────────────────────────────────
-  // Each ship travels between two waypoints, bouncing back and forth
-  const SHIP_ROUTES = [
-    // Øresund — northbound/southbound
-    { from: [12.61, 56.04], to: [12.88, 55.60] },
-    { from: [12.65, 56.00], to: [12.90, 55.65] },
-    // Storebælt
-    { from: [11.11, 55.34], to: [10.91, 55.19] },
-    { from: [11.08, 55.32], to: [10.93, 55.21] },
-    // Kattegat N-S
-    { from: [10.59, 57.73], to: [10.21, 56.16] },
-    { from: [10.62, 57.70], to: [10.24, 56.20] },
-    // Esbjerg approach from North Sea
-    { from: [7.90, 55.40],  to: [8.46, 55.48] },
-    // Baltic / Bornholm → Copenhagen
-    { from: [14.92, 55.10], to: [12.60, 55.65] },
-    // Femern Belt
-    { from: [11.30, 54.85], to: [11.00, 54.62] },
-    // Limfjorden west entry
-    { from: [8.24, 56.96],  to: [9.52, 56.82] },
-  ];
+  // ── Dead-reckoning for real tracks ──────────────────────────────────────────
+  // AIS/ADS-B position reports arrive every few seconds. Between real updates we
+  // advance each contact along its REAL reported course + speed so motion is
+  // smooth. Positions are real data, not simulated tracks — this is exactly how
+  // marine/aviation displays interpolate between fixes. Each new fetch snaps
+  // contacts back to their reported position.
+  const M_PER_DEG_LAT = 111320;
 
-  const SHIP_TYPES = ['cargo', 'tanker', 'container'];
-  const SHIP_NAMES = [
-    'MAERSK BERING', 'DFDS CROWN', 'STENA DANICA', 'PEARL SEAWAYS',
-    'NORDIC LUNA', 'ARC WIND', 'SELANDIA', 'KRONBORG', 'ODENSE',
-    'ESBJERG STAR', 'BORNHOLM LINK', 'LIMFJORD EXPRESS',
-  ];
-
-  function makeShips() {
-    return SHIP_ROUTES.map((route, i) => {
-      const t = Math.random();
-      const lng = route.from[0] + (route.to[0] - route.from[0]) * t;
-      const lat = route.from[1] + (route.to[1] - route.from[1]) * t;
-      const dlng = route.to[0] - route.from[0];
-      const dlat = route.to[1] - route.from[1];
-      const heading = Math.atan2(dlng, dlat) * (180 / Math.PI);
-      return {
-        id: i,
-        pos: [lng, lat],
-        t,
-        dir: Math.random() > 0.5 ? 1 : -1,
-        speed: 0.00008 + Math.random() * 0.00006,
-        heading,
-        type: SHIP_TYPES[i % SHIP_TYPES.length],
-        name: SHIP_NAMES[i] || ('SHIP-' + i),
-        route,
-      };
-    });
-  }
-
-  function advanceShips(ships) {
-    ships.forEach(s => {
-      s.t += s.dir * s.speed;
-      if (s.t > 1) { s.t = 1; s.dir = -1; }
-      if (s.t < 0) { s.t = 0; s.dir =  1; }
-      s.pos = [
-        s.route.from[0] + (s.route.to[0] - s.route.from[0]) * s.t,
-        s.route.from[1] + (s.route.to[1] - s.route.from[1]) * s.t,
-      ];
-      const dlng = s.dir * (s.route.to[0] - s.route.from[0]);
-      const dlat = s.dir * (s.route.to[1] - s.route.from[1]);
-      s.heading = Math.atan2(dlng, dlat) * (180 / Math.PI);
-    });
-  }
-
-  // ── Simulated aircraft (fallback when no live OpenSky data) ─────────────────
-  function makeAircraft() {
-    const LAMIN = 54.5, LAMAX = 58.0, LOMIN = 7.8, LOMAX = 15.2;
-    const n = 16 + Math.floor(Math.random() * 10);
-    const arr = [];
-    for (let i = 0; i < n; i++) {
-      const heading = Math.random() * 360;
-      const ap = AIRPORTS[i % AIRPORTS.length];
-      // Half spawn near airports (climbing/landing), half mid-air en route
-      const nearAp = Math.random() > 0.5;
-      const pos = nearAp
-        ? [ap.pos[0] + (Math.random() - 0.5) * 0.6, ap.pos[1] + (Math.random() - 0.5) * 0.6]
-        : [LOMIN + Math.random() * (LOMAX - LOMIN), LAMIN + Math.random() * (LAMAX - LAMIN)];
-      arr.push({
-        icao24:   Math.random().toString(16).slice(2, 8),
-        callsign: AIRLINES[i % AIRLINES.length] + (100 + Math.floor(Math.random() * 899)),
-        origin:   'Simuleret',
-        pos,
-        altitude: 600 + Math.floor(Math.random() * 11400),
-        heading,
-        speed:    0.0010 + Math.random() * 0.0020,
-        simulated: true,
-      });
-    }
-    return arr;
-  }
-
-  function advanceAircraft(ac) {
-    const LAMIN = 54.2, LAMAX = 58.4, LOMIN = 7.2, LOMAX = 15.6;
+  // Advance aircraft using velocity (m/s) and true_track (deg). dt in seconds.
+  function advanceAircraft(ac, dt) {
     ac.forEach(p => {
-      const rad = p.heading * Math.PI / 180;
-      p.pos = [p.pos[0] + Math.sin(rad) * p.speed, p.pos[1] + Math.cos(rad) * p.speed];
-      // Wrap around the DK airspace window so the sky stays populated
-      if (p.pos[0] < LOMIN) p.pos[0] = LOMAX;
-      if (p.pos[0] > LOMAX) p.pos[0] = LOMIN;
-      if (p.pos[1] < LAMIN) p.pos[1] = LAMAX;
-      if (p.pos[1] > LAMAX) p.pos[1] = LAMIN;
+      if (!p.pos || !p.speed) return;
+      const lat = p.pos[1];
+      const distM = p.speed * dt;                 // p.speed is m/s (from OpenSky velocity)
+      const rad = (p.heading || 0) * Math.PI / 180;
+      const dLat = (distM * Math.cos(rad)) / M_PER_DEG_LAT;
+      const dLon = (distM * Math.sin(rad)) / (M_PER_DEG_LAT * Math.cos(lat * Math.PI / 180));
+      p.pos = [p.pos[0] + dLon, p.pos[1] + dLat];
+    });
+  }
+
+  // Advance ships using SOG (knots) and COG (deg). dt in seconds.
+  function advanceShips(ships, dt) {
+    ships.forEach(s => {
+      if (!s.pos || !s.sog) return;
+      const lat = s.pos[1];
+      const distM = s.sog * 0.514444 * dt;        // knots → m/s
+      const rad = (s.cog || s.heading || 0) * Math.PI / 180;
+      const dLat = (distM * Math.cos(rad)) / M_PER_DEG_LAT;
+      const dLon = (distM * Math.sin(rad)) / (M_PER_DEG_LAT * Math.cos(lat * Math.PI / 180));
+      s.pos = [s.pos[0] + dLon, s.pos[1] + dLat];
     });
   }
 
@@ -475,9 +404,10 @@ VG.danmarkskort = {};
   let _view       = 'kommuner';
   let _pulse      = 0;
   let _rafId      = null;
-  let _aircraft   = [];
-  let _aircraftSimulated = false;
-  let _ships      = makeShips();
+  let _aircraft   = [];        // real ADS-B contacts
+  let _aircraftStatus = 'loading';
+  let _ships      = [];        // real AIS vessels
+  let _aisStatus  = 'loading';
   let _satRecs    = [];
   let _satellites = [];
   let _satFreshUntil = 0;
@@ -486,6 +416,8 @@ VG.danmarkskort = {};
   let _container  = null;
   let _initialized = false;
   let _aircraftTimer = null;
+  let _shipTimer  = null;
+  let _lastFrameT = 0;
 
   // ── Build deck.gl layers ───────────────────────────────────────────────────
   function buildLayers(geo, metric, view, pulse, aircraft, ships, satellites) {
@@ -552,8 +484,63 @@ VG.danmarkskort = {};
       }));
     }
 
-    // ── Aircraft layer ───────────────────────────────────────────────────────
+    // ── Aircraft layer (real ADS-B) ────────────────────────────────────────────
+    if (view === 'lufttrafik') {
+      // Airport markers
+      layers.push(new d.ScatterplotLayer({
+        id: 'airports',
+        data: AIRPORTS,
+        pickable: false,
+        stroked: true,
+        filled: false,
+        radiusMinPixels: 6,
+        radiusMaxPixels: 14,
+        getPosition: a => a.pos,
+        getLineColor: [212, 175, 55, 180],
+        getLineWidth: 1.5,
+        lineWidthUnits: 'pixels',
+      }));
+      layers.push(new d.TextLayer({
+        id: 'airport-labels',
+        data: AIRPORTS,
+        pickable: false,
+        getPosition: a => a.pos,
+        getText: a => a.name,
+        getSize: 9,
+        getColor: [212, 175, 55, 200],
+        getPixelOffset: [0, 12],
+        fontFamily: '"Courier New", Courier, monospace',
+        fontWeight: 700,
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'top',
+        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
+      }));
+    }
     if (view === 'lufttrafik' && aircraft.length) {
+      // Altitude-tinted contacts; height shows real baro altitude in 3D
+      const altColor = ac => {
+        const a = ac.altitude || 0;            // metres
+        const t = Math.max(0, Math.min(1, a / 12000));
+        return [Math.round(40 + t * 60), Math.round(255 - t * 40), Math.round(200 + t * 40), 235];
+      };
+      // Course vectors (real true_track + velocity)
+      layers.push(new d.LineLayer({
+        id: 'aircraft-courses',
+        data: aircraft.filter(a => a.speed > 5),
+        pickable: false,
+        opacity: 0.5,
+        getSourcePosition: a => [a.pos[0], a.pos[1], (a.altitude || 0) * 12],
+        getTargetPosition: a => {
+          const lat = a.pos[1];
+          const distM = Math.min((a.speed || 0) * 90, 30000);
+          const rad = (a.heading || 0) * Math.PI / 180;
+          const dLat = (distM * Math.cos(rad)) / M_PER_DEG_LAT;
+          const dLon = (distM * Math.sin(rad)) / (M_PER_DEG_LAT * Math.cos(lat * Math.PI / 180));
+          return [a.pos[0] + dLon, a.pos[1] + dLat, (a.altitude || 0) * 12];
+        },
+        getColor: [0, 255, 200, 120],
+        getWidth: 1,
+      }));
       layers.push(new d.ScatterplotLayer({
         id: 'aircraft-glow',
         data: aircraft,
@@ -561,30 +548,56 @@ VG.danmarkskort = {};
         opacity: 0.12,
         stroked: false,
         filled: true,
-        radiusScale: 1,
-        radiusMinPixels: 10,
-        radiusMaxPixels: 28,
-        getPosition: d => d.pos,
+        radiusMinPixels: 8,
+        radiusMaxPixels: 22,
+        getPosition: a => [a.pos[0], a.pos[1], (a.altitude || 0) * 12],
         getFillColor: [0, 255, 200, 60],
       }));
       layers.push(new d.ScatterplotLayer({
         id: 'aircraft',
         data: aircraft,
         pickable: true,
-        opacity: 0.9,
+        opacity: 0.95,
         stroked: false,
         filled: true,
-        radiusScale: 1,
-        radiusMinPixels: 4,
-        radiusMaxPixels: 10,
-        getPosition: d => d.pos,
-        getFillColor: [0, 255, 200, 230],
+        radiusMinPixels: 3,
+        radiusMaxPixels: 8,
+        getPosition: a => [a.pos[0], a.pos[1], (a.altitude || 0) * 12],
+        getFillColor: altColor,
         onHover: info => showTooltipAircraft(info),
+        updateTriggers: { getFillColor: aircraft.length },
       }));
     }
 
-    // ── Ship layer ───────────────────────────────────────────────────────────
-    if (view === 'skibstrafik') {
+    // ── Ship layer (real AIS) ──────────────────────────────────────────────────
+    if (view === 'skibstrafik' && ships.length) {
+      const shipColor = s => {
+        switch (s.type) {
+          case 'tanker':    return [255, 90, 60, 235];
+          case 'cargo':     return [255, 160, 40, 235];
+          case 'passenger': return [80, 220, 255, 235];
+          case 'hsc':       return [180, 120, 255, 235];
+          default:          return [255, 200, 120, 230];
+        }
+      };
+      // Course vectors — short line in the direction of travel (real COG)
+      layers.push(new d.LineLayer({
+        id: 'ship-courses',
+        data: ships.filter(s => s.sog > 0.3),
+        pickable: false,
+        opacity: 0.6,
+        getSourcePosition: s => s.pos,
+        getTargetPosition: s => {
+          const lat = s.pos[1];
+          const distM = Math.min(s.sog * 0.514444 * 120, 6000); // ~2 min ahead, capped
+          const rad = (s.cog || s.heading || 0) * Math.PI / 180;
+          const dLat = (distM * Math.cos(rad)) / M_PER_DEG_LAT;
+          const dLon = (distM * Math.sin(rad)) / (M_PER_DEG_LAT * Math.cos(lat * Math.PI / 180));
+          return [s.pos[0] + dLon, s.pos[1] + dLat];
+        },
+        getColor: [255, 200, 120, 140],
+        getWidth: 1.5,
+      }));
       layers.push(new d.ScatterplotLayer({
         id: 'ships-glow',
         data: ships,
@@ -592,10 +605,10 @@ VG.danmarkskort = {};
         opacity: 0.15,
         stroked: false,
         filled: true,
-        radiusMinPixels: 12,
-        radiusMaxPixels: 32,
+        radiusMinPixels: 7,
+        radiusMaxPixels: 20,
         getPosition: d => d.pos,
-        getFillColor: [255, 160, 40, 50],
+        getFillColor: s => { const c = shipColor(s); return [c[0], c[1], c[2], 50]; },
       }));
       layers.push(new d.ScatterplotLayer({
         id: 'ships',
@@ -604,25 +617,15 @@ VG.danmarkskort = {};
         opacity: 1,
         stroked: true,
         filled: true,
-        radiusMinPixels: 5,
-        radiusMaxPixels: 12,
+        radiusMinPixels: 3,
+        radiusMaxPixels: 8,
         getPosition: d => d.pos,
-        getFillColor: [255, 160, 40, 240],
-        getLineColor: [255, 200, 100, 200],
-        getLineWidth: 1,
+        getFillColor: shipColor,
+        getLineColor: [255, 230, 180, 200],
+        getLineWidth: 0.5,
+        lineWidthUnits: 'pixels',
         onHover: info => showTooltipShip(info),
-      }));
-      // Ship route lines (faint)
-      layers.push(new d.PathLayer({
-        id: 'ship-routes',
-        data: SHIP_ROUTES,
-        pickable: false,
-        widthMinPixels: 1,
-        widthMaxPixels: 2,
-        opacity: 0.18,
-        getPath: r => [r.from, r.to],
-        getColor: [255, 160, 40, 80],
-        getWidth: 1,
+        updateTriggers: { getFillColor: ships.length },
       }));
     }
 
@@ -947,12 +950,15 @@ VG.danmarkskort = {};
     if (!el) return;
     if (!info || !info.object) { el.style.display = 'none'; return; }
     const ac = info.object;
+    const spdKt = ac.speed ? Math.round(ac.speed * 1.94384) : null;  // m/s → knots
     el.innerHTML = `
       <div class="dkt-title">${ac.callsign || ac.icao24 || 'Ukendt fly'}</div>
       <div class="dkt-row"><span class="dkt-k">ICAO24</span><span class="dkt-v">${ac.icao24 || '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Oprindelse</span><span class="dkt-v">${ac.origin || '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Altitude</span><span class="dkt-v">${ac.altitude ? Math.round(ac.altitude) + ' m' : '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Kurs</span><span class="dkt-v">${ac.heading ? Math.round(ac.heading) + '°' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Land</span><span class="dkt-v">${ac.origin || '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Højde</span><span class="dkt-v">${ac.altitude ? Math.round(ac.altitude).toLocaleString('da-DK') + ' m' : 'jord'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Fart</span><span class="dkt-v">${spdKt != null ? spdKt + ' kt' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kurs</span><span class="dkt-v">${ac.heading != null ? Math.round(ac.heading) + '°' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">ADS-B · live</span></div>
     `;
     el.style.display = 'block';
     el.style.left = (info.x + 12) + 'px';
@@ -964,11 +970,15 @@ VG.danmarkskort = {};
     if (!el) return;
     if (!info || !info.object) { el.style.display = 'none'; return; }
     const s = info.object;
+    const cog = (s.cog != null) ? Math.round(s.cog) : (s.heading != null ? Math.round(s.heading) : null);
     el.innerHTML = `
       <div class="dkt-title">${s.name}</div>
-      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${s.type}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Kurs</span><span class="dkt-v">${Math.round(s.heading)}°</span></div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${s.type || 'vessel'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">MMSI</span><span class="dkt-v">${s.mmsi || '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Fart</span><span class="dkt-v">${s.sog != null ? s.sog.toFixed(1) + ' kn' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kurs</span><span class="dkt-v">${cog != null ? cog + '°' : '—'}</span></div>
       <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${s.pos[1].toFixed(3)}°N ${s.pos[0].toFixed(3)}°E</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">AIS · live</span></div>
     `;
     el.style.display = 'block';
     el.style.left = (info.x + 12) + 'px';
@@ -1056,7 +1066,7 @@ VG.danmarkskort = {};
     el.style.top  = (info.y - 10) + 'px';
   }
 
-  // ── Fetch aircraft ─────────────────────────────────────────────────────────
+  // ── Fetch real aircraft (ADS-B via server proxy) ────────────────────────────
   function parseStates(states) {
     return (states || [])
       .filter(s => s && s[5] != null && s[6] != null)
@@ -1065,37 +1075,74 @@ VG.danmarkskort = {};
         callsign: (s[1] || '').trim(),
         origin:   s[2] || '—',
         pos:      [s[5], s[6]],
-        altitude: s[7] || s[13] || 0,
-        heading:  s[10] || 0,
+        altitude: s[7] || s[13] || 0,   // metres
+        speed:    s[9] || 0,            // m/s (velocity)
+        heading:  s[10] || 0,           // true_track degrees
       }));
   }
 
+  // Merge a fresh fetch onto existing contacts so dead-reckoning carries the
+  // identity. New reported positions snap contacts to the real fix.
+  function mergeContacts(current, incoming, key) {
+    const map = new Map(current.map(c => [c[key], c]));
+    return incoming.map(n => {
+      const prev = map.get(n[key]);
+      return prev ? Object.assign(prev, n) : n;
+    });
+  }
+
   async function fetchAircraft() {
-    let live = [];
-    // Server proxy — falls back to simulation if Render IP is blocked by OpenSky
     try {
       const r = await fetch(OPENSKY_URL);
-      if (r.ok) { const d = await r.json(); live = parseStates(d && d.states); }
-    } catch {}
-    if (live.length) {
-      _aircraft = live;
-      _aircraftSimulated = false;
-    } else {
-      if (!_aircraftSimulated || !_aircraft.length) _aircraft = makeAircraft();
-      _aircraftSimulated = true;
+      if (r.ok) {
+        const d = await r.json();
+        const live = parseStates(d && d.states);
+        _aircraft = mergeContacts(_aircraft, live, 'icao24');
+        _aircraftStatus = live.length ? 'live' : (d.source === 'none' ? 'unavailable' : 'empty');
+      } else {
+        _aircraftStatus = 'unavailable';
+      }
+    } catch {
+      _aircraftStatus = 'unavailable';
+    }
+    updateStats();
+  }
+
+  // ── Fetch real ships (AIS via server proxy) ─────────────────────────────────
+  async function fetchShips() {
+    try {
+      const r = await fetch(AIS_URL);
+      if (r.ok) {
+        const d = await r.json();
+        const live = (d.vessels || []).filter(v => v.pos && v.pos.length === 2);
+        _ships = mergeContacts(_ships, live, 'mmsi');
+        _aisStatus = d.status || (live.length ? 'live' : 'empty');
+      } else {
+        _aisStatus = 'unavailable';
+      }
+    } catch {
+      _aisStatus = 'unavailable';
     }
     updateStats();
   }
 
   // ── Stats bar ──────────────────────────────────────────────────────────────
+  function statusTag(status) {
+    if (status === 'live') return '<span style="color:#5fd35f">live</span>';
+    if (status === 'no-key') return '<span style="color:#ff8040">AIS-nøgle mangler</span>';
+    if (status === 'connecting' || status === 'reconnecting' || status === 'loading')
+      return '<span style="color:#d4af37">forbinder…</span>';
+    if (status === 'empty') return '<span style="color:#888">ingen i området</span>';
+    return '<span style="color:#cc5544">utilgængelig</span>';
+  }
+
   function updateStats() {
     const el = document.getElementById('dk-stats');
     if (!el) return;
-    const planeTag = _aircraftSimulated ? ' sim' : ' live';
     const survCount = _satellites.filter(s => SURVEILLANCE_NAMES.has(s.name)).length;
     el.innerHTML = `
-      <span class="dk-stat"><i class="ph ph-airplane-tilt"></i> ${_aircraft.length} fly (${planeTag})</span>
-      <span class="dk-stat"><i class="ph ph-boat"></i> ${_ships.length} skibe</span>
+      <span class="dk-stat"><i class="ph ph-airplane-tilt"></i> ${_aircraft.length} fly ${statusTag(_aircraftStatus)}</span>
+      <span class="dk-stat"><i class="ph ph-boat"></i> ${_ships.length} skibe ${statusTag(_aisStatus)}</span>
       <span class="dk-stat"><i class="ph ph-globe-stand"></i> ${_satellites.length} sat · <span style="color:#ff8040">${survCount} overvågning</span></span>
     `;
   }
@@ -1103,19 +1150,24 @@ VG.danmarkskort = {};
   // ── Animation loop ─────────────────────────────────────────────────────────
   function startLoop() {
     if (_rafId) return;
-    function frame() {
+    _lastFrameT = performance.now();
+    function frame(now) {
       const panel = document.getElementById('panel-danmarkskort');
       if (!panel || !panel.classList.contains('active')) {
         _rafId = null;
         return;
       }
+      const dt = Math.min((now - _lastFrameT) / 1000, 0.1);  // seconds, clamped
+      _lastFrameT = now;
       _pulse += 0.025;
-      advanceShips(_ships);
-      if (_view === 'lufttrafik' && _aircraftSimulated) advanceAircraft(_aircraft);
+
+      // Dead-reckon real contacts forward along their reported course/speed
+      if (_view === 'skibstrafik') advanceShips(_ships, dt);
+      if (_view === 'lufttrafik')  advanceAircraft(_aircraft, dt);
       if (_view === 'satellitter' || _view === 'overvågning') {
-        const now = Date.now();
-        if (now >= _satFreshUntil) { computeSatellites(); _satFreshUntil = now + 333; updateStats(); }
-        if (now >= _groundTracksFreshUntil) { computeGroundTracks(); _groundTracksFreshUntil = now + 30000; }
+        const t = Date.now();
+        if (t >= _satFreshUntil) { computeSatellites(); _satFreshUntil = t + 333; updateStats(); }
+        if (t >= _groundTracksFreshUntil) { computeGroundTracks(); _groundTracksFreshUntil = t + 30000; }
       }
 
       if (_deck) {
@@ -1134,6 +1186,10 @@ VG.danmarkskort = {};
     if (_aircraftTimer) {
       clearInterval(_aircraftTimer);
       _aircraftTimer = null;
+    }
+    if (_shipTimer) {
+      clearInterval(_shipTimer);
+      _shipTimer = null;
     }
   }
 
@@ -1190,9 +1246,24 @@ VG.danmarkskort = {};
 
   <div class="dk-tooltip" id="dk-tooltip"></div>
 
+  <!-- Navigation controls -->
+  <div class="dk-nav" id="dk-nav">
+    <button class="dk-nav-btn" id="dk-zoom-in" title="Zoom ind">+</button>
+    <button class="dk-nav-btn" id="dk-zoom-out" title="Zoom ud">−</button>
+    <button class="dk-compass" id="dk-compass" title="Nulstil rotation (peg mod nord)">
+      <span class="dk-compass-needle" id="dk-compass-needle">▲</span>
+      <span class="dk-compass-n">N</span>
+    </button>
+    <button class="dk-nav-btn" id="dk-topdown" title="Set ovenfra (2D)">⊕</button>
+    <button class="dk-nav-btn" id="dk-reset" title="Nulstil visning">⟲</button>
+    <div class="dk-pitch" title="Hældning">∡ <span id="dk-pitch-val">50°</span></div>
+  </div>
+
+  <div class="dk-hint" id="dk-hint">Træk for at panorere · scroll for zoom · højreklik-træk (eller ⌘/Ctrl-træk) for at vippe &amp; rotere</div>
+
   <div class="dk-loading" id="dk-loading">
     <div class="dk-loading-text">INDLÆSER DANMARKSMASKINEN</div>
-    <div class="dk-loading-sub">WebGL · deck.gl · GeoJSON</div>
+    <div class="dk-loading-sub">WebGL · deck.gl · realtidsdata</div>
   </div>
 </div>
     `;
@@ -1223,33 +1294,86 @@ VG.danmarkskort = {};
       });
     });
 
+    // Bind navigation controls
+    const bind = (id, fn) => { const e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
+    bind('dk-zoom-in',  () => flyTo({ zoom: Math.min((_viewState.zoom || 6) + 1, 16) }));
+    bind('dk-zoom-out', () => flyTo({ zoom: Math.max((_viewState.zoom || 6) - 1, 3) }));
+    bind('dk-compass',  () => flyTo({ bearing: 0 }));
+    bind('dk-topdown',  () => setTopDown());
+    bind('dk-reset',    () => resetView());
+
+    // Fade the hint out after a few seconds
+    setTimeout(() => { const h = document.getElementById('dk-hint'); if (h) h.classList.add('dk-hint-fade'); }, 6000);
+
     refreshLegend();
     updateStats();
   }
 
   // ── deck.gl init ───────────────────────────────────────────────────────────
+  const INITIAL_VIEW = {
+    longitude: 10.7,
+    latitude:  56.0,
+    zoom:       6.2,
+    pitch:      50,
+    bearing:    -12,
+    minZoom:    3,
+    maxZoom:    16,
+    maxPitch:   75,
+  };
+  let _viewState = { ...INITIAL_VIEW };
+
+  function updateCompass() {
+    const c = document.getElementById('dk-compass-needle');
+    if (c) c.style.transform = `rotate(${-_viewState.bearing}deg)`;
+    const p = document.getElementById('dk-pitch-val');
+    if (p) p.textContent = Math.round(_viewState.pitch) + '°';
+  }
+
+  function flyTo(target) {
+    const d = window.deck;
+    _viewState = {
+      ..._viewState, ...target,
+      transitionDuration: 900,
+      transitionInterpolator: d.FlyToInterpolator ? new d.FlyToInterpolator({ speed: 1.6 }) : undefined,
+    };
+    if (_deck) _deck.setProps({ viewState: _viewState });
+  }
+
+  function resetView() { flyTo({ ...INITIAL_VIEW }); }
+  function setTopDown() { flyTo({ pitch: 0, bearing: 0 }); }
+
   function initDeck(canvas) {
     const d = window.deck;
     if (!d || !canvas) return;
+
+    _viewState = { ...INITIAL_VIEW };
 
     _deck = new d.Deck({
       canvas,
       width: '100%',
       height: '100%',
-      initialViewState: {
-        longitude: 10.5,
-        latitude:  56.0,
-        zoom:       5.8,
-        pitch:      45,
-        bearing:    -10,
+      viewState: _viewState,
+      controller: {
+        // Smooth, responsive navigation with momentum
+        inertia: 350,
+        scrollZoom: { speed: 0.012, smooth: true },
+        dragPan: true,
+        dragRotate: true,     // right-drag / ctrl-drag to tilt + rotate
+        touchRotate: true,    // two-finger rotate/tilt on touch
+        touchZoom: true,
+        doubleClickZoom: true,
+        keyboard: true,       // arrows pan, +/- zoom, shift+arrows rotate
       },
-      controller: true,
       views: new d.MapView({ repeat: false }),
-      parameters: {
-        clearColor: [0, 0, 0, 255],
-      },
+      parameters: { clearColor: [0, 0, 0, 255] },
       layers: buildLayers(_geo, _metric, _view, _pulse, _aircraft, _ships, _satellites),
-      getCursor: ({ isHovering }) => isHovering ? 'pointer' : 'grab',
+      getCursor: ({ isDragging, isHovering }) =>
+        isDragging ? 'grabbing' : (isHovering ? 'pointer' : 'grab'),
+      onViewStateChange: ({ viewState }) => {
+        _viewState = viewState;
+        updateCompass();
+        _deck.setProps({ viewState });
+      },
       onHover: (info) => {
         if (_view === 'kommuner') {
           updateTooltip(info, _metric);
@@ -1263,7 +1387,7 @@ VG.danmarkskort = {};
       },
     });
 
-    // Hide loading screen
+    updateCompass();
     const loading = document.getElementById('dk-loading');
     if (loading) loading.style.display = 'none';
   }
@@ -1320,11 +1444,11 @@ VG.danmarkskort = {};
     // Load satellite TLEs (fallback + live CelesTrak refresh)
     loadSatellites();
 
-    // Fetch aircraft now and on interval
-    await fetchAircraft();
-    _aircraftTimer = setInterval(async () => {
-      await fetchAircraft();
-    }, AIRCRAFT_REFRESH_MS);
+    // Fetch real traffic now and on interval
+    fetchAircraft();
+    fetchShips();
+    _aircraftTimer = setInterval(fetchAircraft, AIRCRAFT_REFRESH_MS);
+    _shipTimer = setInterval(fetchShips, SHIP_REFRESH_MS);
 
     startLoop();
   }
