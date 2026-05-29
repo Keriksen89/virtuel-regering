@@ -113,8 +113,10 @@ function connect() {
   });
 
   ws.on('error', (err) => {
+    const is429 = err.message && err.message.includes('429');
     console.error('[ais] WebSocket error:', err.message);
     status = 'error';
+    if (is429) reconnectDelay = 300000; // 5 min back-off on rate-limit
     clearTimers();
     try { ws.terminate(); } catch {}
   });
@@ -122,7 +124,7 @@ function connect() {
 
 function scheduleReconnect() {
   setTimeout(connect, reconnectDelay);
-  reconnectDelay = Math.min(reconnectDelay * 2, 60000);
+  reconnectDelay = Math.min(reconnectDelay * 2, 300000); // cap at 5 min
 }
 
 function pruneStale() {

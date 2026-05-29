@@ -1511,7 +1511,7 @@ VG.danmarkskort = {};
         _aircraftStatus = live.length ? 'live' : (d.source === 'none' ? 'unavailable' : 'empty');
         _aircraftRetryDelay = 0;
       } else if (r.status === 503 || r.status === 502) {
-        _aircraftStatus = 'koldstart';
+        if (!_aircraft.length) _aircraftStatus = 'koldstart';
         _aircraftRetryDelay = _aircraftRetryDelay ? Math.min(_aircraftRetryDelay * 2, 30000) : 6000;
         _aircraftRetryTimer = setTimeout(() => { _aircraftRetryTimer = null; fetchAircraft(); }, _aircraftRetryDelay);
       } else {
@@ -1535,7 +1535,7 @@ VG.danmarkskort = {};
         _aisStatus = d.status || (live.length ? 'live' : 'empty');
         _shipRetryDelay = 0;
       } else if (r.status === 503 || r.status === 502) {
-        _aisStatus = 'koldstart';
+        if (!_ships.length) _aisStatus = 'koldstart';
         _shipRetryDelay = _shipRetryDelay ? Math.min(_shipRetryDelay * 2, 30000) : 6000;
         _shipRetryTimer = setTimeout(() => { _shipRetryTimer = null; fetchShips(); }, _shipRetryDelay);
       } else {
