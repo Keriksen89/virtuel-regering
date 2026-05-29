@@ -5,7 +5,7 @@ VG.danmarkskort = {};
   'use strict';
 
   const GEO_URL  = '/geo/municipalities.geojson';
-  const DECK_URL = 'https://unpkg.com/deck.gl@8.9.3/dist.min.js';
+  const DECK_URL = '/vendor/deck.gl.min.js';
   const OPENSKY_URL = '/api/opensky';
   const AIRCRAFT_REFRESH_MS = 15000;
 
@@ -430,6 +430,8 @@ VG.danmarkskort = {};
       fontWeight: 700,
       getTextAnchor: 'middle',
       getAlignmentBaseline: 'center',
+      // Include Danish glyphs (Æ Ø Å) so labels like KØBENHAVN render fully
+      characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,-',
     }));
 
     return layers;

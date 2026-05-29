@@ -4515,6 +4515,44 @@ body {
 }
 @media (max-width: 768px) { .dk-hud { top: 8px; left: 8px; } .dk-hud-title { font-size: 10px; } }
 
+/* ── Immersive fullscreen map mode ──────────────────────────────── */
+/* Reveal handle — subtle gold tab on the left edge, hidden by default */
+.dk-reveal-handle { display: none; }
+body.dk-immersive .dk-reveal-handle {
+  display: flex; align-items: center; justify-content: center;
+  position: fixed; top: 50%; left: 0; transform: translateY(-50%);
+  width: 16px; height: 72px; z-index: 250;
+  background: rgba(212,175,55,0.12); color: var(--accent);
+  border: 1px solid rgba(212,175,55,0.3); border-left: none;
+  border-radius: 0 10px 10px 0; cursor: pointer; font-size: 13px;
+  opacity: 0.45; transition: opacity .18s, background .18s, width .18s;
+  backdrop-filter: blur(4px);
+}
+body.dk-immersive .dk-reveal-handle:hover { opacity: 1; background: rgba(212,175,55,0.28); width: 20px; }
+/* Hide handle while the menu is peeked open */
+body.dk-immersive.dk-peek .dk-reveal-handle { opacity: 0; pointer-events: none; }
+
+/* Sidebar slides off-screen in immersive mode, overlays when peeked */
+body.dk-immersive .sidebar {
+  position: fixed; top: 0; left: 0; height: 100dvh;
+  transform: translateX(-101%);
+  transition: transform .25s ease, width .2s ease, min-width .2s ease;
+  z-index: 240; box-shadow: none;
+}
+body.dk-immersive.dk-peek .sidebar {
+  transform: translateX(0);
+  box-shadow: 6px 0 30px rgba(0,0,0,0.65);
+}
+/* App fills the whole width once the sidebar is out of flow */
+body.dk-immersive .app { width: 100%; min-width: 0; }
+/* Dim backdrop behind the peeked menu */
+body.dk-immersive .dk-peek-backdrop { display: none; }
+body.dk-immersive.dk-peek .dk-peek-backdrop {
+  display: block; position: fixed; inset: 0; z-index: 235;
+  background: rgba(0,0,0,0.4);
+}
+@media (max-width: 768px) { body.dk-immersive .dk-reveal-handle { height: 56px; } }
+
 /* Danmarkskort aliases — danmarkskort.js uses these exact class names */
 .dk-btn {
   font-family: 'Courier New', Courier, monospace;

@@ -81,7 +81,13 @@ app.use(express.static(PUBLIC_DIR, {
   maxAge: '1h',
   etag: true,
   setHeaders: (res, filepath) => {
+    // HTML and app source must revalidate so deploys reach users immediately.
+    // The large immutable vendor bundle can still be cached aggressively.
     if (filepath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (filepath.includes(`${path.sep}vendor${path.sep}`)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    } else if (filepath.endsWith('.js') || filepath.endsWith('.css')) {
       res.setHeader('Cache-Control', 'no-cache');
     }
   }

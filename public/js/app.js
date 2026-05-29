@@ -462,6 +462,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const summaryEl = document.getElementById('summary');
     if (summaryEl) summaryEl.classList.toggle('summary-visible', owningGroup === 'oekonomi');
 
+    // Immersive fullscreen mode for the map — hide the sidebar.
+    // Always dismiss the peeked menu when a destination is chosen.
+    const immersive = panelId === 'danmarkskort';
+    document.body.classList.toggle('dk-immersive', immersive);
+    document.body.classList.remove('dk-peek');
+
     switchTab(panelId);
     _updateSidebarActive(panelId, owningGroup);
     _updateBreadcrumb(panelId, owningGroup);
@@ -631,13 +637,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ind) navigateTo(ind.dataset.nav);
   });
 
+  // Immersive map: reveal handle peeks the menu, backdrop dismisses it
+  document.getElementById('dk-reveal-handle')?.addEventListener('click', () => {
+    document.body.classList.add('dk-peek');
+  });
+  document.getElementById('dk-peek-backdrop')?.addEventListener('click', () => {
+    document.body.classList.remove('dk-peek');
+  });
+
   document.getElementById('modal-close').addEventListener('click', VG.closeModal);
   document.getElementById('modal-backdrop').addEventListener('click', (e) => {
     if (e.target.id === 'modal-backdrop') VG.closeModal();
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') VG.closeModal();
+    if (e.key === 'Escape') {
+      VG.closeModal();
+      document.body.classList.remove('dk-peek');
+    }
   });
 
   window.addEventListener('resize', () => {
