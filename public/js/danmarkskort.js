@@ -1120,7 +1120,8 @@ VG.danmarkskort = {};
             color: Cesium.Color.fromBytes(...t.c),
             outlineColor: Cesium.Color.fromBytes(...t.oc),
             outlineWidth: t.ol,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            // No disableDepthTestDistance — let the globe occlude satellites on
+            // the far side so they can't be seen "through" the Earth.
             scaleByDistance: new Cesium.NearFarScalar(1e5, 1.5, 3e7, 0.5),
           },
           _kind: 'sat', _data: d, _layer: 'satellitter',
@@ -1131,7 +1132,7 @@ VG.danmarkskort = {};
             font: `${d.type === 'station' ? 12 : 10}px "Courier New", monospace`,
             fillColor: Cesium.Color.fromBytes(...t.c),
             pixelOffset: new Cesium.Cartesian2(0, -(t.size + 4)),
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            // Occluded by the globe too, so far-side labels don't bleed through.
             translucencyByDistance: new Cesium.NearFarScalar(8e5, 1.0, 4e7, 0.0),
           };
         }
