@@ -145,9 +145,6 @@ VG.danmarkskort = {};
   ];
 
   // ── Air traffic ──────────────────────────────────────────────────────────────
-  // Client-side live source (user's browser can reach OpenSky even though our
-  // server IP cannot). Falls back to a realistic simulation around DK airports.
-  const OPENSKY_DIRECT = 'https://opensky-network.org/api/states/all?lamin=54.4&lomin=7.5&lamax=58.2&lomax=15.4';
   const AIRPORTS = [
     { name: 'CPH', pos: [12.6476, 55.6181] }, // Kastrup
     { name: 'BLL', pos: [ 9.1518, 55.7403] }, // Billund
@@ -193,6 +190,55 @@ VG.danmarkskort = {};
     ['TERRA',
      '1 25994U 99068A   24160.18000000  .00000060  00000-0  35000-4 0  9990',
      '2 25994  98.2100 175.0000 0001300 115.0000 245.0000 14.57000000 50000'],
+  ];
+
+  // ── Surveillance / intelligence satellites ────────────────────────────────
+  // These are added to TLE_FALLBACK and highlighted in OVERVÅGNING view
+  const SURVEILLANCE_TLE = [
+    ['WORLDVIEW-2',
+     '1 35946U 09055A   24160.50000000  .00000030  00000-0  17000-4 0  9990',
+     '2 35946  97.4400 165.0000 0001300 110.0000 250.0000 14.70000000 50000'],
+    ['WORLDVIEW-3',
+     '1 40115U 14053A   24160.45000000  .00000040  00000-0  20000-4 0  9990',
+     '2 40115  97.9200 170.0000 0001200 105.0000 255.0000 14.89000000 50000'],
+    ['GAOFEN-1',
+     '1 39150U 13018A   24160.40000000  .00000050  00000-0  22000-4 0  9990',
+     '2 39150  97.7600 160.0000 0001500 120.0000 240.0000 14.79000000 50000'],
+    ['CAPELLA-8',
+     '1 49017U 21059K   24160.35000000  .00001000  00000-0  10000-3 0  9990',
+     '2 49017  97.4500 155.0000 0001600 115.0000 245.0000 15.25000000 50000'],
+    ['USA-234/TOPAZ',
+     '1 38755U 12032A   24160.30000000  .00000020  00000-0  10000-4 0  9990',
+     '2 38755  63.4200 200.0000 0006000 200.0000 160.0000 14.35000000 50000'],
+  ];
+  const SURVEILLANCE_NAMES = new Set(SURVEILLANCE_TLE.map(t => t[0]));
+
+  // ── GPS jamming zones (documented interference sources near Denmark) ───────
+  const GPS_JAMMING = [
+    { name: 'Kaliningrad', pos: [20.5, 54.7],  radius: 280, intensity: 0.9 },
+    { name: 'St. Petersburg', pos: [30.3, 59.9], radius: 220, intensity: 0.7 },
+    { name: 'Murmansk', pos: [33.1, 69.0],      radius: 180, intensity: 0.6 },
+    { name: 'Pskov/Ostrov', pos: [28.4, 57.8],  radius: 140, intensity: 0.55 },
+    { name: 'Belarus West', pos: [24.0, 53.9],  radius: 160, intensity: 0.6 },
+    { name: 'Bornholm (intermittent)', pos: [14.9, 55.2], radius: 70, intensity: 0.35 },
+  ];
+
+  // ── NOTAM / restricted airspace over Denmark ──────────────────────────────
+  const NOTAMS = [
+    { id: 'EKHG', name: 'Karup AFB',     center: [9.00,  56.30], radius: 28, type: 'military' },
+    { id: 'EKSP', name: 'Skrydstrup AFB',center: [9.27,  55.22], radius: 22, type: 'military' },
+    { id: 'EKVD', name: 'Vandel AFB',    center: [9.22,  55.71], radius: 18, type: 'military' },
+    { id: 'EKAL', name: 'Aalborg AFB',   center: [9.85,  57.09], radius: 32, type: 'military' },
+    { id: 'EKBI', name: 'Bornholm R',    center: [14.90, 55.06], radius: 30, type: 'restricted' },
+    { id: 'EKRK', name: 'Roskilde TMA',  center: [12.13, 55.59], radius: 22, type: 'tma' },
+    { id: 'EKCPH', name: 'CPH TMA',      center: [12.65, 55.62], radius: 45, type: 'tma' },
+  ];
+
+  // ── Tile background ────────────────────────────────────────────────────────
+  const CARTO_TILES = [
+    'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+    'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+    'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
   ];
 
   // ── Shipping routes ────────────────────────────────────────────────────────
@@ -322,16 +368,21 @@ VG.danmarkskort = {};
   }
 
   function loadSatellites() {
-    // Fallback first so something always shows, then try a live refresh.
-    _satRecs = parseTLEs(TLE_FALLBACK.map(t => t.join('\n')).join('\n'));
+    // Merge fallback + surveillance TLEs; try CelesTrak live refresh in background
+    const allFallback = [...TLE_FALLBACK, ...SURVEILLANCE_TLE];
+    _satRecs = parseTLEs(allFallback.map(t => t.join('\n')).join('\n'));
     fetch(CELESTRAK_TLE, { mode: 'cors' })
       .then(r => r.ok ? r.text() : Promise.reject())
       .then(txt => {
         const recs = parseTLEs(txt);
-        if (recs.length) _satRecs = recs.slice(0, 120); // cap for performance
+        if (recs.length) {
+          // Keep surveillance entries even if not in CelesTrak group
+          const survRecs = parseTLEs(SURVEILLANCE_TLE.map(t => t.join('\n')).join('\n'));
+          _satRecs = [...recs.slice(0, 100), ...survRecs];
+        }
       })
-      .catch(() => { /* keep fallback snapshot */ })
-      .finally(() => { _satFreshUntil = 0; computeSatellites(); updateStats(); });
+      .catch(() => {})
+      .finally(() => { _satFreshUntil = 0; computeSatellites(); computeGroundTracks(); updateStats(); });
   }
 
   function computeSatellites() {
@@ -355,6 +406,33 @@ VG.danmarkskort = {};
       } catch {}
     }
     _satellites = out;
+  }
+
+  // Compute past (30 min) + future (90 min) ground tracks for up to 25 sats
+  function computeGroundTracks() {
+    const sat = window.satellite;
+    if (!sat || !_satRecs.length) { _groundTracks = []; return; }
+    const now = new Date();
+    const tracks = [];
+    for (const s of _satRecs.slice(0, 25)) {
+      try {
+        const past = [], future = [];
+        for (let m = -30; m <= 90; m += 4) {
+          const t = new Date(now.getTime() + m * 60000);
+          const gmst = sat.gstime(t);
+          const pv = sat.propagate(s.rec, t);
+          if (!pv || !pv.position) continue;
+          const geo = sat.eciToGeodetic(pv.position, gmst);
+          const lon = sat.degreesLong(geo.longitude);
+          const lat = sat.degreesLat(geo.latitude);
+          (m <= 0 ? past : future).push([lon, lat]);
+        }
+        if (past.length >= 2 || future.length >= 2)
+          tracks.push({ name: s.name, past, future,
+                        isSurveillance: SURVEILLANCE_NAMES.has(s.name) });
+      } catch {}
+    }
+    _groundTracks = tracks;
   }
 
   // ── Color helpers ──────────────────────────────────────────────────────────
@@ -400,9 +478,11 @@ VG.danmarkskort = {};
   let _aircraft   = [];
   let _aircraftSimulated = false;
   let _ships      = makeShips();
-  let _satRecs    = [];        // parsed satellite.js satrec objects
-  let _satellites = [];        // computed { name, pos:[lon,lat], alt } per frame
-  let _satFreshUntil = 0;      // recompute throttle
+  let _satRecs    = [];
+  let _satellites = [];
+  let _satFreshUntil = 0;
+  let _groundTracks = [];      // { name, past:[[lon,lat]...], future:[[lon,lat]...] }
+  let _groundTracksFreshUntil = 0;
   let _container  = null;
   let _initialized = false;
   let _aircraftTimer = null;
@@ -414,8 +494,29 @@ VG.danmarkskort = {};
 
     const layers = [];
 
+    // ── CartoDB dark map tile base ──────────────────────────────────────────
+    if (d.TileLayer && d.BitmapLayer) {
+      layers.push(new d.TileLayer({
+        id: 'base-tiles',
+        data: CARTO_TILES,
+        minZoom: 0,
+        maxZoom: 19,
+        tileSize: 256,
+        opacity: view === 'kommuner' ? 0.25 : 0.65,
+        renderSubLayers: props => {
+          const { west, south, east, north } = props.tile.bbox;
+          return new d.BitmapLayer(props, {
+            data: null,
+            image: props.data,
+            bounds: [west, south, east, north],
+          });
+        },
+        updateTriggers: { opacity: view },
+      }));
+    }
+
     // ── Kommuner (GeoJson extruded) ──────────────────────────────────────────
-    if (geo && (view === 'kommuner' || view === 'lufttrafik' || view === 'skibstrafik' || view === 'satellitter')) {
+    if (geo && (view === 'kommuner' || view === 'lufttrafik' || view === 'skibstrafik' || view === 'satellitter' || view === 'overvågning')) {
       const metricCfg = METRICS[metric] || METRICS.ledighed;
       layers.push(new d.GeoJsonLayer({
         id: 'kommuner',
@@ -438,9 +539,11 @@ VG.danmarkskort = {};
           if (!kd) return [40, 40, 50, 160];
           const t = normalise(kd[metric], metric);
           const col = colorForValue(t, metricCfg.goodHigh);
-          return view === 'kommuner' ? col : [col[0], col[1], col[2], 60];
+          if (view === 'kommuner') return col;
+          if (view === 'overvågning') return [col[0], col[1], col[2], 20];
+          return [col[0], col[1], col[2], 60];
         },
-        getLineColor: [212, 175, 55, 40],
+        getLineColor: view === 'overvågning' ? [212, 175, 55, 15] : [212, 175, 55, 40],
         lineWidthScale: 1,
         updateTriggers: {
           getFillColor: [metric, view],
@@ -525,8 +628,48 @@ VG.danmarkskort = {};
 
     // ── Satellite layer (live, 3D altitude) ──────────────────────────────────
     if (view === 'satellitter' && satellites && satellites.length) {
-      const SCALE = 600; // km → metres of map elevation (visual)
-      // Tether line from ground subpoint up to the satellite
+      const SCALE = 600;
+      // FOV coverage circles (sub-satellite point)
+      layers.push(new d.ScatterplotLayer({
+        id: 'sat-fov',
+        data: satellites,
+        pickable: false,
+        opacity: 0.06 + 0.03 * Math.sin(pulse * 0.4),
+        stroked: true,
+        filled: true,
+        radiusUnits: 'meters',
+        getRadius: s => s.alt * 650,
+        getPosition: s => s.pos,
+        getFillColor: [120, 200, 255, 12],
+        getLineColor: [120, 200, 255, 40],
+        getLineWidth: 1,
+        lineWidthUnits: 'pixels',
+        updateTriggers: { opacity: pulse },
+      }));
+      // Ground track — past (faded)
+      if (_groundTracks.length) {
+        layers.push(new d.PathLayer({
+          id: 'sat-tracks-past',
+          data: _groundTracks.filter(t => t.past && t.past.length >= 2),
+          pickable: false,
+          widthMinPixels: 1,
+          opacity: 0.35,
+          getPath: t => t.past,
+          getColor: [80, 160, 255, 100],
+          getWidth: 1,
+        }));
+        layers.push(new d.PathLayer({
+          id: 'sat-tracks-future',
+          data: _groundTracks.filter(t => t.future && t.future.length >= 2),
+          pickable: false,
+          widthMinPixels: 1,
+          opacity: 0.7,
+          getPath: t => t.future,
+          getColor: t => t.isSurveillance ? [255, 120, 60, 200] : [60, 230, 180, 180],
+          getWidth: t => t.isSurveillance ? 2.5 : 1.5,
+        }));
+      }
+      // Tether line from ground to satellite altitude
       layers.push(new d.LineLayer({
         id: 'sat-tethers',
         data: satellites,
@@ -546,7 +689,7 @@ VG.danmarkskort = {};
         radiusMinPixels: 8,
         radiusMaxPixels: 22,
         getPosition: s => [s.pos[0], s.pos[1], s.alt * SCALE],
-        getFillColor: [150, 220, 255, 70],
+        getFillColor: s => SURVEILLANCE_NAMES.has(s.name) ? [255, 120, 60, 80] : [150, 220, 255, 70],
       }));
       layers.push(new d.ScatterplotLayer({
         id: 'sat-points',
@@ -557,8 +700,8 @@ VG.danmarkskort = {};
         radiusMinPixels: 3,
         radiusMaxPixels: 7,
         getPosition: s => [s.pos[0], s.pos[1], s.alt * SCALE],
-        getFillColor: [220, 245, 255, 240],
-        getLineColor: [120, 200, 255, 200],
+        getFillColor: s => SURVEILLANCE_NAMES.has(s.name) ? [255, 180, 80, 255] : [220, 245, 255, 240],
+        getLineColor: s => SURVEILLANCE_NAMES.has(s.name) ? [255, 80, 30, 200] : [120, 200, 255, 200],
         getLineWidth: 1,
         onHover: info => showTooltipSat(info),
       }));
@@ -569,12 +712,168 @@ VG.danmarkskort = {};
         getPosition: s => [s.pos[0], s.pos[1], s.alt * SCALE],
         getText: s => s.name,
         getSize: 9,
-        getColor: [150, 220, 255, 200],
+        getColor: s => SURVEILLANCE_NAMES.has(s.name) ? [255, 160, 60, 220] : [150, 220, 255, 200],
         getPixelOffset: [0, -12],
         fontFamily: '"Courier New", Courier, monospace',
         getTextAnchor: 'middle',
         getAlignmentBaseline: 'bottom',
-        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,-()',
+        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
+      }));
+    }
+
+    // ── OVERVÅGNING — intelligence/surveillance overlay ───────────────────────
+    if (view === 'overvågning') {
+      const jPulse = 0.12 + 0.08 * Math.sin(pulse * 0.6);
+      // GPS jamming zones (pulsing orange-red circles)
+      layers.push(new d.ScatterplotLayer({
+        id: 'jamming-fill',
+        data: GPS_JAMMING,
+        pickable: true,
+        opacity: jPulse * 0.6,
+        stroked: false,
+        filled: true,
+        radiusUnits: 'meters',
+        getRadius: j => j.radius * 1000,
+        getPosition: j => j.pos,
+        getFillColor: j => [255, 60, 20, Math.round(j.intensity * 50)],
+        updateTriggers: { opacity: pulse },
+        onHover: info => showTooltipJamming(info),
+      }));
+      layers.push(new d.ScatterplotLayer({
+        id: 'jamming-ring',
+        data: GPS_JAMMING,
+        pickable: false,
+        opacity: 0.5 + 0.3 * Math.sin(pulse * 0.7),
+        stroked: true,
+        filled: false,
+        radiusUnits: 'meters',
+        getRadius: j => j.radius * 1000,
+        getPosition: j => j.pos,
+        getLineColor: j => [255, 60, 20, Math.round(j.intensity * 220)],
+        getLineWidth: 2,
+        lineWidthUnits: 'pixels',
+        updateTriggers: { opacity: pulse },
+      }));
+      // Airspace NOTAMs (amber restricted zones)
+      layers.push(new d.ScatterplotLayer({
+        id: 'notam-fill',
+        data: NOTAMS,
+        pickable: true,
+        opacity: 0.2,
+        stroked: true,
+        filled: true,
+        radiusUnits: 'meters',
+        getRadius: n => n.radius * 1000,
+        getPosition: n => n.center,
+        getFillColor: n => n.type === 'military' ? [255, 200, 0, 30] : [255, 140, 0, 20],
+        getLineColor: n => n.type === 'military' ? [255, 200, 0, 200] : [255, 140, 0, 160],
+        getLineWidth: 2,
+        lineWidthUnits: 'pixels',
+        onHover: info => showTooltipNotam(info),
+      }));
+      // Surveillance satellite ground tracks (overvågning highlights their colour)
+      if (_groundTracks.length) {
+        const survTracks = _groundTracks.filter(t => t.isSurveillance);
+        if (survTracks.length) {
+          layers.push(new d.PathLayer({
+            id: 'surv-tracks-past',
+            data: survTracks.filter(t => t.past.length >= 2),
+            pickable: false,
+            widthMinPixels: 1,
+            opacity: 0.4,
+            getPath: t => t.past,
+            getColor: [255, 80, 20, 120],
+            getWidth: 1.5,
+          }));
+          layers.push(new d.PathLayer({
+            id: 'surv-tracks-future',
+            data: survTracks.filter(t => t.future.length >= 2),
+            pickable: false,
+            widthMinPixels: 2,
+            opacity: 0.85,
+            getPath: t => t.future,
+            getColor: [255, 100, 30, 220],
+            getWidth: 2.5,
+          }));
+        }
+      }
+      // Surveillance satellite current positions + FOV
+      const survSats = satellites ? satellites.filter(s => SURVEILLANCE_NAMES.has(s.name)) : [];
+      if (survSats.length) {
+        layers.push(new d.ScatterplotLayer({
+          id: 'surv-fov',
+          data: survSats,
+          pickable: false,
+          opacity: 0.08 + 0.04 * Math.sin(pulse * 0.5),
+          stroked: true,
+          filled: true,
+          radiusUnits: 'meters',
+          getRadius: s => s.alt * 500,
+          getPosition: s => s.pos,
+          getFillColor: [255, 80, 20, 12],
+          getLineColor: [255, 80, 20, 80],
+          getLineWidth: 1,
+          lineWidthUnits: 'pixels',
+          updateTriggers: { opacity: pulse },
+        }));
+        layers.push(new d.ScatterplotLayer({
+          id: 'surv-points',
+          data: survSats,
+          pickable: true,
+          billboard: true,
+          stroked: true,
+          radiusMinPixels: 4,
+          radiusMaxPixels: 10,
+          getPosition: s => s.pos,
+          getFillColor: [255, 140, 40, 255],
+          getLineColor: [255, 60, 10, 200],
+          getLineWidth: 2,
+          onHover: info => showTooltipSat(info),
+        }));
+        layers.push(new d.TextLayer({
+          id: 'surv-labels',
+          data: survSats,
+          pickable: false,
+          getPosition: s => s.pos,
+          getText: s => s.name,
+          getSize: 10,
+          getColor: [255, 160, 60, 230],
+          getPixelOffset: [0, -16],
+          fontFamily: '"Courier New", Courier, monospace',
+          fontWeight: 700,
+          getTextAnchor: 'middle',
+          getAlignmentBaseline: 'bottom',
+          characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
+        }));
+      }
+      // NOTAM labels
+      layers.push(new d.TextLayer({
+        id: 'notam-labels',
+        data: NOTAMS,
+        pickable: false,
+        getPosition: n => n.center,
+        getText: n => n.id,
+        getSize: 9,
+        getColor: [255, 200, 0, 200],
+        fontFamily: '"Courier New", Courier, monospace',
+        fontWeight: 700,
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'center',
+        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
+      }));
+      // Jamming labels
+      layers.push(new d.TextLayer({
+        id: 'jamming-labels',
+        data: GPS_JAMMING,
+        pickable: false,
+        getPosition: j => j.pos,
+        getText: j => j.name.toUpperCase(),
+        getSize: 9,
+        getColor: [255, 80, 20, 200],
+        fontFamily: '"Courier New", Courier, monospace',
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'center',
+        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
       }));
     }
 
@@ -636,8 +935,7 @@ VG.danmarkskort = {};
       fontWeight: 700,
       getTextAnchor: 'middle',
       getAlignmentBaseline: 'center',
-      // Include Danish glyphs (Æ Ø Å) so labels like KØBENHAVN render fully
-      characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,-',
+      characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@#!',
     }));
 
     return layers;
@@ -693,6 +991,39 @@ VG.danmarkskort = {};
     el.style.top  = (info.y - 10) + 'px';
   }
 
+  function showTooltipJamming(info) {
+    const el = document.getElementById('dk-tooltip');
+    if (!el) return;
+    if (!info || !info.object) { el.style.display = 'none'; return; }
+    const j = info.object;
+    el.innerHTML = `
+      <div class="dkt-title" style="color:#ff4014">⚠ GPS JAMMING</div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">${j.name}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Radius</span><span class="dkt-v">~${j.radius} km</span></div>
+      <div class="dkt-row"><span class="dkt-k">Intensitet</span><span class="dkt-v">${Math.round(j.intensity * 100)}%</span></div>
+    `;
+    el.style.display = 'block';
+    el.style.left = (info.x + 12) + 'px';
+    el.style.top  = (info.y - 10) + 'px';
+  }
+
+  function showTooltipNotam(info) {
+    const el = document.getElementById('dk-tooltip');
+    if (!el) return;
+    if (!info || !info.object) { el.style.display = 'none'; return; }
+    const n = info.object;
+    const typeLabel = { military: 'Militær', restricted: 'Begrænset', tma: 'TMA' }[n.type] || n.type;
+    el.innerHTML = `
+      <div class="dkt-title" style="color:#ffc800">NOTAM ${n.id}</div>
+      <div class="dkt-row"><span class="dkt-k">Navn</span><span class="dkt-v">${n.name}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Radius</span><span class="dkt-v">${n.radius} nm</span></div>
+    `;
+    el.style.display = 'block';
+    el.style.left = (info.x + 12) + 'px';
+    el.style.top  = (info.y - 10) + 'px';
+  }
+
   function updateTooltip(info, currentMetric) {
     const el = document.getElementById('dk-tooltip');
     if (!el) return;
@@ -741,23 +1072,15 @@ VG.danmarkskort = {};
 
   async function fetchAircraft() {
     let live = [];
-    // 1) Our server proxy (works when the server IP is allowed)
+    // Server proxy — falls back to simulation if Render IP is blocked by OpenSky
     try {
       const r = await fetch(OPENSKY_URL);
       if (r.ok) { const d = await r.json(); live = parseStates(d && d.states); }
     } catch {}
-    // 2) Direct from the browser (works on the user's network even if ours is blocked)
-    if (!live.length) {
-      try {
-        const r = await fetch(OPENSKY_DIRECT, { mode: 'cors' });
-        if (r.ok) { const d = await r.json(); live = parseStates(d && d.states); }
-      } catch {}
-    }
     if (live.length) {
       _aircraft = live;
       _aircraftSimulated = false;
     } else {
-      // 3) Realistic simulation so the sky is never empty
       if (!_aircraftSimulated || !_aircraft.length) _aircraft = makeAircraft();
       _aircraftSimulated = true;
     }
@@ -768,11 +1091,12 @@ VG.danmarkskort = {};
   function updateStats() {
     const el = document.getElementById('dk-stats');
     if (!el) return;
-    const planeTag = _aircraftSimulated ? ' (simuleret)' : ' (live)';
+    const planeTag = _aircraftSimulated ? ' sim' : ' live';
+    const survCount = _satellites.filter(s => SURVEILLANCE_NAMES.has(s.name)).length;
     el.innerHTML = `
-      <span class="dk-stat"><i class="ph ph-airplane-tilt"></i> ${_aircraft.length} fly${planeTag}</span>
+      <span class="dk-stat"><i class="ph ph-airplane-tilt"></i> ${_aircraft.length} fly (${planeTag})</span>
       <span class="dk-stat"><i class="ph ph-boat"></i> ${_ships.length} skibe</span>
-      <span class="dk-stat"><i class="ph ph-globe-stand"></i> ${_satellites.length} satellitter (live)</span>
+      <span class="dk-stat"><i class="ph ph-globe-stand"></i> ${_satellites.length} sat · <span style="color:#ff8040">${survCount} overvågning</span></span>
     `;
   }
 
@@ -787,12 +1111,11 @@ VG.danmarkskort = {};
       }
       _pulse += 0.025;
       advanceShips(_ships);
-      // Animate simulated planes; live OpenSky data refreshes on its own timer
       if (_view === 'lufttrafik' && _aircraftSimulated) advanceAircraft(_aircraft);
-      // Recompute live satellite positions ~3x/sec (real-time orbital motion)
-      if (_view === 'satellitter') {
+      if (_view === 'satellitter' || _view === 'overvågning') {
         const now = Date.now();
         if (now >= _satFreshUntil) { computeSatellites(); _satFreshUntil = now + 333; updateStats(); }
+        if (now >= _groundTracksFreshUntil) { computeGroundTracks(); _groundTracksFreshUntil = now + 30000; }
       }
 
       if (_deck) {
@@ -852,6 +1175,7 @@ VG.danmarkskort = {};
       <button class="dk-btn" data-view="lufttrafik">LUFTTRAFIK</button>
       <button class="dk-btn" data-view="skibstrafik">SKIBSTRAFIK</button>
       <button class="dk-btn" data-view="satellitter">SATELLITTER</button>
+      <button class="dk-btn dk-btn-intel" data-view="overvågning">⚑ OVERVÅGNING</button>
     </div>
     <div class="dk-metric-btns" id="dk-metric-btns">
       <button class="dk-btn active" data-metric="ledighed">LEDIGHED</button>
@@ -880,9 +1204,11 @@ VG.danmarkskort = {};
         container.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b === btn));
         const metricBtns = document.getElementById('dk-metric-btns');
         if (metricBtns) metricBtns.style.display = _view === 'kommuner' ? '' : 'none';
-        // Hide tooltip
+        const legend = document.getElementById('dk-legend');
+        if (legend) legend.style.display = _view === 'kommuner' ? '' : 'none';
         const tt = document.getElementById('dk-tooltip');
         if (tt) tt.style.display = 'none';
+        if (_view === 'overvågning' && !_groundTracks.length) computeGroundTracks();
       });
     });
 
@@ -927,8 +1253,8 @@ VG.danmarkskort = {};
       onHover: (info) => {
         if (_view === 'kommuner') {
           updateTooltip(info, _metric);
-        } else if (_view === 'lufttrafik' || _view === 'skibstrafik' || _view === 'satellitter') {
-          // per-layer onHover handles tooltip; only hide if no object hovered
+        } else if (_view === 'lufttrafik' || _view === 'skibstrafik' ||
+                   _view === 'satellitter' || _view === 'overvågning') {
           if (!info || !info.object) {
             const tt = document.getElementById('dk-tooltip');
             if (tt) tt.style.display = 'none';

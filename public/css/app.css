@@ -4569,6 +4569,9 @@ body.dk-immersive.dk-peek .dk-peek-backdrop {
 }
 .dk-btn:hover { border-color: #d4af37; color: #d4af37; }
 .dk-btn.active { background: rgba(212,175,55,0.18); border-color: #d4af37; color: #d4af37; }
+.dk-btn-intel { border-color: rgba(255,80,20,0.45); color: rgba(255,120,40,0.8); }
+.dk-btn-intel:hover { border-color: #ff5014; color: #ff6030; }
+.dk-btn-intel.active { background: rgba(255,80,20,0.18); border-color: #ff5014; color: #ff6030; }
 .dk-legend-inner { display: flex; align-items: flex-end; gap: 4px; }
 .dk-leg-step { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .dk-leg-swatch { width: 22px; height: 12px; border-radius: 2px; }

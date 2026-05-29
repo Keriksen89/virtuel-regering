@@ -37,7 +37,7 @@ app.use(helmet({
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://unpkg.com"],
       imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'", "https://www.reddit.com", "https://opensky-network.org", "https://celestrak.org", "https://celestrak.com"],
+      connectSrc: ["'self'", "https://www.reddit.com", "https://opensky-network.org", "https://celestrak.org", "https://celestrak.com", "https://*.basemaps.cartocdn.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://unpkg.com"],
       frameSrc: ["'self'", "https://platform.twitter.com", "https://twitter.com"],
       objectSrc: ["'none'"],
