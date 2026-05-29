@@ -1,16 +1,27 @@
-/* ── VG.danmarkskort — Interaktivt 3D Danmarkskort (deck.gl) ─────────────── */
+/* ── VG.danmarkskort — Danmarksmaskinen, true-3D geospatial globe (CesiumJS) ──
+ *
+ * Rebuilt on CesiumJS: a real WGS84 globe with photogrammetric 3D buildings
+ * (Cesium OSM Buildings via ion, or Google Photorealistic 3D Tiles when a key
+ * is configured) and token-free OpenStreetMap imagery as the always-available
+ * fallback. All Danish data layers from the previous deck.gl version are ported
+ * to Cesium entities at their real 3D positions — aircraft and satellites now
+ * sit at their true altitude above the globe.
+ *
+ * Tokens come from /api/geo/config (CESIUM_ION_TOKEN, GOOGLE_MAPS_KEY). With no
+ * tokens the globe still works: OSM imagery + flat ellipsoid, no 3D buildings.
+ */
 VG.danmarkskort = {};
 
 (function () {
   'use strict';
 
   const GEO_URL  = '/geo/municipalities.geojson';
-  const DECK_URL = '/vendor/deck.gl.min.js';
-  const OPENSKY_URL = '/api/opensky';   // real ADS-B proxy (adsb.lol → adsb.fi → opensky)
-  const AIS_URL = '/api/ais';           // real AIS proxy (aisstream.io)
+  const CONFIG_URL = '/api/geo/config';
+  const OPENSKY_URL = '/api/opensky';
+  const AIS_URL = '/api/ais';
   const AIRCRAFT_REFRESH_MS = 10000;
   const SHIP_REFRESH_MS = 12000;
-  const LERP_MS = 2500;                 // ms to smooth position fix transitions
+  const LERP_MS = 2500;
 
   const VIEW_DATA_LINKS = {
     kommuner:      [
@@ -60,8 +71,7 @@ VG.danmarkskort = {};
 
   const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2' };
 
-  // ── Municipality data ──────────────────────────────────────────────────────
-  // Keys match label_dk property in the GeoJSON
+  // ── Municipality data (keys match label_dk in the GeoJSON) ──────────────────
   const KD = {
     'Aabenraa':                { ledighed: 6.1,  indkomst: 310000, boligpris: 9500,  befolkning: 59200,  co2: 5.4 },
     'Aalborg':                 { ledighed: 5.5,  indkomst: 330000, boligpris: 16000, befolkning: 216000, co2: 6.5 },
@@ -164,7 +174,6 @@ VG.danmarkskort = {};
     'Århus':                   { ledighed: 4.8,  indkomst: 380000, boligpris: 28000, befolkning: 360000, co2: 4.2 },
   };
 
-  // ── Metric configuration ───────────────────────────────────────────────────
   const METRICS = {
     ledighed:   { label: 'Ledighed',     unit: '%',        goodHigh: false, format: v => v.toFixed(1) + '%' },
     indkomst:   { label: 'Indkomst',     unit: 'kr/år',    goodHigh: true,  format: v => (v / 1000).toFixed(0) + 'k kr' },
@@ -181,7 +190,6 @@ VG.danmarkskort = {};
     co2:        { min: 1.8,    max: 6.8 },
   };
 
-  // ── City markers ───────────────────────────────────────────────────────────
   const CITIES = [
     { name: 'KØBENHAVN', pos: [12.5683, 55.6761], pop: 794128 },
     { name: 'AARHUS',    pos: [10.2039, 56.1629], pop: 360000 },
@@ -195,19 +203,15 @@ VG.danmarkskort = {};
     { name: 'HERNING',   pos: [ 8.9737, 56.1326], pop:  91000 },
   ];
 
-  // ── Airports (real, for markers in LUFTTRAFIK view) ─────────────────────────
   const AIRPORTS = [
-    { name: 'CPH', pos: [12.6476, 55.6181] }, // Kastrup
-    { name: 'BLL', pos: [ 9.1518, 55.7403] }, // Billund
-    { name: 'AAL', pos: [ 9.8492, 57.0928] }, // Aalborg
-    { name: 'AAR', pos: [10.6190, 56.3000] }, // Aarhus
-    { name: 'RKE', pos: [12.1314, 55.5856] }, // Roskilde
+    { name: 'CPH', pos: [12.6476, 55.6181] },
+    { name: 'BLL', pos: [ 9.1518, 55.7403] },
+    { name: 'AAL', pos: [ 9.8492, 57.0928] },
+    { name: 'AAR', pos: [10.6190, 56.3000] },
+    { name: 'RKE', pos: [12.1314, 55.5856] },
   ];
 
-  // ── Satellites ────────────────────────────────────────────────────────────────
-  // Live positions are computed in-browser from TLE orbital elements via
-  // satellite.js at the real current time, so they move in real time. We try to
-  // refresh TLEs from CelesTrak client-side; otherwise we use this snapshot.
+  // ── Satellites (live via satellite.js + TLE) ────────────────────────────────
   const CELESTRAK_TLE = '/api/tle';
   const CELESTRAK_DIRECT = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=tle';
   const TLE_FALLBACK = [
@@ -243,8 +247,6 @@ VG.danmarkskort = {};
      '2 25994  98.2100 175.0000 0001300 115.0000 245.0000 14.57000000 50000'],
   ];
 
-  // ── Surveillance / intelligence satellites ────────────────────────────────
-  // These are added to TLE_FALLBACK and highlighted in OVERVÅGNING view
   const SURVEILLANCE_TLE = [
     ['WORLDVIEW-2',
      '1 35946U 09055A   24160.50000000  .00000030  00000-0  17000-4 0  9990',
@@ -264,7 +266,6 @@ VG.danmarkskort = {};
   ];
   const SURVEILLANCE_NAMES = new Set(SURVEILLANCE_TLE.map(t => t[0]));
 
-  // ── GPS jamming zones (documented interference sources near Denmark) ───────
   const GPS_JAMMING = [
     { name: 'Kaliningrad', pos: [20.5, 54.7],  radius: 280, intensity: 0.9 },
     { name: 'St. Petersburg', pos: [30.3, 59.9], radius: 220, intensity: 0.7 },
@@ -274,7 +275,6 @@ VG.danmarkskort = {};
     { name: 'Bornholm (intermittent)', pos: [14.9, 55.2], radius: 70, intensity: 0.35 },
   ];
 
-  // ── NOTAM / restricted airspace over Denmark ──────────────────────────────
   const NOTAMS = [
     { id: 'EKHG', name: 'Karup AFB',     center: [9.00,  56.30], radius: 28, type: 'military' },
     { id: 'EKSP', name: 'Skrydstrup AFB',center: [9.27,  55.22], radius: 22, type: 'military' },
@@ -285,7 +285,6 @@ VG.danmarkskort = {};
     { id: 'EKCPH', name: 'CPH TMA',      center: [12.65, 55.62], radius: 45, type: 'tma' },
   ];
 
-  // ── Offshore wind farms ────────────────────────────────────────────────────
   const WIND_FARMS = [
     { name: 'Horns Rev 1',    pos: [7.90, 55.50], mw: 160 },
     { name: 'Horns Rev 2',    pos: [7.65, 55.60], mw: 209 },
@@ -301,7 +300,6 @@ VG.danmarkskort = {};
     { name: 'Thor (2027)',     pos: [7.55, 56.45],  mw: 1000 },
   ];
 
-  // ── Major Danish ports ─────────────────────────────────────────────────────
   const PORTS = [
     { name: 'Aarhus Havn',      pos: [10.22, 56.15], type: 'container' },
     { name: 'Esbjerg Havn',     pos: [8.45,  55.47], type: 'offshore'  },
@@ -315,7 +313,6 @@ VG.danmarkskort = {};
     { name: 'Grenaa Havn',      pos: [10.88, 56.42], type: 'ferry'     },
   ];
 
-  // ── Ferry routes ───────────────────────────────────────────────────────────
   const FERRY_ROUTES = [
     { name: 'Rødby–Puttgarden',       path: [[11.35,54.66],[11.22,54.50]], op: 'Scandlines'         },
     { name: 'Helsingør–Helsingborg',  path: [[12.62,56.03],[12.69,56.04]], op: 'Scandlines/ForSea'  },
@@ -326,7 +323,6 @@ VG.danmarkskort = {};
     { name: 'Rønne–Ystad',            path: [[14.70,55.10],[13.88,55.43]], op: 'Bornholmstrafikken'  },
   ];
 
-  // ── Undersea cables & pipelines ────────────────────────────────────────────
   const UNDERSEA_CABLES = [
     { name: 'Viking Link (DK–UK)',    path: [[8.20,56.60],[6.40,55.80],[3.50,54.50],[0.80,53.50]], color: [60,160,255],  type: 'power' },
     { name: 'Cobra Cable (DK–NL)',    path: [[8.00,56.00],[6.50,55.50],[5.00,53.50],[4.80,52.80]], color: [60,160,255],  type: 'power' },
@@ -337,38 +333,25 @@ VG.danmarkskort = {};
     { name: 'SwePol Link (SE–PL)',    path: [[14.00,55.50],[15.50,55.00],[16.50,54.50],[18.00,54.20]],color:[120,255,120],type:'power' },
   ];
 
-  // ── Tile background ────────────────────────────────────────────────────────
-  const CARTO_TILES = [
-    'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-    'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-    'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-  ];
-
-  // ── Dead-reckoning for real tracks ──────────────────────────────────────────
-  // AIS/ADS-B position reports arrive every few seconds. Between real updates we
-  // advance each contact along its REAL reported course + speed so motion is
-  // smooth. Positions are real data, not simulated tracks — this is exactly how
-  // marine/aviation displays interpolate between fixes. Each new fetch snaps
-  // contacts back to their reported position.
+  // ── Dead-reckoning helpers ───────────────────────────────────────────────────
   const M_PER_DEG_LAT = 111320;
-
   function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
-  // Advance aircraft using velocity (m/s) and true_track (deg). dt in seconds.
-  // When a new position fix arrives, smoothly lerps from the current DR position
-  // to the reported fix over LERP_MS before resuming dead-reckoning from there.
+  function advanceLerp(obj) {
+    if (obj._lerpFrom && obj._lerpStart != null) {
+      const t = Math.min((performance.now() - obj._lerpStart) / LERP_MS, 1);
+      const e = easeInOut(t);
+      obj.pos = [
+        obj._lerpFrom[0] + (obj._lerpTo[0] - obj._lerpFrom[0]) * e,
+        obj._lerpFrom[1] + (obj._lerpTo[1] - obj._lerpFrom[1]) * e,
+      ];
+      if (t >= 1) obj._lerpFrom = null;
+    }
+  }
+
   function advanceAircraft(ac, dt) {
-    const now = performance.now();
     ac.forEach(p => {
-      if (p._lerpFrom && p._lerpStart != null) {
-        const t = Math.min((now - p._lerpStart) / LERP_MS, 1);
-        const e = easeInOut(t);
-        p.pos = [
-          p._lerpFrom[0] + (p._lerpTo[0] - p._lerpFrom[0]) * e,
-          p._lerpFrom[1] + (p._lerpTo[1] - p._lerpFrom[1]) * e,
-        ];
-        if (t >= 1) p._lerpFrom = null;
-      }
+      advanceLerp(p);
       if (!p.pos || !p.speed) return;
       const lat = p.pos[1];
       const distM = p.speed * dt;
@@ -379,19 +362,9 @@ VG.danmarkskort = {};
     });
   }
 
-  // Advance ships using SOG (knots) and COG (deg). dt in seconds.
   function advanceShips(ships, dt) {
-    const now = performance.now();
     ships.forEach(s => {
-      if (s._lerpFrom && s._lerpStart != null) {
-        const t = Math.min((now - s._lerpStart) / LERP_MS, 1);
-        const e = easeInOut(t);
-        s.pos = [
-          s._lerpFrom[0] + (s._lerpTo[0] - s._lerpFrom[0]) * e,
-          s._lerpFrom[1] + (s._lerpTo[1] - s._lerpFrom[1]) * e,
-        ];
-        if (t >= 1) s._lerpFrom = null;
-      }
+      advanceLerp(s);
       if (!s.pos || !s.sog) return;
       const lat = s.pos[1];
       const distM = s.sog * 0.514444 * dt;
@@ -423,7 +396,6 @@ VG.danmarkskort = {};
   }
 
   function loadSatellites() {
-    // Merge fallback + surveillance TLEs; try CelesTrak live refresh in background
     const allFallback = [...TLE_FALLBACK, ...SURVEILLANCE_TLE];
     _satRecs = parseTLEs(allFallback.map(t => t.join('\n')).join('\n'));
     fetch(CELESTRAK_TLE)
@@ -431,13 +403,12 @@ VG.danmarkskort = {};
       .then(txt => {
         const recs = parseTLEs(txt);
         if (recs.length) {
-          // Keep surveillance entries even if not in CelesTrak group
           const survRecs = parseTLEs(SURVEILLANCE_TLE.map(t => t.join('\n')).join('\n'));
           _satRecs = [...recs.slice(0, 100), ...survRecs];
         }
       })
       .catch(() => {})
-      .finally(() => { _satFreshUntil = 0; computeSatellites(); computeGroundTracks(); updateStats(); });
+      .finally(() => { _satFreshUntil = 0; computeSatellites(); computeGroundTracks(); syncSatelliteEntities(); updateStats(); });
   }
 
   function computeSatellites() {
@@ -454,16 +425,14 @@ VG.danmarkskort = {};
         const lon = sat.degreesLong(geo.longitude);
         const lat = sat.degreesLat(geo.latitude);
         const altKm = geo.height;
-        // Show all satellites with valid altitude (global view in SATELLITTER mode)
         if (altKm > 100 && altKm < 42000 && lat >= -90 && lat <= 90) {
-          out.push({ name: s.name, pos: [lon, lat], alt: altKm });
+          out.push({ name: s.name, pos: [lon, lat], alt: altKm, surv: SURVEILLANCE_NAMES.has(s.name) });
         }
       } catch {}
     }
     _satellites = out;
   }
 
-  // Compute past (30 min) + future (90 min) ground tracks for up to 25 sats
   function computeGroundTracks() {
     const sat = window.satellite;
     if (!sat || !_satRecs.length) { _groundTracks = []; return; }
@@ -471,7 +440,7 @@ VG.danmarkskort = {};
     const tracks = [];
     for (const s of _satRecs.slice(0, 60)) {
       try {
-        const past = [], future = [];
+        const pts = [];
         for (let m = -30; m <= 90; m += 4) {
           const t = new Date(now.getTime() + m * 60000);
           const gmst = sat.gstime(t);
@@ -480,754 +449,623 @@ VG.danmarkskort = {};
           const geo = sat.eciToGeodetic(pv.position, gmst);
           const lon = sat.degreesLong(geo.longitude);
           const lat = sat.degreesLat(geo.latitude);
-          (m <= 0 ? past : future).push([lon, lat]);
+          const altKm = geo.height;
+          pts.push([lon, lat, altKm * 1000]);
         }
-        if (past.length >= 2 || future.length >= 2)
-          tracks.push({ name: s.name, past, future,
-                        isSurveillance: SURVEILLANCE_NAMES.has(s.name) });
+        if (pts.length >= 2)
+          tracks.push({ name: s.name, pts, isSurveillance: SURVEILLANCE_NAMES.has(s.name) });
       } catch {}
     }
     _groundTracks = tracks;
   }
 
-  // ── Color helpers ──────────────────────────────────────────────────────────
-  // t: normalised 0→1, goodHigh: true means high is gold/good
+  // ── Colour helpers ───────────────────────────────────────────────────────────
   function colorForValue(t, goodHigh) {
     const TEAL = [0, 180, 216];
     const GOLD = [212, 175, 55];
     const RED  = [235, 64, 52];
-
     const clamp = x => Math.max(0, Math.min(1, x));
     const lerp  = (a, b, x) => Math.round(a + (b - a) * clamp(x));
-
     if (goodHigh) {
-      // low (bad) grey-teal → high (good) gold
       const lo = [80, 140, 160];
-      return [lerp(lo[0], GOLD[0], t), lerp(lo[1], GOLD[1], t), lerp(lo[2], GOLD[2], t), 200];
-    } else {
-      // low (good) teal → high (bad) red
-      return [lerp(TEAL[0], RED[0], t), lerp(TEAL[1], RED[1], t), lerp(TEAL[2], RED[2], t), 200];
+      return [lerp(lo[0], GOLD[0], t), lerp(lo[1], GOLD[1], t), lerp(lo[2], GOLD[2], t)];
     }
+    return [lerp(TEAL[0], RED[0], t), lerp(TEAL[1], RED[1], t), lerp(TEAL[2], RED[2], t)];
   }
-
   function normalise(value, metric) {
     const r = METRIC_RANGES[metric];
     if (!r) return 0;
     return Math.max(0, Math.min(1, (value - r.min) / (r.max - r.min)));
   }
-
-  function elevationForValue(value, metric) {
-    const r = METRIC_RANGES[metric];
-    if (!r) return 5000;
-    const t = Math.max(0, Math.min(1, (value - r.min) / (r.max - r.min)));
-    return 5000 + t * 120000;
-  }
+  function bytes(rgb, a) { return window.Cesium.Color.fromBytes(rgb[0], rgb[1], rgb[2], a == null ? 255 : a); }
 
   // ── State ──────────────────────────────────────────────────────────────────
-  let _deck       = null;
-  let _geo        = null;
-  let _metric     = 'ledighed';
-  let _view       = 'kommuner';
-  let _pulse      = 0;
-  let _rafId      = null;
-  let _aircraft   = [];        // real ADS-B contacts
+  let Cesium     = null;
+  let _viewer    = null;
+  let _metric    = 'ledighed';
+  let _view      = 'kommuner';
+  let _pulse     = 0;
+  let _rafId     = null;
+  let _aircraft  = [];
   let _aircraftStatus = 'loading';
-  let _ships      = [];        // real AIS vessels
-  let _aisStatus  = 'loading';
-  let _satRecs    = [];
+  let _ships     = [];
+  let _aisStatus = 'loading';
+  let _satRecs   = [];
   let _satellites = [];
   let _satFreshUntil = 0;
-  let _groundTracks = [];      // { name, past:[[lon,lat]...], future:[[lon,lat]...] }
+  let _groundTracks = [];
   let _groundTracksFreshUntil = 0;
-  let _container  = null;
+  let _container = null;
   let _initialized = false;
   let _aircraftTimer = null;
-  let _shipTimer  = null;
+  let _shipTimer = null;
   let _aircraftRetryTimer = null;
   let _shipRetryTimer = null;
   let _aircraftRetryDelay = 0;
   let _shipRetryDelay = 0;
   let _lastFrameT = 0;
+  let _config    = { cesiumIonToken: '', googleTilesKey: '' };
+  let _kommuneDS = null;             // GeoJsonDataSource
+  let _kommuneEntities = [];
+  let _googleTileset = null;
+  let _osmBuildings  = null;
+  let _baseImagery   = null;
+  let _googleActive  = false;
 
-  // ── Build deck.gl layers ───────────────────────────────────────────────────
-  function buildLayers(geo, metric, view, pulse, aircraft, ships, satellites) {
-    const d = window.deck;
-    if (!d) return [];
+  // Entity registries
+  const _acEnt   = new Map();   // icao24 → entity
+  const _shipEnt = new Map();   // mmsi  → entity
+  const _satEnt  = new Map();   // name  → entity
+  const _trackEnt = [];         // ground-track polyline entities
+  let _staticBuilt = false;
 
-    const layers = [];
+  // ── Cesium globe init ────────────────────────────────────────────────────────
+  const HOME = () => ({
+    destination: Cesium.Cartesian3.fromDegrees(10.6, 53.6, 720000),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-58), roll: 0 },
+  });
 
-    // ── CartoDB dark map tile base ──────────────────────────────────────────
-    if (d.TileLayer && d.BitmapLayer) {
-      layers.push(new d.TileLayer({
-        id: 'base-tiles',
-        data: CARTO_TILES,
-        minZoom: 0,
-        maxZoom: 19,
-        tileSize: 256,
-        opacity: view === 'kommuner' ? 0.25 : 0.65,
-        renderSubLayers: props => {
-          const { west, south, east, north } = props.tile.bbox;
-          return new d.BitmapLayer(props, {
-            data: null,
-            image: props.data,
-            bounds: [west, south, east, north],
-          });
-        },
-        updateTriggers: { opacity: view },
-      }));
+  async function initViewer(container) {
+    Cesium = window.Cesium;
+    if (!Cesium) throw new Error('Cesium not loaded');
+
+    if (_config.cesiumIonToken) Cesium.Ion.defaultAccessToken = _config.cesiumIonToken;
+
+    // Token-free OSM raster imagery is our reliable base layer.
+    _baseImagery = new Cesium.OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/' });
+
+    _viewer = new Cesium.Viewer(container, {
+      baseLayer: Cesium.ImageryLayer.fromProviderAsync(Promise.resolve(_baseImagery), {}),
+      baseLayerPicker: false,
+      geocoder: false,
+      homeButton: false,
+      sceneModePicker: false,
+      navigationHelpButton: false,
+      animation: false,
+      timeline: false,
+      fullscreenButton: false,
+      infoBox: false,
+      selectionIndicator: false,
+      shadows: false,
+      requestRenderMode: false,
+      contextOptions: { webgl: { alpha: false } },
+    });
+
+    const scene = _viewer.scene;
+    scene.backgroundColor = Cesium.Color.BLACK;
+    scene.globe.baseColor = Cesium.Color.fromBytes(8, 10, 16);
+    scene.globe.enableLighting = false;
+    scene.globe.showGroundAtmosphere = true;
+    scene.skyAtmosphere.show = true;
+    scene.fog.enabled = true;
+    scene.highDynamicRange = false;
+    // Dim/cool the OSM imagery to match the dark gold HUD aesthetic.
+    if (_viewer.imageryLayers.length) {
+      const l = _viewer.imageryLayers.get(0);
+      l.brightness = 0.55; l.saturation = 0.55; l.contrast = 1.15; l.gamma = 0.7;
+    }
+    // Hide Cesium's default credit overlay clutter (keep required attributions
+    // in the on-screen container that Cesium manages for Google tiles).
+    try { _viewer.cesiumWidget.creditContainer.style.display = 'none'; } catch {}
+
+    // World terrain + OSM Buildings (ion only).
+    if (_config.cesiumIonToken) {
+      Cesium.createWorldTerrainAsync().then(t => { if (_viewer) _viewer.scene.setTerrain(new Cesium.Terrain(Promise.resolve(t))); }).catch(() => {});
+      Cesium.createOsmBuildingsAsync().then(ts => {
+        _osmBuildings = ts;
+        _osmBuildings.show = !_googleActive;
+        _viewer.scene.primitives.add(_osmBuildings);
+      }).catch(() => {});
     }
 
-    // ── Kommuner (GeoJson extruded) ──────────────────────────────────────────
-    if (geo && (view === 'kommuner' || view === 'lufttrafik' || view === 'skibstrafik' || view === 'satellitter' || view === 'overvågning' || view === 'infrastruktur')) {
-      const metricCfg = METRICS[metric] || METRICS.ledighed;
-      layers.push(new d.GeoJsonLayer({
-        id: 'kommuner',
-        data: geo,
-        pickable: view === 'kommuner',
-        stroked: true,
-        filled: true,
-        extruded: view === 'kommuner',
-        wireframe: view === 'kommuner',
-        lineWidthMinPixels: 1,
-        getElevation: f => {
-          const name = f.properties && f.properties.label_dk;
-          const kd   = name && KD[name];
-          if (!kd) return 5000;
-          return elevationForValue(kd[metric], metric);
-        },
-        getFillColor: f => {
-          const name = f.properties && f.properties.label_dk;
-          const kd   = name && KD[name];
-          if (!kd) return [40, 40, 50, 160];
-          const t = normalise(kd[metric], metric);
-          const col = colorForValue(t, metricCfg.goodHigh);
-          if (view === 'kommuner') return col;
-          if (view === 'overvågning') return [col[0], col[1], col[2], 20];
-          return [col[0], col[1], col[2], 60];
-        },
-        getLineColor: view === 'overvågning' ? [212, 175, 55, 15] : [212, 175, 55, 40],
-        lineWidthScale: 1,
-        updateTriggers: {
-          getFillColor: [metric, view],
-          getElevation: [metric, view],
-        },
-      }));
-    }
+    _viewer.camera.flyTo({ ...HOME(), duration: 0 });
 
-    // ── Aircraft layer (real ADS-B) ────────────────────────────────────────────
-    if (view === 'lufttrafik') {
-      // Airport markers
-      layers.push(new d.ScatterplotLayer({
-        id: 'airports',
-        data: AIRPORTS,
-        pickable: false,
-        stroked: true,
-        filled: false,
-        radiusMinPixels: 6,
-        radiusMaxPixels: 14,
-        getPosition: a => a.pos,
-        getLineColor: [212, 175, 55, 180],
-        getLineWidth: 1.5,
-        lineWidthUnits: 'pixels',
-      }));
-      layers.push(new d.TextLayer({
-        id: 'airport-labels',
-        data: AIRPORTS,
-        pickable: false,
-        getPosition: a => a.pos,
-        getText: a => a.name,
-        getSize: 9,
-        getColor: [212, 175, 55, 200],
-        getPixelOffset: [0, 12],
-        fontFamily: '"Courier New", Courier, monospace',
-        fontWeight: 700,
-        getTextAnchor: 'middle',
-        getAlignmentBaseline: 'top',
-        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
-      }));
-    }
-    if (view === 'lufttrafik' && aircraft.length) {
-      // Altitude-tinted contacts; height shows real baro altitude in 3D
-      const altColor = ac => {
-        const a = ac.altitude || 0;            // metres
-        const t = Math.max(0, Math.min(1, a / 12000));
-        return [Math.round(40 + t * 60), Math.round(255 - t * 40), Math.round(200 + t * 40), 235];
-      };
-      // Course vectors (real true_track + velocity)
-      layers.push(new d.LineLayer({
-        id: 'aircraft-courses',
-        data: aircraft.filter(a => a.speed > 5),
-        pickable: false,
-        opacity: 0.5,
-        getSourcePosition: a => [a.pos[0], a.pos[1], (a.altitude || 0) * 12],
-        getTargetPosition: a => {
-          const lat = a.pos[1];
-          const distM = Math.min((a.speed || 0) * 90, 30000);
-          const rad = (a.heading || 0) * Math.PI / 180;
-          const dLat = (distM * Math.cos(rad)) / M_PER_DEG_LAT;
-          const dLon = (distM * Math.sin(rad)) / (M_PER_DEG_LAT * Math.cos(lat * Math.PI / 180));
-          return [a.pos[0] + dLon, a.pos[1] + dLat, (a.altitude || 0) * 12];
-        },
-        getColor: [0, 255, 200, 120],
-        getWidth: 1,
-      }));
-      layers.push(new d.ScatterplotLayer({
-        id: 'aircraft-glow',
-        data: aircraft,
-        pickable: false,
-        opacity: 0.12,
-        stroked: false,
-        filled: true,
-        radiusMinPixels: 8,
-        radiusMaxPixels: 22,
-        getPosition: a => [a.pos[0], a.pos[1], (a.altitude || 0) * 12],
-        getFillColor: [0, 255, 200, 60],
-      }));
-      layers.push(new d.ScatterplotLayer({
-        id: 'aircraft',
-        data: aircraft,
-        pickable: true,
-        opacity: 0.95,
-        stroked: false,
-        filled: true,
-        radiusMinPixels: 3,
-        radiusMaxPixels: 8,
-        getPosition: a => [a.pos[0], a.pos[1], (a.altitude || 0) * 12],
-        getFillColor: altColor,
-        onHover: info => showTooltipAircraft(info),
-        updateTriggers: { getFillColor: aircraft.length },
-      }));
-    }
+    // Hover tooltips
+    const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
+    handler.setInputAction((movement) => onHover(movement.endPosition), Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    _viewer._dkHandler = handler;
 
-    // ── Ship layer (real AIS) ──────────────────────────────────────────────────
-    if (view === 'skibstrafik' && ships.length) {
-      const shipColor = s => {
-        switch (s.type) {
-          case 'tanker':    return [255, 90, 60, 235];
-          case 'cargo':     return [255, 160, 40, 235];
-          case 'passenger': return [80, 220, 255, 235];
-          case 'hsc':       return [180, 120, 255, 235];
-          default:          return [255, 200, 120, 230];
+    // Compass needle follows camera heading
+    scene.preRender.addEventListener(() => updateCompass());
+  }
+
+  // ── Google Photorealistic 3D Tiles toggle ─────────────────────────────────────
+  async function toggleGoogleTiles() {
+    if (!_config.googleTilesKey) return;
+    _googleActive = !_googleActive;
+    try {
+      if (_googleActive) {
+        if (!_googleTileset) {
+          _googleTileset = await Cesium.createGooglePhotorealistic3DTileset({ key: _config.googleTilesKey });
+          _viewer.scene.primitives.add(_googleTileset);
         }
-      };
-      // Course vectors — short line in the direction of travel (real COG)
-      layers.push(new d.LineLayer({
-        id: 'ship-courses',
-        data: ships.filter(s => s.sog > 0.3),
-        pickable: false,
-        opacity: 0.6,
-        getSourcePosition: s => s.pos,
-        getTargetPosition: s => {
-          const lat = s.pos[1];
-          const distM = Math.min(s.sog * 0.514444 * 120, 6000); // ~2 min ahead, capped
-          const rad = (s.cog || s.heading || 0) * Math.PI / 180;
-          const dLat = (distM * Math.cos(rad)) / M_PER_DEG_LAT;
-          const dLon = (distM * Math.sin(rad)) / (M_PER_DEG_LAT * Math.cos(lat * Math.PI / 180));
-          return [s.pos[0] + dLon, s.pos[1] + dLat];
+        _googleTileset.show = true;
+        if (_osmBuildings) _osmBuildings.show = false;
+        if (_viewer.imageryLayers.length) _viewer.imageryLayers.get(0).show = false;
+      } else {
+        if (_googleTileset) _googleTileset.show = false;
+        if (_osmBuildings) _osmBuildings.show = true;
+        if (_viewer.imageryLayers.length) _viewer.imageryLayers.get(0).show = true;
+      }
+    } catch (e) {
+      _googleActive = false;
+    }
+    const btn = document.getElementById('dk-google-btn');
+    if (btn) btn.classList.toggle('active', _googleActive);
+  }
+
+  // ── Municipalities (extruded choropleth) ──────────────────────────────────────
+  function kommuneValue(ent) {
+    const kd = ent._kd;
+    return kd ? kd[_metric] : null;
+  }
+  function kommuneColor(ent) {
+    const v = kommuneValue(ent);
+    if (v == null) return Cesium.Color.fromBytes(40, 40, 50, 150);
+    const t = normalise(v, _metric);
+    const c = colorForValue(t, (METRICS[_metric] || METRICS.ledighed).goodHigh);
+    const alpha = _view === 'kommuner' ? 215 : (_view === 'overvågning' ? 18 : 55);
+    return Cesium.Color.fromBytes(c[0], c[1], c[2], alpha);
+  }
+  function kommuneHeight(ent) {
+    if (_view !== 'kommuner') return 0;
+    const v = kommuneValue(ent);
+    if (v == null) return 2000;
+    const t = normalise(v, _metric);
+    return 2000 + t * 78000;
+  }
+
+  function styleKommune(ent) {
+    const nameProp = ent.properties && (ent.properties.label_dk || ent.properties.name || ent.properties.NAME);
+    const name = nameProp ? (nameProp.getValue ? nameProp.getValue() : nameProp) : null;
+    ent._name = name;
+    ent._kd = name && KD[name] ? KD[name] : null;
+    ent._kind = 'kommune';
+    if (!ent.polygon) return;
+    ent.polygon.material = new Cesium.ColorMaterialProperty(new Cesium.CallbackProperty(() => kommuneColor(ent), false));
+    ent.polygon.height = 0;
+    ent.polygon.extrudedHeight = new Cesium.CallbackProperty(() => kommuneHeight(ent), false);
+    ent.polygon.outline = true;
+    ent.polygon.outlineColor = Cesium.Color.fromBytes(212, 175, 55, 90);
+    ent.polygon.closeTop = true;
+    ent.polygon.closeBottom = true;
+  }
+
+  async function loadKommuner() {
+    try {
+      _kommuneDS = await Cesium.GeoJsonDataSource.load(GEO_URL, { clampToGround: false });
+      await _viewer.dataSources.add(_kommuneDS);
+      _kommuneEntities = _kommuneDS.entities.values;
+      _kommuneEntities.forEach(styleKommune);
+    } catch (e) { _kommuneDS = null; }
+  }
+
+  // ── Static layers (cities, airports, infra, jamming, NOTAM) ───────────────────
+  function deg(lon, lat, h) { return Cesium.Cartesian3.fromDegrees(lon, lat, h || 0); }
+  function degArr(path, h) {
+    const flat = [];
+    path.forEach(p => { flat.push(p[0], p[1], h || 0); });
+    return Cesium.Cartesian3.fromDegreesArrayHeights(flat);
+  }
+  const FONT = '600 13px "Courier New", monospace';
+
+  function buildStatic() {
+    if (_staticBuilt) return;
+    const ents = _viewer.entities;
+
+    // Cities — gold pulsing dots + labels
+    CITIES.forEach(c => {
+      ents.add({
+        position: deg(c.pos[0], c.pos[1]),
+        point: {
+          pixelSize: new Cesium.CallbackProperty(() => 7 + 3 * Math.sin(_pulse), false),
+          color: Cesium.Color.fromBytes(212, 175, 55, 255),
+          outlineColor: Cesium.Color.fromBytes(255, 230, 150, 200),
+          outlineWidth: 1,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
-        getColor: [255, 200, 120, 140],
-        getWidth: 1.5,
-      }));
-      layers.push(new d.ScatterplotLayer({
-        id: 'ships-glow',
-        data: ships,
-        pickable: false,
-        opacity: 0.15,
-        stroked: false,
-        filled: true,
-        radiusMinPixels: 7,
-        radiusMaxPixels: 20,
-        getPosition: d => d.pos,
-        getFillColor: s => { const c = shipColor(s); return [c[0], c[1], c[2], 50]; },
-      }));
-      layers.push(new d.ScatterplotLayer({
-        id: 'ships',
-        data: ships,
-        pickable: true,
-        opacity: 1,
-        stroked: true,
-        filled: true,
-        radiusMinPixels: 3,
-        radiusMaxPixels: 8,
-        getPosition: d => d.pos,
-        getFillColor: shipColor,
-        getLineColor: [255, 230, 180, 200],
-        getLineWidth: 0.5,
-        lineWidthUnits: 'pixels',
-        onHover: info => showTooltipShip(info),
-        updateTriggers: { getFillColor: ships.length },
-      }));
-    }
-
-    // ── Satellite layer (live, 3D altitude) ──────────────────────────────────
-    if (view === 'satellitter' && satellites && satellites.length) {
-      const SCALE = 600;
-      // FOV coverage circles (sub-satellite point)
-      layers.push(new d.ScatterplotLayer({
-        id: 'sat-fov',
-        data: satellites,
-        pickable: false,
-        opacity: 0.06 + 0.03 * Math.sin(pulse * 0.4),
-        stroked: true,
-        filled: true,
-        radiusUnits: 'meters',
-        getRadius: s => s.alt * 650,
-        getPosition: s => s.pos,
-        getFillColor: [120, 200, 255, 12],
-        getLineColor: [120, 200, 255, 40],
-        getLineWidth: 1,
-        lineWidthUnits: 'pixels',
-        updateTriggers: { opacity: pulse },
-      }));
-      // Ground track — past (faded)
-      if (_groundTracks.length) {
-        layers.push(new d.PathLayer({
-          id: 'sat-tracks-past',
-          data: _groundTracks.filter(t => t.past && t.past.length >= 2),
-          pickable: false,
-          widthMinPixels: 1,
-          opacity: 0.35,
-          getPath: t => t.past,
-          getColor: [80, 160, 255, 100],
-          getWidth: 1,
-        }));
-        layers.push(new d.PathLayer({
-          id: 'sat-tracks-future',
-          data: _groundTracks.filter(t => t.future && t.future.length >= 2),
-          pickable: false,
-          widthMinPixels: 1,
-          opacity: 0.7,
-          getPath: t => t.future,
-          getColor: t => t.isSurveillance ? [255, 120, 60, 200] : [60, 230, 180, 180],
-          getWidth: t => t.isSurveillance ? 2.5 : 1.5,
-        }));
-      }
-      // Tether line from ground to satellite altitude
-      layers.push(new d.LineLayer({
-        id: 'sat-tethers',
-        data: satellites,
-        pickable: false,
-        opacity: 0.25,
-        getSourcePosition: s => [s.pos[0], s.pos[1], 0],
-        getTargetPosition: s => [s.pos[0], s.pos[1], s.alt * SCALE],
-        getColor: [120, 200, 255, 60],
-        getWidth: 1,
-      }));
-      layers.push(new d.ScatterplotLayer({
-        id: 'sat-glow',
-        data: satellites,
-        pickable: false,
-        billboard: true,
-        opacity: 0.18,
-        radiusMinPixels: 8,
-        radiusMaxPixels: 22,
-        getPosition: s => [s.pos[0], s.pos[1], s.alt * SCALE],
-        getFillColor: s => SURVEILLANCE_NAMES.has(s.name) ? [255, 120, 60, 80] : [150, 220, 255, 70],
-      }));
-      layers.push(new d.ScatterplotLayer({
-        id: 'sat-points',
-        data: satellites,
-        pickable: true,
-        billboard: true,
-        stroked: true,
-        radiusMinPixels: 3,
-        radiusMaxPixels: 7,
-        getPosition: s => [s.pos[0], s.pos[1], s.alt * SCALE],
-        getFillColor: s => SURVEILLANCE_NAMES.has(s.name) ? [255, 180, 80, 255] : [220, 245, 255, 240],
-        getLineColor: s => SURVEILLANCE_NAMES.has(s.name) ? [255, 80, 30, 200] : [120, 200, 255, 200],
-        getLineWidth: 1,
-        onHover: info => showTooltipSat(info),
-      }));
-      layers.push(new d.TextLayer({
-        id: 'sat-labels',
-        data: satellites,
-        pickable: false,
-        getPosition: s => [s.pos[0], s.pos[1], s.alt * SCALE],
-        getText: s => s.name,
-        getSize: 9,
-        getColor: s => SURVEILLANCE_NAMES.has(s.name) ? [255, 160, 60, 220] : [150, 220, 255, 200],
-        getPixelOffset: [0, -12],
-        fontFamily: '"Courier New", Courier, monospace',
-        getTextAnchor: 'middle',
-        getAlignmentBaseline: 'bottom',
-        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
-      }));
-    }
-
-    // ── OVERVÅGNING — intelligence/surveillance overlay ───────────────────────
-    if (view === 'overvågning') {
-      const jPulse = 0.12 + 0.08 * Math.sin(pulse * 0.6);
-      // GPS jamming zones (pulsing orange-red circles)
-      layers.push(new d.ScatterplotLayer({
-        id: 'jamming-fill',
-        data: GPS_JAMMING,
-        pickable: true,
-        opacity: jPulse * 0.6,
-        stroked: false,
-        filled: true,
-        radiusUnits: 'meters',
-        getRadius: j => j.radius * 1000,
-        getPosition: j => j.pos,
-        getFillColor: j => [255, 60, 20, Math.round(j.intensity * 50)],
-        updateTriggers: { opacity: pulse },
-        onHover: info => showTooltipJamming(info),
-      }));
-      layers.push(new d.ScatterplotLayer({
-        id: 'jamming-ring',
-        data: GPS_JAMMING,
-        pickable: false,
-        opacity: 0.5 + 0.3 * Math.sin(pulse * 0.7),
-        stroked: true,
-        filled: false,
-        radiusUnits: 'meters',
-        getRadius: j => j.radius * 1000,
-        getPosition: j => j.pos,
-        getLineColor: j => [255, 60, 20, Math.round(j.intensity * 220)],
-        getLineWidth: 2,
-        lineWidthUnits: 'pixels',
-        updateTriggers: { opacity: pulse },
-      }));
-      // Airspace NOTAMs (amber restricted zones)
-      layers.push(new d.ScatterplotLayer({
-        id: 'notam-fill',
-        data: NOTAMS,
-        pickable: true,
-        opacity: 0.2,
-        stroked: true,
-        filled: true,
-        radiusUnits: 'meters',
-        getRadius: n => n.radius * 1000,
-        getPosition: n => n.center,
-        getFillColor: n => n.type === 'military' ? [255, 200, 0, 30] : [255, 140, 0, 20],
-        getLineColor: n => n.type === 'military' ? [255, 200, 0, 200] : [255, 140, 0, 160],
-        getLineWidth: 2,
-        lineWidthUnits: 'pixels',
-        onHover: info => showTooltipNotam(info),
-      }));
-      // Surveillance satellite ground tracks (overvågning highlights their colour)
-      if (_groundTracks.length) {
-        const survTracks = _groundTracks.filter(t => t.isSurveillance);
-        if (survTracks.length) {
-          layers.push(new d.PathLayer({
-            id: 'surv-tracks-past',
-            data: survTracks.filter(t => t.past.length >= 2),
-            pickable: false,
-            widthMinPixels: 1,
-            opacity: 0.4,
-            getPath: t => t.past,
-            getColor: [255, 80, 20, 120],
-            getWidth: 1.5,
-          }));
-          layers.push(new d.PathLayer({
-            id: 'surv-tracks-future',
-            data: survTracks.filter(t => t.future.length >= 2),
-            pickable: false,
-            widthMinPixels: 2,
-            opacity: 0.85,
-            getPath: t => t.future,
-            getColor: [255, 100, 30, 220],
-            getWidth: 2.5,
-          }));
-        }
-      }
-      // Surveillance satellite current positions + FOV
-      const survSats = satellites ? satellites.filter(s => SURVEILLANCE_NAMES.has(s.name)) : [];
-      if (survSats.length) {
-        layers.push(new d.ScatterplotLayer({
-          id: 'surv-fov',
-          data: survSats,
-          pickable: false,
-          opacity: 0.08 + 0.04 * Math.sin(pulse * 0.5),
-          stroked: true,
-          filled: true,
-          radiusUnits: 'meters',
-          getRadius: s => s.alt * 500,
-          getPosition: s => s.pos,
-          getFillColor: [255, 80, 20, 12],
-          getLineColor: [255, 80, 20, 80],
-          getLineWidth: 1,
-          lineWidthUnits: 'pixels',
-          updateTriggers: { opacity: pulse },
-        }));
-        layers.push(new d.ScatterplotLayer({
-          id: 'surv-points',
-          data: survSats,
-          pickable: true,
-          billboard: true,
-          stroked: true,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 10,
-          getPosition: s => s.pos,
-          getFillColor: [255, 140, 40, 255],
-          getLineColor: [255, 60, 10, 200],
-          getLineWidth: 2,
-          onHover: info => showTooltipSat(info),
-        }));
-        layers.push(new d.TextLayer({
-          id: 'surv-labels',
-          data: survSats,
-          pickable: false,
-          getPosition: s => s.pos,
-          getText: s => s.name,
-          getSize: 10,
-          getColor: [255, 160, 60, 230],
-          getPixelOffset: [0, -16],
-          fontFamily: '"Courier New", Courier, monospace',
-          fontWeight: 700,
-          getTextAnchor: 'middle',
-          getAlignmentBaseline: 'bottom',
-          characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
-        }));
-      }
-      // NOTAM labels
-      layers.push(new d.TextLayer({
-        id: 'notam-labels',
-        data: NOTAMS,
-        pickable: false,
-        getPosition: n => n.center,
-        getText: n => n.id,
-        getSize: 9,
-        getColor: [255, 200, 0, 200],
-        fontFamily: '"Courier New", Courier, monospace',
-        fontWeight: 700,
-        getTextAnchor: 'middle',
-        getAlignmentBaseline: 'center',
-        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
-      }));
-      // Jamming labels
-      layers.push(new d.TextLayer({
-        id: 'jamming-labels',
-        data: GPS_JAMMING,
-        pickable: false,
-        getPosition: j => j.pos,
-        getText: j => j.name.toUpperCase(),
-        getSize: 9,
-        getColor: [255, 80, 20, 200],
-        fontFamily: '"Courier New", Courier, monospace',
-        getTextAnchor: 'middle',
-        getAlignmentBaseline: 'center',
-        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
-      }));
-    }
-
-    // ── INFRASTRUKTUR — wind farms, ports, cables, ferry routes ─────────────
-    const showInfra = view === 'infrastruktur';
-    const showInfraOverlay = view === 'skibstrafik' || view === 'overvågning';
-    if (showInfra || showInfraOverlay) {
-      const cabOpa = showInfra ? 0.9 : 0.3;
-      // Undersea cables & pipelines
-      layers.push(new d.PathLayer({
-        id: 'cables',
-        data: UNDERSEA_CABLES,
-        pickable: showInfra,
-        widthMinPixels: showInfra ? 2 : 1,
-        opacity: cabOpa,
-        getPath: c => c.path,
-        getColor: c => [...c.color, showInfra ? 200 : 80],
-        getWidth: c => c.type === 'gas' ? 3 : 2,
-        onHover: info => showTooltipCable(info),
-        updateTriggers: { opacity: view },
-      }));
-    }
-    if (showInfra || view === 'skibstrafik') {
-      // Ferry routes
-      layers.push(new d.PathLayer({
-        id: 'ferry-routes',
-        data: FERRY_ROUTES,
-        pickable: showInfra,
-        widthMinPixels: showInfra ? 2 : 1,
-        opacity: showInfra ? 0.8 : 0.25,
-        getPath: f => f.path,
-        getColor: [160, 210, 255, showInfra ? 200 : 80],
-        getWidth: 2,
-        dashArray: [8, 6],
-        onHover: info => showTooltipFerry(info),
-      }));
-      // Ports
-      const portColor = t => {
-        if (t === 'container') return [255, 200, 50, 230];
-        if (t === 'oil')       return [255, 80, 50, 230];
-        if (t === 'offshore')  return [100, 200, 255, 230];
-        if (t === 'ferry')     return [180, 140, 255, 230];
-        return [200, 200, 200, 200];
-      };
-      layers.push(new d.ScatterplotLayer({
-        id: 'ports-glow',
-        data: PORTS,
-        pickable: false,
-        opacity: showInfra ? 0.2 : 0.08,
-        stroked: false,
-        filled: true,
-        radiusMinPixels: showInfra ? 14 : 6,
-        radiusMaxPixels: showInfra ? 30 : 12,
-        getPosition: p => p.pos,
-        getFillColor: p => portColor(p.type),
-        updateTriggers: { opacity: view },
-      }));
-      layers.push(new d.ScatterplotLayer({
-        id: 'ports',
-        data: PORTS,
-        pickable: showInfra,
-        opacity: showInfra ? 1 : 0.5,
-        stroked: true,
-        filled: true,
-        radiusMinPixels: showInfra ? 5 : 3,
-        radiusMaxPixels: showInfra ? 12 : 6,
-        getPosition: p => p.pos,
-        getFillColor: p => portColor(p.type),
-        getLineColor: [255, 240, 180, 200],
-        getLineWidth: 1,
-        lineWidthUnits: 'pixels',
-        onHover: info => showTooltipPort(info),
-        updateTriggers: { opacity: view },
-      }));
-    }
-    if (showInfra) {
-      // Wind farms — pulsing green circles, size ∝ installed MW
-      const wPulse = 0.15 + 0.10 * Math.sin(pulse * 0.8);
-      layers.push(new d.ScatterplotLayer({
-        id: 'windfarm-glow',
-        data: WIND_FARMS,
-        pickable: false,
-        opacity: wPulse * 0.5,
-        stroked: false,
-        filled: true,
-        radiusMinPixels: 10,
-        radiusMaxPixels: 40,
-        getPosition: w => w.pos,
-        getFillColor: [60, 220, 120, 30],
-        updateTriggers: { opacity: pulse },
-      }));
-      layers.push(new d.ScatterplotLayer({
-        id: 'windfarms',
-        data: WIND_FARMS,
-        pickable: true,
-        opacity: 0.9,
-        stroked: true,
-        filled: true,
-        radiusMinPixels: 4,
-        radiusMaxPixels: 18,
-        getRadius: w => Math.sqrt(w.mw) * 300,
-        radiusUnits: 'meters',
-        getPosition: w => w.pos,
-        getFillColor: [40, 200, 100, 220],
-        getLineColor: [160, 255, 180, 200],
-        getLineWidth: 1.5,
-        lineWidthUnits: 'pixels',
-        onHover: info => showTooltipWindFarm(info),
-        updateTriggers: { opacity: pulse },
-      }));
-      layers.push(new d.TextLayer({
-        id: 'windfarm-labels',
-        data: WIND_FARMS,
-        pickable: false,
-        getPosition: w => w.pos,
-        getText: w => w.name,
-        getSize: 9,
-        getColor: [100, 255, 160, 200],
-        getPixelOffset: [0, -16],
-        fontFamily: '"Courier New", Courier, monospace',
-        getTextAnchor: 'middle',
-        getAlignmentBaseline: 'bottom',
-        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
-      }));
-      // Port labels
-      layers.push(new d.TextLayer({
-        id: 'port-labels',
-        data: PORTS,
-        pickable: false,
-        getPosition: p => p.pos,
-        getText: p => p.name,
-        getSize: 9,
-        getColor: [255, 220, 100, 200],
-        getPixelOffset: [0, 14],
-        fontFamily: '"Courier New", Courier, monospace',
-        getTextAnchor: 'middle',
-        getAlignmentBaseline: 'top',
-        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
-      }));
-      // Cable labels at midpoint
-      layers.push(new d.TextLayer({
-        id: 'cable-labels',
-        data: UNDERSEA_CABLES,
-        pickable: false,
-        getPosition: c => {
-          const mid = Math.floor(c.path.length / 2);
-          return c.path[mid];
+        label: {
+          text: c.name, font: '700 12px "Courier New", monospace',
+          fillColor: Cesium.Color.fromBytes(212, 175, 55, 230),
+          style: Cesium.LabelStyle.FILL, pixelOffset: new Cesium.Cartesian2(0, -18),
+          scaleByDistance: new Cesium.NearFarScalar(2.0e5, 1.1, 3.0e6, 0.4),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
-        getText: c => c.name,
-        getSize: 8,
-        getColor: c => [...c.color, 180],
-        getPixelOffset: [0, -10],
-        fontFamily: '"Courier New", Courier, monospace',
-        getTextAnchor: 'middle',
-        getAlignmentBaseline: 'bottom',
-        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
-      }));
+        _layer: 'cities',
+      });
+    });
+
+    // Airports (lufttrafik)
+    AIRPORTS.forEach(a => {
+      ents.add({
+        position: deg(a.pos[0], a.pos[1]),
+        point: { pixelSize: 9, color: Cesium.Color.TRANSPARENT, outlineColor: Cesium.Color.fromBytes(212, 175, 55, 200), outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        label: { text: a.name, font: FONT, fillColor: Cesium.Color.fromBytes(212, 175, 55, 220), pixelOffset: new Cesium.Cartesian2(0, 14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        _layer: 'lufttrafik', show: false,
+      });
+    });
+
+    // Undersea cables & pipelines
+    UNDERSEA_CABLES.forEach(c => {
+      ents.add({
+        polyline: {
+          positions: degArr(c.path, 0),
+          width: c.type === 'gas' ? 3 : 2,
+          material: bytes(c.color, 220),
+          clampToGround: true,
+        },
+        _layer: 'cables', _kind: 'cable', _data: c, show: false,
+      });
+      const mid = c.path[Math.floor(c.path.length / 2)];
+      ents.add({
+        position: deg(mid[0], mid[1]),
+        label: { text: c.name, font: '11px "Courier New", monospace', fillColor: bytes(c.color, 200), pixelOffset: new Cesium.Cartesian2(0, -8), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        _layer: 'cables', show: false,
+      });
+    });
+
+    // Ferry routes
+    FERRY_ROUTES.forEach(f => {
+      ents.add({
+        polyline: {
+          positions: degArr(f.path, 0),
+          width: 2,
+          material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromBytes(160, 210, 255, 220), dashLength: 16 }),
+          clampToGround: true,
+        },
+        _layer: 'ferry', _kind: 'ferry', _data: f, show: false,
+      });
+    });
+
+    // Ports
+    const portColor = t => {
+      if (t === 'container') return [255, 200, 50];
+      if (t === 'oil')       return [255, 80, 50];
+      if (t === 'offshore')  return [100, 200, 255];
+      if (t === 'ferry')     return [180, 140, 255];
+      return [200, 200, 200];
+    };
+    PORTS.forEach(p => {
+      ents.add({
+        position: deg(p.pos[0], p.pos[1]),
+        point: { pixelSize: 9, color: bytes(portColor(p.type), 235), outlineColor: Cesium.Color.fromBytes(255, 240, 180, 200), outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        label: { text: p.name, font: '11px "Courier New", monospace', fillColor: Cesium.Color.fromBytes(255, 220, 100, 210), pixelOffset: new Cesium.Cartesian2(0, 14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        _layer: 'ports', _kind: 'port', _data: p, show: false,
+      });
+    });
+
+    // Wind farms — green columns sized by capacity (infrastruktur)
+    WIND_FARMS.forEach(w => {
+      ents.add({
+        position: deg(w.pos[0], w.pos[1], 0),
+        cylinder: {
+          length: 1000 + Math.sqrt(w.mw) * 1600,
+          topRadius: 600, bottomRadius: 600,
+          material: new Cesium.ColorMaterialProperty(new Cesium.CallbackProperty(() => Cesium.Color.fromBytes(40, 200, 100, 150 + Math.round(60 * Math.sin(_pulse * 0.8))), false)),
+          outline: true, outlineColor: Cesium.Color.fromBytes(160, 255, 180, 180),
+        },
+        label: { text: w.name, font: '11px "Courier New", monospace', fillColor: Cesium.Color.fromBytes(100, 255, 160, 210), pixelOffset: new Cesium.Cartesian2(0, -18), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        _layer: 'wind', _kind: 'wind', _data: w, show: false,
+      });
+    });
+
+    // GPS jamming zones (overvågning) — pulsing red ellipses on ground
+    GPS_JAMMING.forEach(j => {
+      ents.add({
+        position: deg(j.pos[0], j.pos[1]),
+        ellipse: {
+          semiMajorAxis: j.radius * 1000, semiMinorAxis: j.radius * 1000,
+          material: new Cesium.ColorMaterialProperty(new Cesium.CallbackProperty(() => Cesium.Color.fromBytes(255, 60, 20, Math.round(j.intensity * (30 + 20 * Math.sin(_pulse * 0.6)))), false)),
+          outline: true, outlineColor: Cesium.Color.fromBytes(255, 60, 20, 200), outlineWidth: 2,
+          height: 0,
+        },
+        label: { text: j.name.toUpperCase(), font: '11px "Courier New", monospace', fillColor: Cesium.Color.fromBytes(255, 90, 40, 220), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        _layer: 'overvågning', _kind: 'jamming', _data: j, show: false,
+      });
+    });
+
+    // NOTAM restricted airspace (overvågning) — amber ellipses
+    NOTAMS.forEach(n => {
+      const col = n.type === 'military' ? [255, 200, 0] : [255, 140, 0];
+      ents.add({
+        position: deg(n.center[0], n.center[1]),
+        ellipse: {
+          semiMajorAxis: n.radius * 1852, semiMinorAxis: n.radius * 1852,
+          material: bytes(col, 28), outline: true, outlineColor: bytes(col, 200), outlineWidth: 2, height: 0,
+        },
+        label: { text: n.id, font: FONT, fillColor: bytes(col, 220), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        _layer: 'overvågning', _kind: 'notam', _data: n, show: false,
+      });
+    });
+
+    _staticBuilt = true;
+  }
+
+  // ── Live entity sync (aircraft / ships / satellites) ──────────────────────────
+  function syncAircraftEntities() {
+    const ents = _viewer.entities;
+    const seen = new Set();
+    _aircraft.forEach(d => {
+      seen.add(d.icao24);
+      if (!_acEnt.has(d.icao24)) {
+        const e = ents.add({
+          position: new Cesium.CallbackProperty(() => d.pos ? deg(d.pos[0], d.pos[1], (d.altitude || 0)) : undefined, false),
+          point: {
+            pixelSize: 6,
+            color: new Cesium.CallbackProperty(() => { const t = Math.max(0, Math.min(1, (d.altitude || 0) / 12000)); return Cesium.Color.fromBytes(Math.round(40 + t * 60), Math.round(255 - t * 40), Math.round(200 + t * 40), 235); }, false),
+            outlineColor: Cesium.Color.fromBytes(0, 255, 200, 120), outlineWidth: 1,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          _kind: 'aircraft', _data: d, _layer: 'lufttrafik',
+        });
+        e.show = _view === 'lufttrafik';
+        _acEnt.set(d.icao24, e);
+      } else {
+        _acEnt.get(d.icao24)._data = d;
+      }
+    });
+    for (const [k, e] of _acEnt) if (!seen.has(k)) { ents.remove(e); _acEnt.delete(k); }
+  }
+
+  function shipColor(s) {
+    switch (s.type) {
+      case 'tanker':    return [255, 90, 60];
+      case 'cargo':     return [255, 160, 40];
+      case 'passenger': return [80, 220, 255];
+      case 'hsc':       return [180, 120, 255];
+      default:          return [255, 200, 120];
     }
+  }
+  function syncShipEntities() {
+    const ents = _viewer.entities;
+    const seen = new Set();
+    _ships.forEach(d => {
+      seen.add(d.mmsi);
+      if (!_shipEnt.has(d.mmsi)) {
+        const e = ents.add({
+          position: new Cesium.CallbackProperty(() => d.pos ? deg(d.pos[0], d.pos[1], 0) : undefined, false),
+          point: {
+            pixelSize: 6,
+            color: new Cesium.CallbackProperty(() => bytes(shipColor(d), 235), false),
+            outlineColor: Cesium.Color.fromBytes(255, 230, 180, 200), outlineWidth: 1,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          _kind: 'ship', _data: d, _layer: 'skibstrafik',
+        });
+        e.show = (_view === 'skibstrafik' || _view === 'infrastruktur');
+        _shipEnt.set(d.mmsi, e);
+      } else {
+        _shipEnt.get(d.mmsi)._data = d;
+      }
+    });
+    for (const [k, e] of _shipEnt) if (!seen.has(k)) { ents.remove(e); _shipEnt.delete(k); }
+  }
 
-    // ── City pulsing rings (always visible) ──────────────────────────────────
-    const p1 = (Math.sin(pulse) * 0.5 + 0.5);
-    const p2 = (Math.sin(pulse + 1.5) * 0.5 + 0.5);
+  function syncSatelliteEntities() {
+    if (!_viewer) return;
+    const ents = _viewer.entities;
+    const seen = new Set();
+    const showSat = _view === 'satellitter';
+    _satellites.forEach(d => {
+      seen.add(d.name);
+      if (!_satEnt.has(d.name)) {
+        const e = ents.add({
+          position: new Cesium.CallbackProperty(() => { const s = _satByName(d.name); return s ? deg(s.pos[0], s.pos[1], s.alt * 1000) : deg(d.pos[0], d.pos[1], d.alt * 1000); }, false),
+          point: {
+            pixelSize: d.surv ? 8 : 5,
+            color: d.surv ? Cesium.Color.fromBytes(255, 180, 80, 255) : Cesium.Color.fromBytes(220, 245, 255, 240),
+            outlineColor: d.surv ? Cesium.Color.fromBytes(255, 80, 30, 220) : Cesium.Color.fromBytes(120, 200, 255, 200),
+            outlineWidth: 1.5, disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: {
+            text: d.name, font: '11px "Courier New", monospace',
+            fillColor: d.surv ? Cesium.Color.fromBytes(255, 160, 60, 220) : Cesium.Color.fromBytes(150, 220, 255, 200),
+            pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          // Tether from sub-satellite point up to the satellite
+          polyline: {
+            positions: new Cesium.CallbackProperty(() => { const s = _satByName(d.name); const p = s || d; return [deg(p.pos[0], p.pos[1], 0), deg(p.pos[0], p.pos[1], p.alt * 1000)]; }, false),
+            width: 1, material: Cesium.Color.fromBytes(120, 200, 255, 70),
+          },
+          _kind: 'sat', _data: d, _layer: 'satellitter',
+        });
+        e.show = showSat || (_view === 'overvågning' && d.surv);
+        _satEnt.set(d.name, e);
+      } else {
+        _satEnt.get(d.name)._data = d;
+      }
+    });
+    for (const [k, e] of _satEnt) if (!seen.has(k)) { ents.remove(e); _satEnt.delete(k); }
+  }
+  function _satByName(name) { return _satellites.find(s => s.name === name); }
 
-    layers.push(new d.ScatterplotLayer({
-      id: 'city-rings-outer',
-      data: CITIES,
-      pickable: false,
-      stroked: true,
-      filled: false,
-      radiusScale: 1,
-      radiusMinPixels: 8 + p1 * 10,
-      radiusMaxPixels: 30 + p1 * 20,
-      getPosition: d => d.pos,
-      getLineColor: [212, 175, 55, Math.round(80 + p1 * 120)],
-      getLineWidth: 2,
-      updateTriggers: { radiusMinPixels: pulse, radiusMaxPixels: pulse, getLineColor: pulse },
-    }));
+  function syncGroundTracks() {
+    if (!_viewer) return;
+    const ents = _viewer.entities;
+    while (_trackEnt.length) { const e = _trackEnt.pop(); ents.remove(e); }
+    const showHere = _view === 'satellitter' || _view === 'overvågning';
+    if (!showHere) return;
+    const list = _view === 'overvågning' ? _groundTracks.filter(t => t.isSurveillance) : _groundTracks;
+    list.forEach(t => {
+      const e = ents.add({
+        polyline: {
+          positions: Cesium.Cartesian3.fromDegreesArrayHeights(t.pts.flat()),
+          width: t.isSurveillance ? 2.5 : 1.2,
+          material: t.isSurveillance ? Cesium.Color.fromBytes(255, 100, 30, 220) : Cesium.Color.fromBytes(60, 230, 180, 150),
+        },
+        _layer: 'tracks',
+      });
+      _trackEnt.push(e);
+    });
+  }
 
-    layers.push(new d.ScatterplotLayer({
-      id: 'city-rings-inner',
-      data: CITIES,
-      pickable: false,
-      stroked: true,
-      filled: false,
-      radiusMinPixels: 4 + p2 * 6,
-      radiusMaxPixels: 14 + p2 * 10,
-      getPosition: d => d.pos,
-      getLineColor: [212, 175, 55, Math.round(140 + p2 * 80)],
-      getLineWidth: 1.5,
-      updateTriggers: { radiusMinPixels: pulse, radiusMaxPixels: pulse, getLineColor: pulse },
-    }));
+  // ── View switching ─────────────────────────────────────────────────────────
+  function applyView() {
+    if (!_viewer) return;
+    const v = _view;
+    // Kommuner polygons: visible (extruded only in kommuner, flat tint elsewhere)
+    if (_kommuneEntities) _kommuneEntities.forEach(e => { if (e.polygon) e.show = true; });
+    // Static layers
+    _viewer.entities.values.forEach(e => {
+      const layer = e._layer;
+      if (!layer) return;
+      switch (layer) {
+        case 'cities': e.show = true; break;
+        case 'lufttrafik': e.show = (v === 'lufttrafik'); break;
+        case 'skibstrafik': e.show = (v === 'skibstrafik'); break;
+        case 'satellitter': e.show = (v === 'satellitter') || (v === 'overvågning' && e._data && e._data.surv); break;
+        case 'cables': e.show = (v === 'infrastruktur' || v === 'skibstrafik' || v === 'overvågning'); break;
+        case 'ferry':
+        case 'ports': e.show = (v === 'infrastruktur' || v === 'skibstrafik'); break;
+        case 'wind': e.show = (v === 'infrastruktur'); break;
+        case 'overvågning': e.show = (v === 'overvågning'); break;
+      }
+    });
+    // Live entities
+    for (const e of _acEnt.values()) e.show = (v === 'lufttrafik');
+    for (const e of _shipEnt.values()) e.show = (v === 'skibstrafik' || v === 'infrastruktur');
+    for (const e of _satEnt.values()) e.show = (v === 'satellitter') || (v === 'overvågning' && e._data && e._data.surv);
+    syncGroundTracks();
+  }
 
-    layers.push(new d.ScatterplotLayer({
-      id: 'city-dots',
-      data: CITIES,
-      pickable: false,
-      stroked: false,
-      filled: true,
-      radiusMinPixels: 3,
-      radiusMaxPixels: 6,
-      getPosition: d => d.pos,
-      getFillColor: [212, 175, 55, 255],
-    }));
-
-    layers.push(new d.TextLayer({
-      id: 'city-labels',
-      data: CITIES,
-      pickable: false,
-      getPosition: d => d.pos,
-      getText: d => d.name,
-      getSize: 11,
-      getColor: [212, 175, 55, 200],
-      getPixelOffset: [0, -20],
-      fontFamily: '"Courier New", Courier, monospace',
-      fontWeight: 700,
-      getTextAnchor: 'middle',
-      getAlignmentBaseline: 'center',
-      characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@#!',
-    }));
-
-    return layers;
+  // ── Hover tooltips ───────────────────────────────────────────────────────────
+  function onHover(pos) {
+    const el = document.getElementById('dk-tooltip');
+    if (!el || !_viewer) return;
+    const picked = _viewer.scene.pick(pos);
+    const ent = picked && picked.id;
+    if (!ent || !ent._kind) { el.style.display = 'none'; return; }
+    const x = pos.x, y = pos.y;
+    switch (ent._kind) {
+      case 'kommune':  tipKommune(ent, x, y); break;
+      case 'aircraft': tip(x, y, aircraftHTML(ent._data)); break;
+      case 'ship':     tip(x, y, shipHTML(ent._data)); break;
+      case 'sat':      tip(x, y, satHTML(ent._data)); break;
+      case 'wind':     tip(x, y, windHTML(ent._data)); break;
+      case 'port':     tip(x, y, portHTML(ent._data)); break;
+      case 'ferry':    tip(x, y, ferryHTML(ent._data)); break;
+      case 'cable':    tip(x, y, cableHTML(ent._data)); break;
+      case 'jamming':  tip(x, y, jammingHTML(ent._data)); break;
+      case 'notam':    tip(x, y, notamHTML(ent._data)); break;
+      default: el.style.display = 'none';
+    }
+  }
+  function tip(x, y, html) {
+    const el = document.getElementById('dk-tooltip');
+    if (!el) return;
+    el.innerHTML = html;
+    el.style.display = 'block';
+    el.style.left = (x + 14) + 'px';
+    el.style.top  = (y - 10) + 'px';
+  }
+  function aircraftHTML(ac) {
+    const spdKt = ac.speed ? Math.round(ac.speed * 1.94384) : null;
+    return `<div class="dkt-title">${ac.callsign || ac.icao24 || 'Ukendt fly'}</div>
+      <div class="dkt-row"><span class="dkt-k">ICAO24</span><span class="dkt-v">${ac.icao24 || '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Land</span><span class="dkt-v">${ac.origin || '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Højde</span><span class="dkt-v">${ac.altitude ? Math.round(ac.altitude).toLocaleString('da-DK') + ' m' : 'jord'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Fart</span><span class="dkt-v">${spdKt != null ? spdKt + ' kt' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kurs</span><span class="dkt-v">${ac.heading != null ? Math.round(ac.heading) + '°' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">ADS-B · live</span></div>`;
+  }
+  function shipHTML(s) {
+    const cog = (s.cog != null) ? Math.round(s.cog) : (s.heading != null ? Math.round(s.heading) : null);
+    return `<div class="dkt-title">${s.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${s.type || 'vessel'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">MMSI</span><span class="dkt-v">${s.mmsi || '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Fart</span><span class="dkt-v">${s.sog != null ? s.sog.toFixed(1) + ' kn' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kurs</span><span class="dkt-v">${cog != null ? cog + '°' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${s.pos[1].toFixed(3)}°N ${s.pos[0].toFixed(3)}°E</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">AIS · live</span></div>`;
+  }
+  function satHTML(s) {
+    return `<div class="dkt-title"${s.surv ? ' style="color:#ff9040"' : ''}>${s.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Højde</span><span class="dkt-v">${Math.round(s.alt)} km</span></div>
+      <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${s.pos[1].toFixed(2)}°N ${s.pos[0].toFixed(2)}°E</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">TLE · live</span></div>`;
+  }
+  function windHTML(w) {
+    return `<div class="dkt-title" style="color:#60dc80">⚡ ${w.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Kapacitet</span><span class="dkt-v">${w.mw} MW</span></div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">Havvind (offshore)</span></div>`;
+  }
+  function portHTML(p) {
+    const typeLabels = { container:'Container', oil:'Olie/gas', offshore:'Offshore service', ferry:'Færgehavn', bulk:'Bulk' };
+    const nearby = _ships.filter(s => { const dx = s.pos[0] - p.pos[0], dy = s.pos[1] - p.pos[1]; return Math.sqrt(dx*dx + dy*dy) < 0.15; }).length;
+    return `<div class="dkt-title" style="color:#ffd060">⚓ ${p.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabels[p.type] || p.type}</span></div>
+      ${nearby ? `<div class="dkt-row"><span class="dkt-k">AIS i nærheden</span><span class="dkt-v">${nearby} fartøjer</span></div>` : ''}`;
+  }
+  function ferryHTML(f) {
+    return `<div class="dkt-title" style="color:#a0c8ff">⛴ ${f.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Operatør</span><span class="dkt-v">${f.op}</span></div>`;
+  }
+  function cableHTML(c) {
+    const typeLabel = { power: 'Elkabel (HVDC)', gas: 'Gasrørledning' }[c.type] || c.type;
+    return `<div class="dkt-title" style="color:rgb(${c.color.join(',')})">▬ ${c.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>`;
+  }
+  function jammingHTML(j) {
+    return `<div class="dkt-title" style="color:#ff4014">⚠ GPS JAMMING</div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">${j.name}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Radius</span><span class="dkt-v">~${j.radius} km</span></div>
+      <div class="dkt-row"><span class="dkt-k">Intensitet</span><span class="dkt-v">${Math.round(j.intensity * 100)}%</span></div>`;
+  }
+  function notamHTML(n) {
+    const typeLabel = { military: 'Militær', restricted: 'Begrænset', tma: 'TMA' }[n.type] || n.type;
+    return `<div class="dkt-title" style="color:#ffc800">NOTAM ${n.id}</div>
+      <div class="dkt-row"><span class="dkt-k">Navn</span><span class="dkt-v">${n.name}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Radius</span><span class="dkt-v">${n.radius} nm</span></div>`;
+  }
+  function tipKommune(ent, x, y) {
+    const el = document.getElementById('dk-tooltip');
+    if (!el) return;
+    const name = ent._name;
+    const kd = ent._kd;
+    if (!name) { el.style.display = 'none'; return; }
+    let rows = '';
+    if (kd) {
+      Object.entries(METRICS).forEach(([k, m]) => {
+        const v = kd[k];
+        const t = normalise(v, k);
+        const bc = colorForValue(t, m.goodHigh);
+        const barW = Math.round(t * 56);
+        const active = k === _metric ? ' dkt-row-active' : '';
+        const destPanel = JSON.stringify(METRIC_PANELS[k] || 'kommuner');
+        rows += `<div class="dkt-row${active}" style="cursor:pointer" title="Gå til ${m.label}" onclick="(function(){var p=${destPanel};if(window.__navigateFromMap)window.__navigateFromMap(p);else if(window.__mkClick)window.__mkClick(p);})()">
+          <span class="dkt-k">${m.label}</span>
+          <span class="dkt-v">${m.format(v)}</span>
+          <div class="dkt-bar" style="width:${barW}px;background:rgb(${bc[0]},${bc[1]},${bc[2]})"></div>
+          <span class="dkt-link-arrow">›</span>
+        </div>`;
+      });
+    }
+    el.innerHTML = `<div class="dkt-title">${name}</div>${rows}
+      <div class="dkt-footer"><button class="dkt-goto" onclick="if(window.__navigateFromMap)window.__navigateFromMap('kommuner');else window.__mkClick&&window.__mkClick('kommuner')">Se alle kommuner →</button></div>`;
+    el.style.display = 'block';
+    el.style.left = (x + 14) + 'px';
+    el.style.top  = (y - 10) + 'px';
   }
 
   // ── Dataportal navigation ─────────────────────────────────────────────────
@@ -1243,8 +1081,8 @@ VG.danmarkskort = {};
         wrap.style.transition = '';
         setTimeout(() => document.body.classList.remove('dk-portal-transition'), 800);
       }, 360);
-    } else {
-      if (window.__mkClick) window.__mkClick(panelId);
+    } else if (window.__mkClick) {
+      window.__mkClick(panelId);
     }
   }
   window.__navigateFromMap = navigateFromMap;
@@ -1267,202 +1105,7 @@ VG.danmarkskort = {};
     });
   }
 
-  // ── Tooltip logic ──────────────────────────────────────────────────────────
-  function showTooltipAircraft(info) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-    const ac = info.object;
-    const spdKt = ac.speed ? Math.round(ac.speed * 1.94384) : null;  // m/s → knots
-    el.innerHTML = `
-      <div class="dkt-title">${ac.callsign || ac.icao24 || 'Ukendt fly'}</div>
-      <div class="dkt-row"><span class="dkt-k">ICAO24</span><span class="dkt-v">${ac.icao24 || '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Land</span><span class="dkt-v">${ac.origin || '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Højde</span><span class="dkt-v">${ac.altitude ? Math.round(ac.altitude).toLocaleString('da-DK') + ' m' : 'jord'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Fart</span><span class="dkt-v">${spdKt != null ? spdKt + ' kt' : '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Kurs</span><span class="dkt-v">${ac.heading != null ? Math.round(ac.heading) + '°' : '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">ADS-B · live</span></div>
-    `;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  function showTooltipShip(info) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-    const s = info.object;
-    const cog = (s.cog != null) ? Math.round(s.cog) : (s.heading != null ? Math.round(s.heading) : null);
-    el.innerHTML = `
-      <div class="dkt-title">${s.name}</div>
-      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${s.type || 'vessel'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">MMSI</span><span class="dkt-v">${s.mmsi || '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Fart</span><span class="dkt-v">${s.sog != null ? s.sog.toFixed(1) + ' kn' : '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Kurs</span><span class="dkt-v">${cog != null ? cog + '°' : '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${s.pos[1].toFixed(3)}°N ${s.pos[0].toFixed(3)}°E</span></div>
-      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">AIS · live</span></div>
-    `;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  function showTooltipSat(info) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-    const s = info.object;
-    el.innerHTML = `
-      <div class="dkt-title">${s.name}</div>
-      <div class="dkt-row"><span class="dkt-k">Højde</span><span class="dkt-v">${Math.round(s.alt)} km</span></div>
-      <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${s.pos[1].toFixed(2)}°N ${s.pos[0].toFixed(2)}°E</span></div>
-      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">TLE · live</span></div>
-    `;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  function showTooltipJamming(info) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-    const j = info.object;
-    el.innerHTML = `
-      <div class="dkt-title" style="color:#ff4014">⚠ GPS JAMMING</div>
-      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">${j.name}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Radius</span><span class="dkt-v">~${j.radius} km</span></div>
-      <div class="dkt-row"><span class="dkt-k">Intensitet</span><span class="dkt-v">${Math.round(j.intensity * 100)}%</span></div>
-    `;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  function showTooltipNotam(info) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-    const n = info.object;
-    const typeLabel = { military: 'Militær', restricted: 'Begrænset', tma: 'TMA' }[n.type] || n.type;
-    el.innerHTML = `
-      <div class="dkt-title" style="color:#ffc800">NOTAM ${n.id}</div>
-      <div class="dkt-row"><span class="dkt-k">Navn</span><span class="dkt-v">${n.name}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Radius</span><span class="dkt-v">${n.radius} nm</span></div>
-    `;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  function showTooltipWindFarm(info) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-    const w = info.object;
-    el.innerHTML = `
-      <div class="dkt-title" style="color:#60dc80">⚡ ${w.name}</div>
-      <div class="dkt-row"><span class="dkt-k">Kapacitet</span><span class="dkt-v">${w.mw} MW</span></div>
-      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">Havvind (offshore)</span></div>
-      <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${w.pos[1].toFixed(2)}°N ${w.pos[0].toFixed(2)}°E</span></div>
-    `;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  function showTooltipPort(info) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-    const p = info.object;
-    const typeLabels = { container:'Container', oil:'Olie/gas', offshore:'Offshore service', ferry:'Færgehavn', bulk:'Bulk' };
-    const nearby = _ships.filter(s => {
-      const dx = s.pos[0] - p.pos[0], dy = s.pos[1] - p.pos[1];
-      return Math.sqrt(dx*dx + dy*dy) < 0.15;
-    }).length;
-    el.innerHTML = `
-      <div class="dkt-title" style="color:#ffd060">⚓ ${p.name}</div>
-      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabels[p.type] || p.type}</span></div>
-      ${nearby ? `<div class="dkt-row"><span class="dkt-k">AIS i nærheden</span><span class="dkt-v">${nearby} fartøjer</span></div>` : ''}
-    `;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  function showTooltipFerry(info) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-    const f = info.object;
-    el.innerHTML = `
-      <div class="dkt-title" style="color:#a0c8ff">⛴ ${f.name}</div>
-      <div class="dkt-row"><span class="dkt-k">Operatør</span><span class="dkt-v">${f.op}</span></div>
-    `;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  function showTooltipCable(info) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-    const c = info.object;
-    const typeLabel = { power: 'Elkabel (HVDC)', gas: 'Gasrørledning' }[c.type] || c.type;
-    el.innerHTML = `
-      <div class="dkt-title" style="color:rgb(${c.color.join(',')})">▬ ${c.name}</div>
-      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>
-    `;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  function updateTooltip(info, currentMetric) {
-    const el = document.getElementById('dk-tooltip');
-    if (!el) return;
-    if (!info || !info.object) { el.style.display = 'none'; return; }
-
-    const name = info.object.properties && info.object.properties.label_dk;
-    const kd   = name && KD[name];
-    if (!name) { el.style.display = 'none'; return; }
-
-    const metricCfg = METRICS[currentMetric];
-
-    let rows = '';
-    if (kd) {
-      Object.entries(METRICS).forEach(([k, m]) => {
-        const v = kd[k];
-        const t = normalise(v, k);
-        const bc = colorForValue(t, m.goodHigh);
-        const barW = Math.round(t * 56);
-        const active = k === currentMetric ? ' dkt-row-active' : '';
-        const destPanel = JSON.stringify(METRIC_PANELS[k] || 'kommuner');
-        rows += `<div class="dkt-row${active}" style="cursor:pointer" title="Gå til ${m.label}" onclick="(function(){var p=${destPanel};if(window.__navigateFromMap)window.__navigateFromMap(p);else if(window.__mkClick)window.__mkClick(p);})()">
-          <span class="dkt-k">${m.label}</span>
-          <span class="dkt-v">${m.format(v)}</span>
-          <div class="dkt-bar" style="width:${barW}px;background:rgb(${bc[0]},${bc[1]},${bc[2]})"></div>
-          <span class="dkt-link-arrow">›</span>
-        </div>`;
-      });
-    }
-
-    el.innerHTML = `<div class="dkt-title">${name}</div>${rows}`;
-    el.innerHTML += `<div class="dkt-footer">
-      <button class="dkt-goto" onclick="if(window.__navigateFromMap)window.__navigateFromMap('kommuner');else window.__mkClick&&window.__mkClick('kommuner')">
-        Se alle kommuner →
-      </button>
-    </div>`;
-    el.style.display = 'block';
-    el.style.left = (info.x + 12) + 'px';
-    el.style.top  = (info.y - 10) + 'px';
-  }
-
-  // ── Fetch real aircraft (ADS-B via server proxy) ────────────────────────────
+  // ── Aircraft / ship fetch ────────────────────────────────────────────────────
   function parseStates(states) {
     return (states || [])
       .filter(s => s && s[5] != null && s[6] != null)
@@ -1471,15 +1114,11 @@ VG.danmarkskort = {};
         callsign: (s[1] || '').trim(),
         origin:   s[2] || '—',
         pos:      [s[5], s[6]],
-        altitude: s[7] || s[13] || 0,   // metres
-        speed:    s[9] || 0,            // m/s (velocity)
-        heading:  s[10] || 0,           // true_track degrees
+        altitude: s[7] || s[13] || 0,
+        speed:    s[9] || 0,
+        heading:  s[10] || 0,
       }));
   }
-
-  // Merge a fresh fetch onto existing contacts. Preserves object identity so
-  // dead-reckoning continues; new position fix becomes the lerp target, smoothed
-  // over LERP_MS milliseconds to eliminate position-snap jumps.
   function mergeContacts(current, incoming, key) {
     const map = new Map(current.map(c => [c[key], c]));
     const now = performance.now();
@@ -1490,7 +1129,7 @@ VG.danmarkskort = {};
       Object.assign(prev, n);
       if (oldPos && n.pos) {
         const dx = n.pos[0] - oldPos[0], dy = n.pos[1] - oldPos[1];
-        if (dx*dx + dy*dy > 0.00005 * 0.00005) { // only lerp if moved >~5 m
+        if (dx*dx + dy*dy > 0.00005 * 0.00005) {
           prev._lerpFrom  = oldPos;
           prev._lerpTo    = [n.pos[0], n.pos[1]];
           prev._lerpStart = now;
@@ -1499,7 +1138,6 @@ VG.danmarkskort = {};
       return prev;
     });
   }
-
   async function fetchAircraft() {
     if (_aircraftRetryTimer) return;
     try {
@@ -1510,6 +1148,7 @@ VG.danmarkskort = {};
         _aircraft = mergeContacts(_aircraft, live, 'icao24');
         _aircraftStatus = live.length ? 'live' : (d.source === 'none' ? 'unavailable' : 'empty');
         _aircraftRetryDelay = 0;
+        syncAircraftEntities();
       } else if (r.status === 503 || r.status === 502) {
         if (!_aircraft.length) _aircraftStatus = 'koldstart';
         _aircraftRetryDelay = _aircraftRetryDelay ? Math.min(_aircraftRetryDelay * 2, 30000) : 6000;
@@ -1517,13 +1156,9 @@ VG.danmarkskort = {};
       } else {
         _aircraftStatus = 'unavailable';
       }
-    } catch {
-      _aircraftStatus = 'unavailable';
-    }
+    } catch { _aircraftStatus = 'unavailable'; }
     updateStats();
   }
-
-  // ── Fetch real ships (AIS via server proxy) ─────────────────────────────────
   async function fetchShips() {
     if (_shipRetryTimer) return;
     try {
@@ -1534,6 +1169,7 @@ VG.danmarkskort = {};
         _ships = mergeContacts(_ships, live, 'mmsi');
         _aisStatus = d.status || (live.length ? 'live' : 'empty');
         _shipRetryDelay = 0;
+        syncShipEntities();
       } else if (r.status === 503 || r.status === 502) {
         if (!_ships.length) _aisStatus = 'koldstart';
         _shipRetryDelay = _shipRetryDelay ? Math.min(_shipRetryDelay * 2, 30000) : 6000;
@@ -1541,9 +1177,7 @@ VG.danmarkskort = {};
       } else {
         _aisStatus = 'unavailable';
       }
-    } catch {
-      _aisStatus = 'unavailable';
-    }
+    } catch { _aisStatus = 'unavailable'; }
     updateStats();
   }
 
@@ -1557,11 +1191,10 @@ VG.danmarkskort = {};
     if (status === 'empty') return '<span style="color:#888">ingen i området</span>';
     return '<span style="color:#cc5544">utilgængelig</span>';
   }
-
   function updateStats() {
     const el = document.getElementById('dk-stats');
     if (!el) return;
-    const survCount = _satellites.filter(s => SURVEILLANCE_NAMES.has(s.name)).length;
+    const survCount = _satellites.filter(s => s.surv).length;
     el.innerHTML = `
       <span class="dk-stat"><i class="ph ph-airplane-tilt"></i> ${_aircraft.length} fly ${statusTag(_aircraftStatus)}</span>
       <span class="dk-stat"><i class="ph ph-boat"></i> ${_ships.length} skibe ${statusTag(_aisStatus)}</span>
@@ -1569,82 +1202,82 @@ VG.danmarkskort = {};
     `;
   }
 
-  // ── Animation loop ─────────────────────────────────────────────────────────
+  // ── Animation loop (dead-reckon + recompute satellites) ───────────────────────
   function startLoop() {
     if (_rafId) return;
     _lastFrameT = performance.now();
     function frame(now) {
       const panel = document.getElementById('panel-danmarkskort');
-      if (!panel || !panel.classList.contains('active')) {
-        _rafId = null;
-        return;
-      }
-      const dt = Math.min((now - _lastFrameT) / 1000, 0.1);  // seconds, clamped
+      if (!panel || !panel.classList.contains('active')) { _rafId = null; return; }
+      const dt = Math.min((now - _lastFrameT) / 1000, 0.1);
       _lastFrameT = now;
-      _pulse += 0.025;
-
-      // Dead-reckon real contacts forward along their reported course/speed
+      _pulse += 0.05;
       if (_view === 'skibstrafik' || _view === 'infrastruktur') advanceShips(_ships, dt);
-      if (_view === 'lufttrafik')  advanceAircraft(_aircraft, dt);
+      if (_view === 'lufttrafik') advanceAircraft(_aircraft, dt);
       if (_view === 'satellitter' || _view === 'overvågning') {
         const t = Date.now();
-        if (t >= _satFreshUntil) { computeSatellites(); _satFreshUntil = t + 333; updateStats(); }
-        if (t >= _groundTracksFreshUntil) { computeGroundTracks(); _groundTracksFreshUntil = t + 30000; }
-      }
-
-      if (_deck) {
-        _deck.setProps({ layers: buildLayers(_geo, _metric, _view, _pulse, _aircraft, _ships, _satellites) });
+        if (t >= _satFreshUntil) { computeSatellites(); syncSatelliteEntities(); _satFreshUntil = t + 1000; updateStats(); }
+        if (t >= _groundTracksFreshUntil) { computeGroundTracks(); syncGroundTracks(); _groundTracksFreshUntil = t + 30000; }
       }
       _rafId = requestAnimationFrame(frame);
     }
     _rafId = requestAnimationFrame(frame);
   }
-
   function stopLoop() {
-    if (_rafId) {
-      cancelAnimationFrame(_rafId);
-      _rafId = null;
-    }
-    if (_aircraftTimer) {
-      clearInterval(_aircraftTimer);
-      _aircraftTimer = null;
-    }
-    if (_shipTimer) {
-      clearInterval(_shipTimer);
-      _shipTimer = null;
-    }
+    if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+    if (_aircraftTimer) { clearInterval(_aircraftTimer); _aircraftTimer = null; }
+    if (_shipTimer) { clearInterval(_shipTimer); _shipTimer = null; }
   }
 
-  // ── Legend builder ─────────────────────────────────────────────────────────
+  // ── Legend ───────────────────────────────────────────────────────────────────
   function buildLegendHTML(metric) {
     const metricCfg = METRICS[metric];
     const r = METRIC_RANGES[metric];
     if (!metricCfg || !r) return '';
-
     const steps = 5;
     let swatches = '';
     for (let i = 0; i < steps; i++) {
       const t = i / (steps - 1);
       const [r_, g_, b_] = colorForValue(t, metricCfg.goodHigh);
       const val = r.min + (r.max - r.min) * t;
-      swatches += `<div class="dk-leg-step">
-        <div class="dk-leg-swatch" style="background:rgb(${r_},${g_},${b_})"></div>
-        <div class="dk-leg-lbl">${metricCfg.format(val)}</div>
-      </div>`;
+      swatches += `<div class="dk-leg-step"><div class="dk-leg-swatch" style="background:rgb(${r_},${g_},${b_})"></div><div class="dk-leg-lbl">${metricCfg.format(val)}</div></div>`;
     }
     return `<div class="dk-legend-inner">${swatches}</div>`;
   }
-
   function refreshLegend() {
     const el = document.getElementById('dk-legend');
     if (el) el.innerHTML = buildLegendHTML(_metric);
   }
 
-  // ── UI builder ─────────────────────────────────────────────────────────────
+  // ── Navigation controls ───────────────────────────────────────────────────────
+  function updateCompass() {
+    if (!_viewer) return;
+    const c = document.getElementById('dk-compass-needle');
+    if (c) c.style.transform = `rotate(${-Cesium.Math.toDegrees(_viewer.camera.heading)}deg)`;
+    const p = document.getElementById('dk-pitch-val');
+    if (p) p.textContent = Math.round(-Cesium.Math.toDegrees(_viewer.camera.pitch)) + '°';
+  }
+  function flyHome() { _viewer.camera.flyTo({ ...HOME(), duration: 1.0 }); }
+  function setTopDown() {
+    const c = _viewer.camera.positionCartographic;
+    _viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, c.height), orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 }, duration: 0.8 });
+  }
+  function resetNorth() {
+    const c = _viewer.camera.positionCartographic;
+    _viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, c.height), orientation: { heading: 0, pitch: _viewer.camera.pitch, roll: 0 }, duration: 0.7 });
+  }
+  function zoomBy(factor) {
+    const h = _viewer.camera.positionCartographic.height;
+    _viewer.camera.zoomIn(h * factor);
+  }
+
+  // ── UI ─────────────────────────────────────────────────────────────────────
   function buildUI(container) {
+    const googleBtn = _config.googleTilesKey
+      ? `<button class="dk-nav-btn" id="dk-google-btn" title="Google Fotorealistisk 3D">🌍</button>` : '';
     container.innerHTML = `
 <div class="dk-wrap" id="dk-wrap">
-  <canvas id="dk-canvas" class="dk-canvas"></canvas>
+  <div id="dk-cesium" class="dk-cesium"></div>
 
   <div class="dk-hud">
     <div class="dk-hud-title">DANMARKSMASKINEN</div>
@@ -1673,29 +1306,27 @@ VG.danmarkskort = {};
 
   <div class="dk-tooltip" id="dk-tooltip"></div>
 
-  <!-- Navigation controls -->
   <div class="dk-nav" id="dk-nav">
     <button class="dk-nav-btn" id="dk-zoom-in" title="Zoom ind">+</button>
     <button class="dk-nav-btn" id="dk-zoom-out" title="Zoom ud">−</button>
-    <button class="dk-compass" id="dk-compass" title="Nulstil rotation (peg mod nord)">
+    <button class="dk-compass" id="dk-compass" title="Peg mod nord">
       <span class="dk-compass-needle" id="dk-compass-needle">▲</span>
       <span class="dk-compass-n">N</span>
     </button>
     <button class="dk-nav-btn" id="dk-topdown" title="Set ovenfra (2D)">⊕</button>
+    ${googleBtn}
     <button class="dk-nav-btn" id="dk-reset" title="Nulstil visning">⟲</button>
-    <div class="dk-pitch" title="Hældning">∡ <span id="dk-pitch-val">50°</span></div>
+    <div class="dk-pitch" title="Hældning">∡ <span id="dk-pitch-val">58°</span></div>
   </div>
 
   <div class="dk-hint" id="dk-hint">Træk for at panorere · scroll for zoom · højreklik-træk (eller ⌘/Ctrl-træk) for at vippe &amp; rotere</div>
 
   <div class="dk-loading" id="dk-loading">
     <div class="dk-loading-text">INDLÆSER DANMARKSMASKINEN</div>
-    <div class="dk-loading-sub">WebGL · deck.gl · realtidsdata</div>
+    <div class="dk-loading-sub">WebGL · CesiumJS · realtidsdata</div>
   </div>
-</div>
-    `;
+</div>`;
 
-    // Bind view buttons
     container.querySelectorAll('[data-view]').forEach(btn => {
       btn.addEventListener('click', () => {
         _view = btn.dataset.view;
@@ -1706,12 +1337,15 @@ VG.danmarkskort = {};
         if (legend) legend.style.display = _view === 'kommuner' ? '' : 'none';
         const tt = document.getElementById('dk-tooltip');
         if (tt) tt.style.display = 'none';
-        if (_view === 'overvågning' && !_groundTracks.length) computeGroundTracks();
+        if ((_view === 'overvågning' || _view === 'satellitter')) {
+          if (!_satellites.length) { computeSatellites(); syncSatelliteEntities(); }
+          if (!_groundTracks.length) computeGroundTracks();
+        }
+        applyView();
         updateDataPortal(_view);
       });
     });
 
-    // Bind metric buttons
     container.querySelectorAll('[data-metric]').forEach(btn => {
       btn.addEventListener('click', () => {
         _metric = btn.dataset.metric;
@@ -1722,15 +1356,14 @@ VG.danmarkskort = {};
       });
     });
 
-    // Bind navigation controls
     const bind = (id, fn) => { const e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
-    bind('dk-zoom-in',  () => flyTo({ zoom: Math.min((_viewState.zoom || 6) + 1, 16) }));
-    bind('dk-zoom-out', () => flyTo({ zoom: Math.max((_viewState.zoom || 6) - 1, 3) }));
-    bind('dk-compass',  () => flyTo({ bearing: 0 }));
-    bind('dk-topdown',  () => setTopDown());
-    bind('dk-reset',    () => resetView());
+    bind('dk-zoom-in',  () => zoomBy(0.35));
+    bind('dk-zoom-out', () => zoomBy(-0.5));
+    bind('dk-compass',  resetNorth);
+    bind('dk-topdown',  setTopDown);
+    bind('dk-reset',    flyHome);
+    bind('dk-google-btn', toggleGoogleTiles);
 
-    // Fade the hint out after a few seconds
     setTimeout(() => { const h = document.getElementById('dk-hint'); if (h) h.classList.add('dk-hint-fade'); }, 6000);
 
     refreshLegend();
@@ -1738,143 +1371,36 @@ VG.danmarkskort = {};
     updateDataPortal(_view);
   }
 
-  // ── deck.gl init ───────────────────────────────────────────────────────────
-  const INITIAL_VIEW = {
-    longitude: 10.7,
-    latitude:  56.0,
-    zoom:       6.2,
-    pitch:      50,
-    bearing:    -12,
-    minZoom:    3,
-    maxZoom:    16,
-    maxPitch:   75,
-  };
-  let _viewState = { ...INITIAL_VIEW };
-
-  function updateCompass() {
-    const c = document.getElementById('dk-compass-needle');
-    if (c) c.style.transform = `rotate(${-_viewState.bearing}deg)`;
-    const p = document.getElementById('dk-pitch-val');
-    if (p) p.textContent = Math.round(_viewState.pitch) + '°';
-  }
-
-  function flyTo(target) {
-    const d = window.deck;
-    _viewState = {
-      ..._viewState, ...target,
-      transitionDuration: 900,
-      transitionInterpolator: d.FlyToInterpolator ? new d.FlyToInterpolator({ speed: 1.6 }) : undefined,
-    };
-    if (_deck) _deck.setProps({ viewState: _viewState });
-  }
-
-  function resetView() { flyTo({ ...INITIAL_VIEW }); }
-  function setTopDown() { flyTo({ pitch: 0, bearing: 0 }); }
-
-  function initDeck(canvas) {
-    const d = window.deck;
-    if (!d || !canvas) return;
-
-    _viewState = { ...INITIAL_VIEW };
-
-    _deck = new d.Deck({
-      canvas,
-      width: '100%',
-      height: '100%',
-      viewState: _viewState,
-      controller: {
-        // Smooth, responsive navigation with momentum
-        inertia: 350,
-        scrollZoom: { speed: 0.012, smooth: true },
-        dragPan: true,
-        dragRotate: true,     // right-drag / ctrl-drag to tilt + rotate
-        touchRotate: true,    // two-finger rotate/tilt on touch
-        touchZoom: true,
-        doubleClickZoom: true,
-        keyboard: true,       // arrows pan, +/- zoom, shift+arrows rotate
-      },
-      views: new d.MapView({ repeat: false }),
-      parameters: { clearColor: [0, 0, 0, 255] },
-      layers: buildLayers(_geo, _metric, _view, _pulse, _aircraft, _ships, _satellites),
-      getCursor: ({ isDragging, isHovering }) =>
-        isDragging ? 'grabbing' : (isHovering ? 'pointer' : 'grab'),
-      onViewStateChange: ({ viewState }) => {
-        _viewState = viewState;
-        updateCompass();
-        _deck.setProps({ viewState });
-      },
-      onHover: (info) => {
-        if (_view === 'kommuner') {
-          updateTooltip(info, _metric);
-        } else if (_view === 'lufttrafik' || _view === 'skibstrafik' ||
-                   _view === 'satellitter' || _view === 'overvågning' ||
-                   _view === 'infrastruktur') {
-          if (!info || !info.object) {
-            const tt = document.getElementById('dk-tooltip');
-            if (tt) tt.style.display = 'none';
-          }
-        }
-      },
-    });
-
-    updateCompass();
-    const loading = document.getElementById('dk-loading');
-    if (loading) loading.style.display = 'none';
-  }
-
-  // ── Load deck.gl script ────────────────────────────────────────────────────
-  function loadDeckScript() {
-    return new Promise((resolve, reject) => {
-      if (window.deck) { resolve(); return; }
-      const existing = document.getElementById('deck-gl-script');
-      if (existing) {
-        // Script already loading — wait for it
-        const wait = setInterval(() => {
-          if (window.deck) { clearInterval(wait); resolve(); }
-        }, 100);
-        return;
-      }
-      const s = document.createElement('script');
-      s.id  = 'deck-gl-script';
-      s.src = DECK_URL;
-      s.onload  = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-
   // ── Init ───────────────────────────────────────────────────────────────────
   async function init(panel) {
     _container = panel;
-    buildUI(panel);
 
     try {
-      await loadDeckScript();
+      const r = await fetch(CONFIG_URL);
+      if (r.ok) _config = await r.json();
+    } catch { /* token-free fallback */ }
+
+    buildUI(panel);
+
+    const cesiumDiv = document.getElementById('dk-cesium');
+    try {
+      await initViewer(cesiumDiv);
     } catch (e) {
       const loading = document.getElementById('dk-loading');
-      if (loading) {
-        loading.innerHTML = '<div class="dk-loading-text" style="color:#eb4034">DECK.GL INDLÆSNING FEJLEDE</div>';
-      }
+      if (loading) loading.innerHTML = '<div class="dk-loading-text" style="color:#eb4034">CESIUM INDLÆSNING FEJLEDE</div>';
       return;
     }
 
-    // Fetch GeoJSON
-    try {
-      const resp = await fetch(GEO_URL);
-      _geo = await resp.json();
-    } catch (e) {
-      _geo = null;
-    }
+    await loadKommuner();
+    buildStatic();
+    applyView();
 
-    const canvas = document.getElementById('dk-canvas');
-    if (canvas) initDeck(canvas);
+    const loading = document.getElementById('dk-loading');
+    if (loading) loading.style.display = 'none';
 
     _initialized = true;
 
-    // Load satellite TLEs (fallback + live CelesTrak refresh)
     loadSatellites();
-
-    // Fetch real traffic now and on interval
     fetchAircraft();
     fetchShips();
     _aircraftTimer = setInterval(fetchAircraft, AIRCRAFT_REFRESH_MS);
@@ -1888,24 +1414,24 @@ VG.danmarkskort = {};
     if (!panel) return;
     if (!_initialized) {
       init(panel);
+    } else if (!document.getElementById('dk-cesium') || !_viewer) {
+      _initialized = false;
+      _viewer = null;
+      init(panel);
     } else {
-      // Re-attach if panel was re-rendered
-      if (!document.getElementById('dk-canvas')) {
-        _initialized = false;
-        _deck = null;
-        init(panel);
-      } else {
-        startLoop();
-      }
+      startLoop();
     }
   };
 
   VG.danmarkskort.destroy = function () {
     stopLoop();
-    if (_deck) {
-      try { _deck.finalize(); } catch (e) {}
-      _deck = null;
+    if (_viewer) {
+      try { if (_viewer._dkHandler) _viewer._dkHandler.destroy(); } catch {}
+      try { _viewer.destroy(); } catch {}
+      _viewer = null;
     }
+    _acEnt.clear(); _shipEnt.clear(); _satEnt.clear(); _trackEnt.length = 0;
+    _staticBuilt = false; _kommuneDS = null; _kommuneEntities = [];
     _initialized = false;
   };
 

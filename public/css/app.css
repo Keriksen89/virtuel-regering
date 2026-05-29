@@ -4440,6 +4440,10 @@ body {
   background: #000; overflow: hidden;
 }
 .dk-canvas { position: absolute; inset: 0; display: block; width: 100% !important; height: 100% !important; }
+.dk-cesium { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
+.dk-cesium .cesium-widget, .dk-cesium .cesium-widget canvas { width: 100%; height: 100%; }
+.dk-cesium .cesium-viewer-bottom, .dk-cesium .cesium-widget-credits { display: none !important; }
+.dk-cesium .cesium-viewer, .dk-cesium .cesium-viewer-cesiumWidgetContainer { width: 100%; height: 100%; }
 .dk-hud {
   position: absolute; top: 16px; left: 16px; z-index: 10;
   display: flex; flex-direction: column; gap: 8px;
