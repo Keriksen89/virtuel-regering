@@ -45,7 +45,11 @@ app.use(helmet({
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
-      frameAncestors: ["'self'"]
+      frameAncestors: ["'self'"],
+      // Don't force assets to HTTPS — the app may be served over plain HTTP
+      // (e.g. before a TLS cert is installed, or behind a proxy that
+      // terminates TLS). With SSL configured everything is HTTPS anyway.
+      upgradeInsecureRequests: null
     }
   },
   crossOriginEmbedderPolicy: false
