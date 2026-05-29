@@ -4618,7 +4618,13 @@ body.dk-immersive.dk-peek .dk-peek-backdrop {
 .dk-btn-infra { border-color: rgba(60,210,100,0.45); color: rgba(80,220,120,0.8); }
 .dk-btn-infra:hover { border-color: #30dc78; color: #40f090; }
 .dk-btn-infra.active { background: rgba(60,210,100,0.18); border-color: #30dc78; color: #40f090; }
-.dk-legend-inner { display: flex; align-items: flex-end; gap: 4px; }
+.dk-btn-vejr { border-color: rgba(96,200,255,0.45); color: rgba(120,210,255,0.8); }
+.dk-btn-vejr:hover { border-color: #60c8ff; color: #80d8ff; }
+.dk-btn-vejr.active { background: rgba(96,200,255,0.18); border-color: #60c8ff; color: #80d8ff; }
+.dk-btn-beredskab { border-color: rgba(255,80,40,0.45); color: rgba(255,110,80,0.8); }
+.dk-btn-beredskab:hover { border-color: #ff5028; color: #ff7060; }
+.dk-btn-beredskab.active { background: rgba(255,80,40,0.18); border-color: #ff5028; color: #ff7060; }
+.dk-legend-inner { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px; }
 .dk-leg-step { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .dk-leg-swatch { width: 22px; height: 12px; border-radius: 2px; }
 .dk-leg-lbl { font-family: 'Courier New', Courier, monospace; font-size: 8px; color: rgba(212,175,55,0.7); }

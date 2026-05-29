@@ -272,6 +272,31 @@ VG.danmarkskort = {};
   ];
   const SURVEILLANCE_NAMES = new Set(SURVEILLANCE_TLE.map(t => t[0]));
 
+  // ── Satellite type classification ───────────────────────────────────────────
+  function satTypeOf(name) {
+    const n = (name || '').toUpperCase();
+    if (/^ISS|ZARYA|TIANHE|TIANGONG|CSS |^MIR /.test(n)) return 'station';
+    if (/^STARLINK/.test(n)) return 'starlink';
+    if (/^ONEWEB/.test(n)) return 'oneweb';
+    if (/^GPS|NAVSTAR|^BLOCK IIF|^BLOCK IIR|^BLOCK III/.test(n)) return 'gps';
+    if (/^NOAA|^METOP|METEOSAT|^MSG-|^FENGYUN|^FY-|^GOES/.test(n)) return 'weather';
+    if (/^SENTINEL|^LANDSAT|^TERRA |^AQUA |^ENVISAT|^SPOT-|^ICESAT|^CRYOSAT|^PLEIADES/.test(n)) return 'earthobs';
+    if (/HST|HUBBLE|JAMES WEBB|JWST|CHANDRA|FERMI/.test(n)) return 'telescope';
+    if (/WORLDVIEW|GAOFEN|CAPELLA|USA-\d|LACROSSE|NRO |KH-\d/.test(n)) return 'recon';
+    return 'other';
+  }
+  const SAT_TYPES = {
+    station:   { size: 14, c: [255,255,120,255], oc: [255,200,0,220],   ol: 4, label: true,  name: 'Rumstation'     },
+    starlink:  { size: 5,  c: [100,220,255,230], oc: [50,180,255,150],  ol: 2, label: false, name: 'Starlink'        },
+    oneweb:    { size: 5,  c: [180,255,180,230], oc: [100,220,120,150], ol: 2, label: false, name: 'OneWeb'          },
+    gps:       { size: 9,  c: [255,200,60,255],  oc: [200,140,0,200],   ol: 3, label: false, name: 'GPS'             },
+    weather:   { size: 9,  c: [200,130,255,255], oc: [140,70,255,200],  ol: 3, label: true,  name: 'Vejrsatellit'    },
+    earthobs:  { size: 8,  c: [80,255,200,240],  oc: [40,200,160,200],  ol: 3, label: true,  name: 'Jordobservation' },
+    telescope: { size: 11, c: [255,180,60,255],  oc: [180,100,0,200],   ol: 3, label: true,  name: 'Rumteleskop'     },
+    recon:     { size: 12, c: [255,100,30,255],  oc: [200,40,0,200],    ol: 4, label: true,  name: 'Rekognoscering'  },
+    other:     { size: 6,  c: [180,220,255,200], oc: [80,180,255,140],  ol: 2, label: false, name: 'Øvrige'          },
+  };
+
   const GPS_JAMMING = [
     { name: 'Kaliningrad', pos: [20.5, 54.7],  radius: 280, intensity: 0.9 },
     { name: 'St. Petersburg', pos: [30.3, 59.9], radius: 220, intensity: 0.7 },
@@ -337,6 +362,97 @@ VG.danmarkskort = {};
     { name: 'Baltic Pipe (gas DK–NO)',path: [[10.00,57.00],[9.50,57.50],[8.50,58.00],[7.50,58.50]],color: [255,160,40],  type: 'gas'   },
     { name: 'NordBalt (SE–LT)',       path: [[12.70,55.70],[14.50,56.20],[17.50,57.00],[21.00,56.50]],color:[60,200,255],type:'power'  },
     { name: 'SwePol Link (SE–PL)',    path: [[14.00,55.50],[15.50,55.00],[16.50,54.50],[18.00,54.20]],color:[120,255,120],type:'power' },
+  ];
+
+  // ── Weather observation stations ───────────────────────────────────────────
+  const WEATHER_STATIONS = [
+    { name: 'København',  lat: 55.676, lon: 12.568 },
+    { name: 'Aarhus',     lat: 56.156, lon: 10.203 },
+    { name: 'Odense',     lat: 55.396, lon: 10.388 },
+    { name: 'Aalborg',    lat: 57.047, lon: 9.921  },
+    { name: 'Esbjerg',    lat: 55.476, lon: 8.459  },
+    { name: 'Randers',    lat: 56.460, lon: 10.036 },
+    { name: 'Kolding',    lat: 55.491, lon: 9.472  },
+    { name: 'Horsens',    lat: 55.860, lon: 9.850  },
+    { name: 'Vejle',      lat: 55.710, lon: 9.536  },
+    { name: 'Roskilde',   lat: 55.642, lon: 12.087 },
+    { name: 'Herning',    lat: 56.135, lon: 8.973  },
+    { name: 'Helsingør',  lat: 56.036, lon: 12.614 },
+    { name: 'Silkeborg',  lat: 56.170, lon: 9.552  },
+    { name: 'Næstved',    lat: 55.229, lon: 11.760 },
+    { name: 'Fredericia', lat: 55.566, lon: 9.750  },
+    { name: 'Viborg',     lat: 56.452, lon: 9.400  },
+    { name: 'Køge',       lat: 55.457, lon: 12.181 },
+    { name: 'Holstebro',  lat: 56.359, lon: 8.617  },
+    { name: 'Slagelse',   lat: 55.402, lon: 11.354 },
+    { name: 'Hillerød',   lat: 55.929, lon: 12.308 },
+    { name: 'Skagen',     lat: 57.722, lon: 10.578 },
+    { name: 'Bornholm',   lat: 55.107, lon: 14.921 },
+    { name: 'Sønderborg', lat: 54.909, lon: 9.793  },
+    { name: 'Thisted',    lat: 56.961, lon: 8.693  },
+    { name: 'Nykøbing F', lat: 54.769, lon: 11.873 },
+  ];
+
+  // ── Emergency infrastructure (Beredskab) ────────────────────────────────────
+  const BRANDSTATIONER = [
+    { name: 'Brandstation Valby',         lat: 55.669, lon: 12.508 },
+    { name: 'Brandstation Østerbro',      lat: 55.709, lon: 12.575 },
+    { name: 'Brandstation Frederiksberg', lat: 55.679, lon: 12.536 },
+    { name: 'Brandstation Bispebjerg',    lat: 55.718, lon: 12.543 },
+    { name: 'Brandstation Amager',        lat: 55.651, lon: 12.594 },
+    { name: 'Brandstation Aarhus Nord',   lat: 56.195, lon: 10.210 },
+    { name: 'Brandstation Aarhus Syd',    lat: 56.102, lon: 10.177 },
+    { name: 'Brandstation Odense',        lat: 55.421, lon: 10.369 },
+    { name: 'Brandstation Aalborg',       lat: 57.048, lon: 9.923  },
+    { name: 'Brandstation Esbjerg',       lat: 55.480, lon: 8.450  },
+    { name: 'Brandstation Randers',       lat: 56.462, lon: 10.040 },
+    { name: 'Brandstation Kolding',       lat: 55.492, lon: 9.474  },
+    { name: 'Brandstation Vejle',         lat: 55.712, lon: 9.540  },
+    { name: 'Brandstation Horsens',       lat: 55.862, lon: 9.852  },
+    { name: 'Brandstation Herning',       lat: 56.138, lon: 8.975  },
+    { name: 'Brandstation Roskilde',      lat: 55.644, lon: 12.091 },
+    { name: 'Brandstation Helsingør',     lat: 56.038, lon: 12.610 },
+    { name: 'Brandstation Holstebro',     lat: 56.361, lon: 8.619  },
+    { name: 'Brandstation Silkeborg',     lat: 56.172, lon: 9.554  },
+    { name: 'Brandstation Viborg',        lat: 56.453, lon: 9.402  },
+    { name: 'Brandstation Sønderborg',    lat: 54.910, lon: 9.795  },
+    { name: 'Brandstation Fredericia',    lat: 55.568, lon: 9.752  },
+    { name: 'Brandstation Næstved',       lat: 55.231, lon: 11.762 },
+    { name: 'Brandstation Slagelse',      lat: 55.404, lon: 11.356 },
+    { name: 'Brandstation Køge',          lat: 55.459, lon: 12.183 },
+    { name: 'Brandstation Skagen',        lat: 57.724, lon: 10.580 },
+    { name: 'Brandstation Bornholm',      lat: 55.101, lon: 14.698 },
+    { name: 'Brandstation Nykøbing F',    lat: 54.771, lon: 11.875 },
+  ];
+
+  const SYGEHUSE = [
+    { name: 'Rigshospitalet',                    lat: 55.697, lon: 12.571, type: 'Universitetshospital' },
+    { name: 'Bispebjerg Hospital',               lat: 55.714, lon: 12.533, type: 'Akuthospital' },
+    { name: 'Herlev Hospital',                   lat: 55.729, lon: 12.445, type: 'Universitetshospital' },
+    { name: 'Gentofte Hospital',                 lat: 55.750, lon: 12.540, type: 'Hospitals' },
+    { name: 'Amager & Hvidovre Hospital',        lat: 55.630, lon: 12.460, type: 'Akuthospital' },
+    { name: 'Bornholms Hospital',                lat: 55.112, lon: 14.907, type: 'Hospitals' },
+    { name: 'AUH Aarhus Universitetshospital',   lat: 56.176, lon: 10.153, type: 'Universitetshospital' },
+    { name: 'Horsens Sygehus',                   lat: 55.860, lon: 9.828,  type: 'Akuthospital' },
+    { name: 'Randers Regionshospital',           lat: 56.467, lon: 10.066, type: 'Akuthospital' },
+    { name: 'Odense Universitetshospital (OUH)', lat: 55.398, lon: 10.360, type: 'Universitetshospital' },
+    { name: 'Svendborg Sygehus',                 lat: 55.063, lon: 10.599, type: 'Hospitals' },
+    { name: 'Sygehus Sønderjylland',             lat: 54.910, lon: 9.792,  type: 'Akuthospital' },
+    { name: 'Sygehus Lillebælt, Kolding',        lat: 55.493, lon: 9.455,  type: 'Akuthospital' },
+    { name: 'Vejle Sygehus',                     lat: 55.713, lon: 9.519,  type: 'Akuthospital' },
+    { name: 'Aalborg Universitetshospital',      lat: 57.052, lon: 9.921,  type: 'Universitetshospital' },
+    { name: 'Thisted Sygehus',                   lat: 56.964, lon: 8.693,  type: 'Hospitals' },
+    { name: 'Herning Sygehus',                   lat: 56.130, lon: 8.986,  type: 'Akuthospital' },
+    { name: 'Regionshospitalet Viborg',          lat: 56.457, lon: 9.384,  type: 'Akuthospital' },
+    { name: 'Silkeborg Regionshospital',         lat: 56.176, lon: 9.571,  type: 'Hospitals' },
+    { name: 'Holstebro Sygehus',                 lat: 56.358, lon: 8.607,  type: 'Akuthospital' },
+    { name: 'Nordsjællands Hospital, Hillerød',  lat: 55.929, lon: 12.310, type: 'Akuthospital' },
+    { name: 'Helsingør Hospital',                lat: 56.037, lon: 12.615, type: 'Hospitals' },
+    { name: 'Roskilde Sygehus',                  lat: 55.641, lon: 12.075, type: 'Akuthospital' },
+    { name: 'Næstved Sygehus',                   lat: 55.233, lon: 11.765, type: 'Akuthospital' },
+    { name: 'Nykøbing F Sygehus',                lat: 54.770, lon: 11.868, type: 'Hospitals' },
+    { name: 'Køge Sygehus',                      lat: 55.460, lon: 12.171, type: 'Hospitals' },
+    { name: 'Slagelse Sygehus',                  lat: 55.409, lon: 11.354, type: 'Hospitals' },
   ];
 
   // ── Dead-reckoning helpers ───────────────────────────────────────────────────
@@ -410,7 +526,7 @@ VG.danmarkskort = {};
         const recs = parseTLEs(txt);
         if (recs.length) {
           const survRecs = parseTLEs(SURVEILLANCE_TLE.map(t => t.join('\n')).join('\n'));
-          _satRecs = [...recs.slice(0, 100), ...survRecs];
+          _satRecs = [...recs.slice(0, 350), ...survRecs];
         }
       })
       .catch(() => {})
@@ -441,7 +557,7 @@ VG.danmarkskort = {};
           seen.add(s.name);
           let o = _satIndex.get(s.name);
           if (!o) {
-            o = { name: s.name, pos: [lon, lat], alt: altKm, surv: SURVEILLANCE_NAMES.has(s.name) };
+            o = { name: s.name, pos: [lon, lat], alt: altKm, surv: SURVEILLANCE_NAMES.has(s.name), type: satTypeOf(s.name) };
             _satIndex.set(s.name, o);
           } else {
             o.alt = altKm;
@@ -576,6 +692,7 @@ VG.danmarkskort = {};
   let _initialized = false;
   let _aircraftTimer = null;
   let _shipTimer = null;
+  let _weatherTimer = null;
   let _aircraftRetryTimer = null;
   let _shipRetryTimer = null;
   let _aircraftRetryDelay = 0;
@@ -590,11 +707,13 @@ VG.danmarkskort = {};
   let _googleActive  = false;
 
   // Entity registries
-  const _acEnt   = new Map();   // icao24 → entity
-  const _shipEnt = new Map();   // mmsi  → entity
-  const _satEnt  = new Map();   // name  → entity
-  const _trackEnt = [];         // ground-track polyline entities
-  let _staticBuilt = false;
+  const _acEnt       = new Map();   // icao24 → entity
+  const _shipEnt     = new Map();   // mmsi   → entity
+  const _satEnt      = new Map();   // name   → entity
+  const _weatherEnt  = new Map();   // name   → entity
+  const _trackEnt    = [];          // ground-track polyline entities
+  let _weather       = [];
+  let _staticBuilt   = false;
 
   // ── Cesium globe init ────────────────────────────────────────────────────────
   const HOME = () => ({
@@ -731,7 +850,7 @@ VG.danmarkskort = {};
     if (v == null) return Cesium.Color.fromBytes(40, 40, 50, 150);
     const t = normalise(v, _metric);
     const c = colorForValue(t, (METRICS[_metric] || METRICS.ledighed).goodHigh);
-    const alpha = _view === 'kommuner' ? 215 : (_view === 'overvågning' ? 18 : 55);
+    const alpha = _view === 'kommuner' ? 215 : (_view === 'overvågning' ? 18 : (_view === 'vejr' || _view === 'beredskab') ? 30 : 55);
     return Cesium.Color.fromBytes(c[0], c[1], c[2], alpha);
   }
   function kommuneHeight(ent) {
@@ -989,43 +1108,40 @@ VG.danmarkskort = {};
     const ents = _viewer.entities;
     const seen = new Set();
     const showSat = _view === 'satellitter';
+    const showRecon = _view === 'overvågning';
     _satellites.forEach(d => {
       seen.add(d.name);
       if (!_satEnt.has(d.name)) {
+        const t = SAT_TYPES[d.type || 'other'];
         const spec = {
-          // `d` is a stable object (mutated in place by computeSatellites +
-          // the per-frame lerp), so this reads live position in O(1).
           position: new Cesium.CallbackProperty(() => deg(d.pos[0], d.pos[1], d.alt * 1000), false),
           point: {
-            // Gold-amber for surveillance, cyan-white for others. Both large
-            // enough to be clearly visible against the star field.
-            pixelSize: d.surv ? 12 : 8,
-            color: d.surv
-              ? Cesium.Color.fromBytes(255, 160, 30, 255)
-              : Cesium.Color.fromBytes(160, 230, 255, 240),
-            outlineColor: d.surv
-              ? Cesium.Color.fromBytes(255, 60, 0, 200)
-              : Cesium.Color.fromBytes(80, 180, 255, 180),
-            outlineWidth: d.surv ? 4 : 3,
+            pixelSize: t.size,
+            color: Cesium.Color.fromBytes(...t.c),
+            outlineColor: Cesium.Color.fromBytes(...t.oc),
+            outlineWidth: t.ol,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            scaleByDistance: new Cesium.NearFarScalar(1e5, 1.4, 2e7, 0.7),
+            scaleByDistance: new Cesium.NearFarScalar(1e5, 1.5, 3e7, 0.5),
           },
           _kind: 'sat', _data: d, _layer: 'satellitter',
         };
-        // Labels are expensive to render and unreadable when ~150 overlap, so
-        // only the named surveillance satellites get one. Hover shows the rest.
-        if (d.surv) {
+        if (t.label) {
           spec.label = {
-            text: d.name, font: '11px "Courier New", monospace',
-            fillColor: Cesium.Color.fromBytes(255, 160, 60, 220),
-            pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            text: d.name,
+            font: `${d.type === 'station' ? 12 : 10}px "Courier New", monospace`,
+            fillColor: Cesium.Color.fromBytes(...t.c),
+            pixelOffset: new Cesium.Cartesian2(0, -(t.size + 4)),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            translucencyByDistance: new Cesium.NearFarScalar(8e5, 1.0, 4e7, 0.0),
           };
         }
         const e = ents.add(spec);
-        e.show = showSat || (_view === 'overvågning' && d.surv);
+        e.show = showSat || (showRecon && (d.surv || d.type === 'recon'));
         _satEnt.set(d.name, e);
       } else {
-        _satEnt.get(d.name)._data = d;
+        const e = _satEnt.get(d.name);
+        e._data = d;
+        e.show = showSat || (showRecon && (d.surv || d.type === 'recon'));
       }
     });
     for (const [k, e] of _satEnt) if (!seen.has(k)) { ents.remove(e); _satEnt.delete(k); }
@@ -1072,12 +1188,15 @@ VG.danmarkskort = {};
         case 'ports': e.show = (v === 'infrastruktur' || v === 'skibstrafik'); break;
         case 'wind': e.show = (v === 'infrastruktur'); break;
         case 'overvågning': e.show = (v === 'overvågning'); break;
+        case 'beredskab': e.show = (v === 'beredskab'); break;
+        case 'vejr': e.show = (v === 'vejr'); break;
       }
     });
     // Live entities
     for (const e of _acEnt.values()) e.show = (v === 'lufttrafik');
     for (const e of _shipEnt.values()) e.show = (v === 'skibstrafik' || v === 'infrastruktur');
-    for (const e of _satEnt.values()) e.show = (v === 'satellitter') || (v === 'overvågning' && e._data && e._data.surv);
+    for (const e of _satEnt.values()) e.show = (v === 'satellitter') || (v === 'overvågning' && e._data && (e._data.surv || e._data.type === 'recon'));
+    for (const e of _weatherEnt.values()) e.show = (v === 'vejr');
     // Polygon colour alpha + extrusion depend on the active view.
     restyleKommuner();
     syncGroundTracks();
@@ -1093,9 +1212,11 @@ VG.danmarkskort = {};
       case 'wind':     tip(x, y, windHTML(ent._data), pinned); break;
       case 'port':     tip(x, y, portHTML(ent._data), pinned); break;
       case 'ferry':    tip(x, y, ferryHTML(ent._data), pinned); break;
-      case 'cable':    tip(x, y, cableHTML(ent._data), pinned); break;
-      case 'jamming':  tip(x, y, jammingHTML(ent._data), pinned); break;
-      case 'notam':    tip(x, y, notamHTML(ent._data), pinned); break;
+      case 'cable':     tip(x, y, cableHTML(ent._data), pinned); break;
+      case 'jamming':   tip(x, y, jammingHTML(ent._data), pinned); break;
+      case 'notam':     tip(x, y, notamHTML(ent._data), pinned); break;
+      case 'vejr':      tip(x, y, weatherHTML(ent._data), pinned); break;
+      case 'beredskab': tip(x, y, beredskabHTML(ent._data), pinned); break;
     }
   }
   function onHover(pos) {
@@ -1145,10 +1266,28 @@ VG.danmarkskort = {};
       <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">AIS · live</span></div>`;
   }
   function satHTML(s) {
-    return `<div class="dkt-title"${s.surv ? ' style="color:#ff9040"' : ''}>${s.name}</div>
+    const t = SAT_TYPES[s.type || 'other'];
+    const col = t.c;
+    return `<div class="dkt-title" style="color:rgb(${col[0]},${col[1]},${col[2]})">${s.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${t.name}</span></div>
       <div class="dkt-row"><span class="dkt-k">Højde</span><span class="dkt-v">${Math.round(s.alt)} km</span></div>
       <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${s.pos[1].toFixed(2)}°N ${s.pos[0].toFixed(2)}°E</span></div>
       <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">TLE · live</span></div>`;
+  }
+  function weatherHTML(w) {
+    const code = w.code ?? 0;
+    const icon = code <= 2 ? '☀️' : code <= 3 ? '⛅' : code <= 48 ? '🌫️' : code <= 67 ? '🌧️' : code <= 77 ? '🌨️' : code <= 82 ? '🌦️' : code <= 86 ? '🌨️' : '⛈️';
+    const windDir = w.windDir != null ? ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(w.windDir / 22.5) % 16] : '—';
+    return `<div class="dkt-title" style="color:#60c8ff">${icon} ${w.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Temperatur</span><span class="dkt-v">${w.temp != null ? w.temp.toFixed(1) + ' °C' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Vind</span><span class="dkt-v">${w.wind != null ? w.wind.toFixed(1) + ' m/s ' + windDir : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Nedbør</span><span class="dkt-v">${w.precip != null ? w.precip.toFixed(1) + ' mm' : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">Open-Meteo · live</span></div>`;
+  }
+  function beredskabHTML(b) {
+    const icons = { brand: '🔥', sygehus: '🏥' };
+    return `<div class="dkt-title" style="color:${b.kind === 'brand' ? '#ff6060' : '#60c8ff'}">${icons[b.kind] || '⚠️'} ${b.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${b.subtype || (b.kind === 'brand' ? 'Brandstation' : 'Sygehus')}</span></div>`;
   }
   function windHTML(w) {
     return `<div class="dkt-title" style="color:#60dc80">⚡ ${w.name}</div>
@@ -1329,6 +1468,104 @@ VG.danmarkskort = {};
     updateStats();
   }
 
+  async function fetchWeather() {
+    const lats = WEATHER_STATIONS.map(s => s.lat).join(',');
+    const lons = WEATHER_STATIONS.map(s => s.lon).join(',');
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,windspeed_10m,winddirection_10m,weathercode,precipitation&wind_speed_unit=ms&timezone=auto`;
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) return;
+      const data = await r.json();
+      const list = Array.isArray(data) ? data : [data];
+      _weather = WEATHER_STATIONS.map((s, i) => ({
+        name: s.name, lat: s.lat, lon: s.lon,
+        temp:    list[i]?.current?.temperature_2m     ?? null,
+        wind:    list[i]?.current?.windspeed_10m      ?? null,
+        windDir: list[i]?.current?.winddirection_10m  ?? null,
+        code:    list[i]?.current?.weathercode        ?? 0,
+        precip:  list[i]?.current?.precipitation      ?? null,
+      }));
+      syncWeatherEntities();
+    } catch {}
+  }
+
+  function tempColor(t) {
+    if (t == null) return [160, 160, 160];
+    if (t <= -10) return [80,  80,  220];
+    if (t <=   0) return [100, 160, 255];
+    if (t <=  10) return [100, 220, 255];
+    if (t <=  20) return [100, 255, 180];
+    if (t <=  28) return [255, 220,  60];
+    return [255, 80, 40];
+  }
+
+  function syncWeatherEntities() {
+    if (!_viewer) return;
+    const ents = _viewer.entities;
+    const showVejr = _view === 'vejr';
+    const seen = new Set();
+    _weather.forEach(w => {
+      seen.add(w.name);
+      const code = w.code ?? 0;
+      const icon = code <= 2 ? '☀' : code <= 3 ? '⛅' : code <= 48 ? '≋' : code <= 67 ? '☂' : code <= 77 ? '❄' : code <= 82 ? '⛆' : '⚡';
+      const [r, g, b] = tempColor(w.temp);
+      const label = w.temp != null ? `${icon} ${w.temp > 0 ? '+' : ''}${w.temp.toFixed(0)}°` : icon;
+      if (!_weatherEnt.has(w.name)) {
+        const e = ents.add({
+          position: deg(w.lon, w.lat, 800),
+          point: {
+            pixelSize: 10, color: Cesium.Color.fromBytes(r, g, b, 220),
+            outlineColor: Cesium.Color.fromBytes(255, 255, 255, 160), outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: {
+            text: label, font: 'bold 13px "Courier New", monospace',
+            fillColor: Cesium.Color.fromBytes(r, g, b, 255),
+            outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(0, -18),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            translucencyByDistance: new Cesium.NearFarScalar(5e5, 1.0, 3e6, 0.0),
+          },
+          _kind: 'vejr', _data: w, _layer: 'vejr',
+        });
+        e.show = showVejr;
+        _weatherEnt.set(w.name, e);
+      } else {
+        const e = _weatherEnt.get(w.name);
+        e.show = showVejr;
+        e._data = w;
+        if (e.label) e.label.text = label;
+        if (e.point) e.point.color = Cesium.Color.fromBytes(r, g, b, 220);
+        if (e.label) e.label.fillColor = Cesium.Color.fromBytes(r, g, b, 255);
+      }
+    });
+    for (const [k, e] of _weatherEnt) if (!seen.has(k)) { ents.remove(e); _weatherEnt.delete(k); }
+  }
+
+  function buildBeredskabLayer() {
+    if (!_viewer) return;
+    const ents = _viewer.entities;
+    const showB = _view === 'beredskab';
+    BRANDSTATIONER.forEach(b => {
+      ents.add({
+        position: deg(b.lon, b.lat, 500),
+        point: { pixelSize: 9, color: Cesium.Color.fromBytes(255, 80, 40, 240), outlineColor: Cesium.Color.fromBytes(255, 200, 0, 200), outlineWidth: 3, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        label: { text: '🔥', font: '14px sans-serif', pixelOffset: new Cesium.Cartesian2(0, -18), disableDepthTestDistance: Number.POSITIVE_INFINITY, translucencyByDistance: new Cesium.NearFarScalar(2e4, 1.0, 2e5, 0.0) },
+        show: showB,
+        _kind: 'beredskab', _data: { ...b, kind: 'brand' }, _layer: 'beredskab',
+      });
+    });
+    SYGEHUSE.forEach(h => {
+      ents.add({
+        position: deg(h.lon, h.lat, 500),
+        point: { pixelSize: 10, color: Cesium.Color.fromBytes(50, 180, 255, 240), outlineColor: Cesium.Color.fromBytes(255, 255, 255, 200), outlineWidth: 3, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        label: { text: '🏥', font: '14px sans-serif', pixelOffset: new Cesium.Cartesian2(0, -18), disableDepthTestDistance: Number.POSITIVE_INFINITY, translucencyByDistance: new Cesium.NearFarScalar(5e4, 1.0, 5e5, 0.0) },
+        show: showB,
+        _kind: 'beredskab', _data: { ...h, kind: 'sygehus', subtype: h.type }, _layer: 'beredskab',
+      });
+    });
+  }
+
   // ── Stats bar ──────────────────────────────────────────────────────────────
   function statusTag(status) {
     if (status === 'live') return '<span style="color:#5fd35f">live</span>';
@@ -1362,6 +1599,9 @@ VG.danmarkskort = {};
       _pulse += 0.05;
       if (_view === 'skibstrafik' || _view === 'infrastruktur') advanceShips(_ships, dt);
       if (_view === 'lufttrafik') advanceAircraft(_aircraft, dt);
+      if (_view === 'vejr' || _view === 'beredskab') {
+        if (!_weather.length) fetchWeather();
+      }
       if (_view === 'satellitter' || _view === 'overvågning') {
         // Glide every satellite toward its last propagated target each frame.
         for (let i = 0; i < _satellites.length; i++) advanceLerp(_satellites[i], SAT_LERP_MS);
@@ -1378,6 +1618,7 @@ VG.danmarkskort = {};
     if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
     if (_aircraftTimer) { clearInterval(_aircraftTimer); _aircraftTimer = null; }
     if (_shipTimer) { clearInterval(_shipTimer); _shipTimer = null; }
+    if (_weatherTimer) { clearInterval(_weatherTimer); _weatherTimer = null; }
   }
 
   // ── Legend ───────────────────────────────────────────────────────────────────
@@ -1397,7 +1638,29 @@ VG.danmarkskort = {};
   }
   function refreshLegend() {
     const el = document.getElementById('dk-legend');
-    if (el) el.innerHTML = buildLegendHTML(_metric);
+    if (!el) return;
+    if (_view === 'satellitter' || _view === 'overvågning') {
+      const items = Object.entries(SAT_TYPES)
+        .filter(([k]) => _view === 'satellitter' ? true : (k === 'recon' || k === 'station'))
+        .map(([, t]) => `<div class="dk-leg-step"><div class="dk-leg-swatch" style="background:rgb(${t.c[0]},${t.c[1]},${t.c[2]});width:10px;height:10px;border-radius:50%"></div><div class="dk-leg-lbl">${t.name}</div></div>`)
+        .join('');
+      el.innerHTML = `<div class="dk-legend-inner">${items}</div>`;
+    } else if (_view === 'vejr') {
+      el.innerHTML = `<div class="dk-legend-inner">
+        <div class="dk-leg-step"><div class="dk-leg-swatch" style="background:rgb(80,80,220)"></div><div class="dk-leg-lbl">≤−10°C</div></div>
+        <div class="dk-leg-step"><div class="dk-leg-swatch" style="background:rgb(100,220,255)"></div><div class="dk-leg-lbl">0°C</div></div>
+        <div class="dk-leg-step"><div class="dk-leg-swatch" style="background:rgb(100,255,180)"></div><div class="dk-leg-lbl">10°C</div></div>
+        <div class="dk-leg-step"><div class="dk-leg-swatch" style="background:rgb(255,220,60)"></div><div class="dk-leg-lbl">20°C</div></div>
+        <div class="dk-leg-step"><div class="dk-leg-swatch" style="background:rgb(255,80,40)"></div><div class="dk-leg-lbl">≥28°C</div></div>
+      </div>`;
+    } else if (_view === 'beredskab') {
+      el.innerHTML = `<div class="dk-legend-inner">
+        <div class="dk-leg-step"><div class="dk-leg-swatch" style="background:rgb(255,80,40);border-radius:50%"></div><div class="dk-leg-lbl">Brandstation</div></div>
+        <div class="dk-leg-step"><div class="dk-leg-swatch" style="background:rgb(50,180,255);border-radius:50%"></div><div class="dk-leg-lbl">Sygehus</div></div>
+      </div>`;
+    } else {
+      el.innerHTML = buildLegendHTML(_metric);
+    }
   }
 
   // ── Navigation controls ───────────────────────────────────────────────────────
@@ -1439,6 +1702,8 @@ VG.danmarkskort = {};
       <button class="dk-btn" data-view="satellitter">SATELLITTER</button>
       <button class="dk-btn dk-btn-intel" data-view="overvågning">⚑ OVERVÅGNING</button>
       <button class="dk-btn dk-btn-infra" data-view="infrastruktur">⚡ INFRASTRUKTUR</button>
+      <button class="dk-btn dk-btn-vejr" data-view="vejr">☁ VEJR</button>
+      <button class="dk-btn dk-btn-beredskab" data-view="beredskab">🚨 BEREDSKAB</button>
     </div>
     <div class="dk-metric-btns" id="dk-metric-btns">
       <button class="dk-btn active" data-metric="ledighed">LEDIGHED</button>
@@ -1552,11 +1817,14 @@ VG.danmarkskort = {};
 
     _initialized = true;
 
+    buildBeredskabLayer();
     loadSatellites();
     fetchAircraft();
     fetchShips();
+    fetchWeather();
     _aircraftTimer = setInterval(fetchAircraft, AIRCRAFT_REFRESH_MS);
     _shipTimer = setInterval(fetchShips, SHIP_REFRESH_MS);
+    _weatherTimer = setInterval(fetchWeather, 10 * 60 * 1000); // refresh weather every 10 min
 
     startLoop();
   }
@@ -1598,7 +1866,8 @@ VG.danmarkskort = {};
       try { _viewer.destroy(); } catch {}
       _viewer = null;
     }
-    _acEnt.clear(); _shipEnt.clear(); _satEnt.clear(); _trackEnt.length = 0;
+    _acEnt.clear(); _shipEnt.clear(); _satEnt.clear(); _weatherEnt.clear(); _trackEnt.length = 0;
+    _weather = [];
     _staticBuilt = false; _kommuneDS = null; _kommuneEntities = [];
     _initialized = false;
   };
