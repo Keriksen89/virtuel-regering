@@ -454,8 +454,8 @@ VG.danmarkskort = {};
         const lon = sat.degreesLong(geo.longitude);
         const lat = sat.degreesLat(geo.latitude);
         const altKm = geo.height;
-        // Show satellites currently over NW Europe so the DK-centred view is alive
-        if (lat > 42 && lat < 66 && lon > -12 && lon < 32 && altKm > 0) {
+        // Show all satellites with valid altitude (global view in SATELLITTER mode)
+        if (altKm > 100 && altKm < 42000 && lat >= -90 && lat <= 90) {
           out.push({ name: s.name, pos: [lon, lat], alt: altKm });
         }
       } catch {}
@@ -469,7 +469,7 @@ VG.danmarkskort = {};
     if (!sat || !_satRecs.length) { _groundTracks = []; return; }
     const now = new Date();
     const tracks = [];
-    for (const s of _satRecs.slice(0, 25)) {
+    for (const s of _satRecs.slice(0, 60)) {
       try {
         const past = [], future = [];
         for (let m = -30; m <= 90; m += 4) {
