@@ -71,117 +71,119 @@ VG.danmarkskort = {};
     ],
   };
 
-  const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2' };
+  const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2', skat:'laboratorium', erhverv:'ledighed' };
 
   // ── Municipality data (keys match label_dk in the GeoJSON) ──────────────────
   const KD = {
-    'Aabenraa':                { ledighed: 6.1,  indkomst: 310000, boligpris: 9500,  befolkning: 59200,  co2: 5.4 },
-    'Aalborg':                 { ledighed: 5.5,  indkomst: 330000, boligpris: 16000, befolkning: 216000, co2: 6.5 },
-    'Albertslund':             { ledighed: 7.2,  indkomst: 320000, boligpris: 22000, befolkning: 28200,  co2: 4.1 },
-    'Allerød':                 { ledighed: 3.2,  indkomst: 540000, boligpris: 28000, befolkning: 26400,  co2: 3.4 },
-    'Assens':                  { ledighed: 5.8,  indkomst: 295000, boligpris: 8500,  befolkning: 41400,  co2: 5.1 },
-    'Ballerup':                { ledighed: 4.8,  indkomst: 420000, boligpris: 28000, befolkning: 49400,  co2: 3.5 },
-    'Billund':                 { ledighed: 3.8,  indkomst: 370000, boligpris: 11000, befolkning: 27000,  co2: 4.8 },
-    'Bornholm':                { ledighed: 7.4,  indkomst: 280000, boligpris: 8000,  befolkning: 39500,  co2: 3.9 },
-    'Brøndby':                 { ledighed: 7.0,  indkomst: 315000, boligpris: 23000, befolkning: 35100,  co2: 4.2 },
-    'Brønderslev-Dronninglund':{ ledighed: 6.0,  indkomst: 290000, boligpris: 8000,  befolkning: 36700,  co2: 5.8 },
-    'Christiansø':             { ledighed: 1.0,  indkomst: 320000, boligpris: 8000,  befolkning: 100,    co2: 2.0 },
-    'Dragør':                  { ledighed: 2.9,  indkomst: 550000, boligpris: 36000, befolkning: 14400,  co2: 3.2 },
-    'Egedal':                  { ledighed: 3.5,  indkomst: 490000, boligpris: 26000, befolkning: 43500,  co2: 3.5 },
-    'Esbjerg':                 { ledighed: 5.9,  indkomst: 330000, boligpris: 12000, befolkning: 117000, co2: 5.6 },
-    'Faaborg-Midtfyn':         { ledighed: 6.3,  indkomst: 280000, boligpris: 8000,  befolkning: 51000,  co2: 5.0 },
-    'Fanø':                    { ledighed: 4.5,  indkomst: 310000, boligpris: 18000, befolkning: 3400,   co2: 3.8 },
-    'Favrskov':                { ledighed: 3.9,  indkomst: 410000, boligpris: 14000, befolkning: 48500,  co2: 4.2 },
-    'Faxe':                    { ledighed: 6.5,  indkomst: 295000, boligpris: 9500,  befolkning: 35700,  co2: 5.0 },
-    'Fredensborg':             { ledighed: 3.3,  indkomst: 510000, boligpris: 29000, befolkning: 40400,  co2: 3.3 },
-    'Fredericia':              { ledighed: 5.8,  indkomst: 330000, boligpris: 14000, befolkning: 52800,  co2: 5.5 },
-    'Frederiksberg':           { ledighed: 4.2,  indkomst: 500000, boligpris: 48000, befolkning: 103800, co2: 2.9 },
-    'Frederikshavn':           { ledighed: 6.8,  indkomst: 285000, boligpris: 7500,  befolkning: 61700,  co2: 5.9 },
-    'Frederikssund':           { ledighed: 4.8,  indkomst: 400000, boligpris: 20000, befolkning: 54100,  co2: 3.8 },
-    'Furesø':                  { ledighed: 3.1,  indkomst: 560000, boligpris: 30000, befolkning: 42200,  co2: 3.3 },
-    'Gentofte':                { ledighed: 2.5,  indkomst: 620000, boligpris: 42000, befolkning: 77500,  co2: 3.1 },
-    'Gladsaxe':                { ledighed: 4.0,  indkomst: 440000, boligpris: 29000, befolkning: 68900,  co2: 3.2 },
-    'Glostrup':                { ledighed: 5.2,  indkomst: 380000, boligpris: 24000, befolkning: 23500,  co2: 3.6 },
-    'Greve':                   { ledighed: 4.6,  indkomst: 420000, boligpris: 22000, befolkning: 50000,  co2: 3.7 },
-    'Gribskov':                { ledighed: 4.5,  indkomst: 400000, boligpris: 18000, befolkning: 43300,  co2: 3.8 },
-    'Guldborgsund':            { ledighed: 8.2,  indkomst: 265000, boligpris: 7000,  befolkning: 60700,  co2: 5.8 },
-    'Haderslev':               { ledighed: 5.7,  indkomst: 310000, boligpris: 10000, befolkning: 55900,  co2: 5.2 },
-    'Halsnæs':                 { ledighed: 5.8,  indkomst: 330000, boligpris: 15000, befolkning: 31600,  co2: 4.0 },
-    'Hedensted':               { ledighed: 4.0,  indkomst: 370000, boligpris: 12000, befolkning: 46200,  co2: 4.5 },
-    'Helsingør':               { ledighed: 5.0,  indkomst: 390000, boligpris: 22000, befolkning: 63300,  co2: 3.5 },
-    'Herlev':                  { ledighed: 5.1,  indkomst: 390000, boligpris: 26000, befolkning: 28600,  co2: 3.4 },
-    'Herning':                 { ledighed: 4.2,  indkomst: 360000, boligpris: 13000, befolkning: 91000,  co2: 5.2 },
-    'Hillerød':                { ledighed: 4.3,  indkomst: 430000, boligpris: 22000, befolkning: 51100,  co2: 3.5 },
-    'Hjørring':                { ledighed: 6.9,  indkomst: 275000, boligpris: 7200,  befolkning: 64200,  co2: 5.9 },
-    'Holbæk':                  { ledighed: 6.1,  indkomst: 330000, boligpris: 13000, befolkning: 72700,  co2: 4.3 },
-    'Holstebro':               { ledighed: 4.5,  indkomst: 340000, boligpris: 10500, befolkning: 57700,  co2: 5.0 },
-    'Horsens':                 { ledighed: 4.8,  indkomst: 360000, boligpris: 16000, befolkning: 94000,  co2: 4.8 },
-    'Hvidovre':                { ledighed: 5.8,  indkomst: 370000, boligpris: 26000, befolkning: 53200,  co2: 3.6 },
-    'Høje-Taastrup':           { ledighed: 6.8,  indkomst: 340000, boligpris: 21000, befolkning: 52400,  co2: 3.9 },
-    'Hørsholm':                { ledighed: 2.8,  indkomst: 600000, boligpris: 38000, befolkning: 25300,  co2: 3.2 },
-    'Ikast-Brande':            { ledighed: 4.0,  indkomst: 345000, boligpris: 10000, befolkning: 41600,  co2: 5.0 },
-    'Ishøj':                   { ledighed: 8.5,  indkomst: 300000, boligpris: 18000, befolkning: 22700,  co2: 4.3 },
-    'Jammerbugt':              { ledighed: 5.5,  indkomst: 285000, boligpris: 8500,  befolkning: 38200,  co2: 5.5 },
-    'Kalundborg':              { ledighed: 6.0,  indkomst: 310000, boligpris: 9500,  befolkning: 50200,  co2: 5.3 },
-    'Kerteminde':              { ledighed: 5.2,  indkomst: 300000, boligpris: 10000, befolkning: 23700,  co2: 4.8 },
-    'Kolding':                 { ledighed: 4.5,  indkomst: 380000, boligpris: 16000, befolkning: 95000,  co2: 4.6 },
-    'København':               { ledighed: 5.4,  indkomst: 410000, boligpris: 52000, befolkning: 794128, co2: 3.1 },
-    'Køge':                    { ledighed: 5.0,  indkomst: 390000, boligpris: 18000, befolkning: 59900,  co2: 4.0 },
-    'Langeland':               { ledighed: 8.0,  indkomst: 255000, boligpris: 7000,  befolkning: 12800,  co2: 5.2 },
-    'Lejre':                   { ledighed: 3.8,  indkomst: 460000, boligpris: 21000, befolkning: 27500,  co2: 3.7 },
-    'Lemvig':                  { ledighed: 5.1,  indkomst: 285000, boligpris: 8000,  befolkning: 20700,  co2: 4.8 },
-    'Lolland':                 { ledighed: 10.2, indkomst: 245000, boligpris: 5500,  befolkning: 43500,  co2: 5.9 },
-    'Lyngby-Taarbæk':          { ledighed: 2.9,  indkomst: 580000, boligpris: 40000, befolkning: 56500,  co2: 3.1 },
-    'Læsø':                    { ledighed: 4.8,  indkomst: 275000, boligpris: 9000,  befolkning: 1900,   co2: 3.5 },
-    'Mariagerfjord':           { ledighed: 5.4,  indkomst: 295000, boligpris: 8500,  befolkning: 42100,  co2: 5.6 },
-    'Middelfart':              { ledighed: 4.8,  indkomst: 350000, boligpris: 13000, befolkning: 38400,  co2: 4.6 },
-    'Morsø':                   { ledighed: 6.5,  indkomst: 275000, boligpris: 7500,  befolkning: 21200,  co2: 5.6 },
-    'Norddjurs':               { ledighed: 6.2,  indkomst: 285000, boligpris: 8500,  befolkning: 37900,  co2: 5.5 },
-    'Nordfyns':                { ledighed: 5.6,  indkomst: 290000, boligpris: 9000,  befolkning: 29400,  co2: 5.0 },
-    'Nyborg':                  { ledighed: 5.4,  indkomst: 300000, boligpris: 10500, befolkning: 31600,  co2: 4.8 },
-    'Næstved':                 { ledighed: 6.4,  indkomst: 305000, boligpris: 10000, befolkning: 82400,  co2: 4.8 },
-    'Odder':                   { ledighed: 3.7,  indkomst: 400000, boligpris: 15000, befolkning: 22700,  co2: 4.0 },
-    'Odense':                  { ledighed: 6.2,  indkomst: 340000, boligpris: 18000, befolkning: 207000, co2: 4.5 },
-    'Odsherred':               { ledighed: 7.0,  indkomst: 280000, boligpris: 10000, befolkning: 32800,  co2: 4.5 },
-    'Randers':                 { ledighed: 5.6,  indkomst: 325000, boligpris: 11000, befolkning: 96000,  co2: 5.3 },
-    'Rebild':                  { ledighed: 4.2,  indkomst: 360000, boligpris: 10000, befolkning: 29800,  co2: 4.9 },
-    'Ringkøbing-Skjern':       { ledighed: 4.4,  indkomst: 330000, boligpris: 9500,  befolkning: 57700,  co2: 5.1 },
-    'Ringsted':                { ledighed: 5.5,  indkomst: 345000, boligpris: 13000, befolkning: 35100,  co2: 4.3 },
-    'Roskilde':                { ledighed: 4.0,  indkomst: 450000, boligpris: 22000, befolkning: 90600,  co2: 3.7 },
-    'Rudersdal':               { ledighed: 2.8,  indkomst: 650000, boligpris: 35000, befolkning: 57400,  co2: 3.2 },
-    'Rødovre':                 { ledighed: 5.5,  indkomst: 370000, boligpris: 25000, befolkning: 38800,  co2: 3.5 },
-    'Samsø':                   { ledighed: 4.0,  indkomst: 295000, boligpris: 12000, befolkning: 3700,   co2: 1.8 },
-    'Silkeborg':               { ledighed: 4.0,  indkomst: 380000, boligpris: 16000, befolkning: 91300,  co2: 4.5 },
-    'Skanderborg':             { ledighed: 3.2,  indkomst: 430000, boligpris: 17000, befolkning: 63400,  co2: 4.0 },
-    'Skive':                   { ledighed: 5.5,  indkomst: 300000, boligpris: 9000,  befolkning: 47200,  co2: 5.4 },
-    'Slagelse':                { ledighed: 6.8,  indkomst: 295000, boligpris: 10500, befolkning: 79800,  co2: 4.7 },
-    'Solrød':                  { ledighed: 3.5,  indkomst: 470000, boligpris: 23000, befolkning: 22200,  co2: 3.5 },
-    'Sorø':                    { ledighed: 5.0,  indkomst: 330000, boligpris: 11500, befolkning: 29800,  co2: 4.2 },
-    'Stevns':                  { ledighed: 4.8,  indkomst: 370000, boligpris: 12500, befolkning: 22300,  co2: 4.0 },
-    'Struer':                  { ledighed: 5.0,  indkomst: 305000, boligpris: 8500,  befolkning: 22200,  co2: 5.2 },
-    'Svendborg':               { ledighed: 6.0,  indkomst: 305000, boligpris: 11000, befolkning: 58400,  co2: 4.8 },
-    'Syddjurs':                { ledighed: 4.5,  indkomst: 340000, boligpris: 12000, befolkning: 43400,  co2: 4.5 },
-    'Sønderborg':              { ledighed: 5.9,  indkomst: 315000, boligpris: 10500, befolkning: 75600,  co2: 5.0 },
-    'Thisted':                 { ledighed: 6.3,  indkomst: 280000, boligpris: 7800,  befolkning: 43200,  co2: 5.5 },
-    'Tårnby':                  { ledighed: 4.5,  indkomst: 385000, boligpris: 26000, befolkning: 44200,  co2: 3.6 },
-    'Tønder':                  { ledighed: 6.5,  indkomst: 285000, boligpris: 7500,  befolkning: 38100,  co2: 5.4 },
-    'Vallensbæk':              { ledighed: 4.2,  indkomst: 450000, boligpris: 26000, befolkning: 16200,  co2: 3.5 },
-    'Varde':                   { ledighed: 4.8,  indkomst: 320000, boligpris: 9500,  befolkning: 50500,  co2: 5.0 },
-    'Vejen':                   { ledighed: 4.5,  indkomst: 325000, boligpris: 9000,  befolkning: 43300,  co2: 5.1 },
-    'Vejle':                   { ledighed: 4.3,  indkomst: 390000, boligpris: 18000, befolkning: 119000, co2: 4.8 },
-    'Vesthimmerland':          { ledighed: 6.2,  indkomst: 280000, boligpris: 7500,  befolkning: 37200,  co2: 5.6 },
-    'Viborg':                  { ledighed: 4.5,  indkomst: 340000, boligpris: 11500, befolkning: 97000,  co2: 5.0 },
-    'Vordingborg':             { ledighed: 7.0,  indkomst: 285000, boligpris: 9000,  befolkning: 45400,  co2: 4.9 },
-    'Ærø':                     { ledighed: 5.5,  indkomst: 280000, boligpris: 10000, befolkning: 6200,   co2: 3.8 },
-    'Århus':                   { ledighed: 4.8,  indkomst: 380000, boligpris: 28000, befolkning: 360000, co2: 4.2 },
+    'Aabenraa':                { ledighed: 6.1,  indkomst: 310000, boligpris: 9500,  befolkning: 59200,  co2: 5.4, skat: 25.8, erhverv: 72 },
+    'Aalborg':                 { ledighed: 5.5,  indkomst: 330000, boligpris: 16000, befolkning: 216000, co2: 6.5, skat: 25.5, erhverv: 74 },
+    'Albertslund':             { ledighed: 7.2,  indkomst: 320000, boligpris: 22000, befolkning: 28200,  co2: 4.1, skat: 24.6, erhverv: 71 },
+    'Allerød':                 { ledighed: 3.2,  indkomst: 540000, boligpris: 28000, befolkning: 26400,  co2: 3.4, skat: 23.2, erhverv: 81 },
+    'Assens':                  { ledighed: 5.8,  indkomst: 295000, boligpris: 8500,  befolkning: 41400,  co2: 5.1, skat: 25.7, erhverv: 73 },
+    'Ballerup':                { ledighed: 4.8,  indkomst: 420000, boligpris: 28000, befolkning: 49400,  co2: 3.5, skat: 23.4, erhverv: 79 },
+    'Billund':                 { ledighed: 3.8,  indkomst: 370000, boligpris: 11000, befolkning: 27000,  co2: 4.8, skat: 24.4, erhverv: 78 },
+    'Bornholm':                { ledighed: 7.4,  indkomst: 280000, boligpris: 8000,  befolkning: 39500,  co2: 3.9, skat: 26.0, erhverv: 70 },
+    'Brøndby':                 { ledighed: 7.0,  indkomst: 315000, boligpris: 23000, befolkning: 35100,  co2: 4.2, skat: 24.9, erhverv: 72 },
+    'Brønderslev-Dronninglund':{ ledighed: 6.0,  indkomst: 290000, boligpris: 8000,  befolkning: 36700,  co2: 5.8, skat: 26.4, erhverv: 73 },
+    'Christiansø':             { ledighed: 1.0,  indkomst: 320000, boligpris: 8000,  befolkning: 100,    co2: 2.0, skat: 22.8, erhverv: 82 },
+    'Dragør':                  { ledighed: 2.9,  indkomst: 550000, boligpris: 36000, befolkning: 14400,  co2: 3.2, skat: 23.0, erhverv: 81 },
+    'Egedal':                  { ledighed: 3.5,  indkomst: 490000, boligpris: 26000, befolkning: 43500,  co2: 3.5, skat: 23.5, erhverv: 80 },
+    'Esbjerg':                 { ledighed: 5.9,  indkomst: 330000, boligpris: 12000, befolkning: 117000, co2: 5.6, skat: 25.3, erhverv: 74 },
+    'Faaborg-Midtfyn':         { ledighed: 6.3,  indkomst: 280000, boligpris: 8000,  befolkning: 51000,  co2: 5.0, skat: 26.1, erhverv: 72 },
+    'Fanø':                    { ledighed: 4.5,  indkomst: 310000, boligpris: 18000, befolkning: 3400,   co2: 3.8, skat: 25.5, erhverv: 74 },
+    'Favrskov':                { ledighed: 3.9,  indkomst: 410000, boligpris: 14000, befolkning: 48500,  co2: 4.2, skat: 23.6, erhverv: 79 },
+    'Faxe':                    { ledighed: 6.5,  indkomst: 295000, boligpris: 9500,  befolkning: 35700,  co2: 5.0, skat: 25.9, erhverv: 72 },
+    'Fredensborg':             { ledighed: 3.3,  indkomst: 510000, boligpris: 29000, befolkning: 40400,  co2: 3.3, skat: 23.4, erhverv: 80 },
+    'Fredericia':              { ledighed: 5.8,  indkomst: 330000, boligpris: 14000, befolkning: 52800,  co2: 5.5, skat: 25.2, erhverv: 74 },
+    'Frederiksberg':           { ledighed: 4.2,  indkomst: 500000, boligpris: 48000, befolkning: 103800, co2: 2.9, skat: 22.8, erhverv: 79 },
+    'Frederikshavn':           { ledighed: 6.8,  indkomst: 285000, boligpris: 7500,  befolkning: 61700,  co2: 5.9, skat: 26.5, erhverv: 71 },
+    'Frederikssund':           { ledighed: 4.8,  indkomst: 400000, boligpris: 20000, befolkning: 54100,  co2: 3.8, skat: 24.0, erhverv: 77 },
+    'Furesø':                  { ledighed: 3.1,  indkomst: 560000, boligpris: 30000, befolkning: 42200,  co2: 3.3, skat: 23.2, erhverv: 81 },
+    'Gentofte':                { ledighed: 2.5,  indkomst: 620000, boligpris: 42000, befolkning: 77500,  co2: 3.1, skat: 22.8, erhverv: 82 },
+    'Gladsaxe':                { ledighed: 4.0,  indkomst: 440000, boligpris: 29000, befolkning: 68900,  co2: 3.2, skat: 23.1, erhverv: 79 },
+    'Glostrup':                { ledighed: 5.2,  indkomst: 380000, boligpris: 24000, befolkning: 23500,  co2: 3.6, skat: 23.8, erhverv: 77 },
+    'Greve':                   { ledighed: 4.6,  indkomst: 420000, boligpris: 22000, befolkning: 50000,  co2: 3.7, skat: 23.6, erhverv: 78 },
+    'Gribskov':                { ledighed: 4.5,  indkomst: 400000, boligpris: 18000, befolkning: 43300,  co2: 3.8, skat: 24.5, erhverv: 77 },
+    'Guldborgsund':            { ledighed: 8.2,  indkomst: 265000, boligpris: 7000,  befolkning: 60700,  co2: 5.8, skat: 27.0, erhverv: 68 },
+    'Haderslev':               { ledighed: 5.7,  indkomst: 310000, boligpris: 10000, befolkning: 55900,  co2: 5.2, skat: 25.5, erhverv: 74 },
+    'Halsnæs':                 { ledighed: 5.8,  indkomst: 330000, boligpris: 15000, befolkning: 31600,  co2: 4.0, skat: 25.0, erhverv: 74 },
+    'Hedensted':               { ledighed: 4.0,  indkomst: 370000, boligpris: 12000, befolkning: 46200,  co2: 4.5, skat: 24.3, erhverv: 78 },
+    'Helsingør':               { ledighed: 5.0,  indkomst: 390000, boligpris: 22000, befolkning: 63300,  co2: 3.5, skat: 24.2, erhverv: 77 },
+    'Herlev':                  { ledighed: 5.1,  indkomst: 390000, boligpris: 26000, befolkning: 28600,  co2: 3.4, skat: 23.5, erhverv: 77 },
+    'Herning':                 { ledighed: 4.2,  indkomst: 360000, boligpris: 13000, befolkning: 91000,  co2: 5.2, skat: 24.8, erhverv: 78 },
+    'Hillerød':                { ledighed: 4.3,  indkomst: 430000, boligpris: 22000, befolkning: 51100,  co2: 3.5, skat: 23.8, erhverv: 78 },
+    'Hjørring':                { ledighed: 6.9,  indkomst: 275000, boligpris: 7200,  befolkning: 64200,  co2: 5.9, skat: 26.6, erhverv: 70 },
+    'Holbæk':                  { ledighed: 6.1,  indkomst: 330000, boligpris: 13000, befolkning: 72700,  co2: 4.3, skat: 25.4, erhverv: 73 },
+    'Holstebro':               { ledighed: 4.5,  indkomst: 340000, boligpris: 10500, befolkning: 57700,  co2: 5.0, skat: 25.1, erhverv: 76 },
+    'Horsens':                 { ledighed: 4.8,  indkomst: 360000, boligpris: 16000, befolkning: 94000,  co2: 4.8, skat: 24.5, erhverv: 77 },
+    'Hvidovre':                { ledighed: 5.8,  indkomst: 370000, boligpris: 26000, befolkning: 53200,  co2: 3.6, skat: 24.2, erhverv: 76 },
+    'Høje-Taastrup':           { ledighed: 6.8,  indkomst: 340000, boligpris: 21000, befolkning: 52400,  co2: 3.9, skat: 24.4, erhverv: 74 },
+    'Hørsholm':                { ledighed: 2.8,  indkomst: 600000, boligpris: 38000, befolkning: 25300,  co2: 3.2, skat: 22.9, erhverv: 82 },
+    'Ikast-Brande':            { ledighed: 4.0,  indkomst: 345000, boligpris: 10000, befolkning: 41600,  co2: 5.0, skat: 24.7, erhverv: 78 },
+    'Ishøj':                   { ledighed: 8.5,  indkomst: 300000, boligpris: 18000, befolkning: 22700,  co2: 4.3, skat: 25.5, erhverv: 69 },
+    'Jammerbugt':              { ledighed: 5.5,  indkomst: 285000, boligpris: 8500,  befolkning: 38200,  co2: 5.5, skat: 26.2, erhverv: 73 },
+    'Kalundborg':              { ledighed: 6.0,  indkomst: 310000, boligpris: 9500,  befolkning: 50200,  co2: 5.3, skat: 25.9, erhverv: 73 },
+    'Kerteminde':              { ledighed: 5.2,  indkomst: 300000, boligpris: 10000, befolkning: 23700,  co2: 4.8, skat: 25.6, erhverv: 74 },
+    'Kolding':                 { ledighed: 4.5,  indkomst: 380000, boligpris: 16000, befolkning: 95000,  co2: 4.6, skat: 24.2, erhverv: 77 },
+    'København':               { ledighed: 5.4,  indkomst: 410000, boligpris: 52000, befolkning: 794128, co2: 3.1, skat: 23.5, erhverv: 76 },
+    'Køge':                    { ledighed: 5.0,  indkomst: 390000, boligpris: 18000, befolkning: 59900,  co2: 4.0, skat: 24.0, erhverv: 77 },
+    'Langeland':               { ledighed: 8.0,  indkomst: 255000, boligpris: 7000,  befolkning: 12800,  co2: 5.2, skat: 27.4, erhverv: 68 },
+    'Lejre':                   { ledighed: 3.8,  indkomst: 460000, boligpris: 21000, befolkning: 27500,  co2: 3.7, skat: 24.2, erhverv: 79 },
+    'Lemvig':                  { ledighed: 5.1,  indkomst: 285000, boligpris: 8000,  befolkning: 20700,  co2: 4.8, skat: 26.0, erhverv: 74 },
+    'Lolland':                 { ledighed: 10.2, indkomst: 245000, boligpris: 5500,  befolkning: 43500,  co2: 5.9, skat: 27.8, erhverv: 65 },
+    'Lyngby-Taarbæk':          { ledighed: 2.9,  indkomst: 580000, boligpris: 40000, befolkning: 56500,  co2: 3.1, skat: 22.9, erhverv: 81 },
+    'Læsø':                    { ledighed: 4.8,  indkomst: 275000, boligpris: 9000,  befolkning: 1900,   co2: 3.5, skat: 26.3, erhverv: 73 },
+    'Mariagerfjord':           { ledighed: 5.4,  indkomst: 295000, boligpris: 8500,  befolkning: 42100,  co2: 5.6, skat: 26.0, erhverv: 73 },
+    'Middelfart':              { ledighed: 4.8,  indkomst: 350000, boligpris: 13000, befolkning: 38400,  co2: 4.6, skat: 24.6, erhverv: 77 },
+    'Morsø':                   { ledighed: 6.5,  indkomst: 275000, boligpris: 7500,  befolkning: 21200,  co2: 5.6, skat: 27.2, erhverv: 70 },
+    'Norddjurs':               { ledighed: 6.2,  indkomst: 285000, boligpris: 8500,  befolkning: 37900,  co2: 5.5, skat: 26.3, erhverv: 71 },
+    'Nordfyns':                { ledighed: 5.6,  indkomst: 290000, boligpris: 9000,  befolkning: 29400,  co2: 5.0, skat: 25.9, erhverv: 73 },
+    'Nyborg':                  { ledighed: 5.4,  indkomst: 300000, boligpris: 10500, befolkning: 31600,  co2: 4.8, skat: 25.7, erhverv: 74 },
+    'Næstved':                 { ledighed: 6.4,  indkomst: 305000, boligpris: 10000, befolkning: 82400,  co2: 4.8, skat: 25.8, erhverv: 72 },
+    'Odder':                   { ledighed: 3.7,  indkomst: 400000, boligpris: 15000, befolkning: 22700,  co2: 4.0, skat: 24.0, erhverv: 79 },
+    'Odense':                  { ledighed: 6.2,  indkomst: 340000, boligpris: 18000, befolkning: 207000, co2: 4.5, skat: 25.0, erhverv: 74 },
+    'Odsherred':               { ledighed: 7.0,  indkomst: 280000, boligpris: 10000, befolkning: 32800,  co2: 4.5, skat: 26.5, erhverv: 70 },
+    'Randers':                 { ledighed: 5.6,  indkomst: 325000, boligpris: 11000, befolkning: 96000,  co2: 5.3, skat: 25.6, erhverv: 74 },
+    'Rebild':                  { ledighed: 4.2,  indkomst: 360000, boligpris: 10000, befolkning: 29800,  co2: 4.9, skat: 25.0, erhverv: 77 },
+    'Ringkøbing-Skjern':       { ledighed: 4.4,  indkomst: 330000, boligpris: 9500,  befolkning: 57700,  co2: 5.1, skat: 25.0, erhverv: 77 },
+    'Ringsted':                { ledighed: 5.5,  indkomst: 345000, boligpris: 13000, befolkning: 35100,  co2: 4.3, skat: 25.3, erhverv: 75 },
+    'Roskilde':                { ledighed: 4.0,  indkomst: 450000, boligpris: 22000, befolkning: 90600,  co2: 3.7, skat: 23.6, erhverv: 78 },
+    'Rudersdal':               { ledighed: 2.8,  indkomst: 650000, boligpris: 35000, befolkning: 57400,  co2: 3.2, skat: 22.8, erhverv: 82 },
+    'Rødovre':                 { ledighed: 5.5,  indkomst: 370000, boligpris: 25000, befolkning: 38800,  co2: 3.5, skat: 23.9, erhverv: 76 },
+    'Samsø':                   { ledighed: 4.0,  indkomst: 295000, boligpris: 12000, befolkning: 3700,   co2: 1.8, skat: 24.8, erhverv: 76 },
+    'Silkeborg':               { ledighed: 4.0,  indkomst: 380000, boligpris: 16000, befolkning: 91300,  co2: 4.5, skat: 24.2, erhverv: 78 },
+    'Skanderborg':             { ledighed: 3.2,  indkomst: 430000, boligpris: 17000, befolkning: 63400,  co2: 4.0, skat: 23.4, erhverv: 80 },
+    'Skive':                   { ledighed: 5.5,  indkomst: 300000, boligpris: 9000,  befolkning: 47200,  co2: 5.4, skat: 26.0, erhverv: 73 },
+    'Slagelse':                { ledighed: 6.8,  indkomst: 295000, boligpris: 10500, befolkning: 79800,  co2: 4.7, skat: 26.1, erhverv: 71 },
+    'Solrød':                  { ledighed: 3.5,  indkomst: 470000, boligpris: 23000, befolkning: 22200,  co2: 3.5, skat: 23.3, erhverv: 80 },
+    'Sorø':                    { ledighed: 5.0,  indkomst: 330000, boligpris: 11500, befolkning: 29800,  co2: 4.2, skat: 25.3, erhverv: 75 },
+    'Stevns':                  { ledighed: 4.8,  indkomst: 370000, boligpris: 12500, befolkning: 22300,  co2: 4.0, skat: 24.8, erhverv: 76 },
+    'Struer':                  { ledighed: 5.0,  indkomst: 305000, boligpris: 8500,  befolkning: 22200,  co2: 5.2, skat: 25.8, erhverv: 74 },
+    'Svendborg':               { ledighed: 6.0,  indkomst: 305000, boligpris: 11000, befolkning: 58400,  co2: 4.8, skat: 25.6, erhverv: 72 },
+    'Syddjurs':                { ledighed: 4.5,  indkomst: 340000, boligpris: 12000, befolkning: 43400,  co2: 4.5, skat: 24.5, erhverv: 77 },
+    'Sønderborg':              { ledighed: 5.9,  indkomst: 315000, boligpris: 10500, befolkning: 75600,  co2: 5.0, skat: 25.7, erhverv: 74 },
+    'Thisted':                 { ledighed: 6.3,  indkomst: 280000, boligpris: 7800,  befolkning: 43200,  co2: 5.5, skat: 26.4, erhverv: 71 },
+    'Tårnby':                  { ledighed: 4.5,  indkomst: 385000, boligpris: 26000, befolkning: 44200,  co2: 3.6, skat: 23.6, erhverv: 78 },
+    'Tønder':                  { ledighed: 6.5,  indkomst: 285000, boligpris: 7500,  befolkning: 38100,  co2: 5.4, skat: 26.3, erhverv: 71 },
+    'Vallensbæk':              { ledighed: 4.2,  indkomst: 450000, boligpris: 26000, befolkning: 16200,  co2: 3.5, skat: 23.0, erhverv: 79 },
+    'Varde':                   { ledighed: 4.8,  indkomst: 320000, boligpris: 9500,  befolkning: 50500,  co2: 5.0, skat: 25.2, erhverv: 76 },
+    'Vejen':                   { ledighed: 4.5,  indkomst: 325000, boligpris: 9000,  befolkning: 43300,  co2: 5.1, skat: 25.4, erhverv: 76 },
+    'Vejle':                   { ledighed: 4.3,  indkomst: 390000, boligpris: 18000, befolkning: 119000, co2: 4.8, skat: 24.0, erhverv: 78 },
+    'Vesthimmerland':          { ledighed: 6.2,  indkomst: 280000, boligpris: 7500,  befolkning: 37200,  co2: 5.6, skat: 26.5, erhverv: 71 },
+    'Viborg':                  { ledighed: 4.5,  indkomst: 340000, boligpris: 11500, befolkning: 97000,  co2: 5.0, skat: 25.0, erhverv: 76 },
+    'Vordingborg':             { ledighed: 7.0,  indkomst: 285000, boligpris: 9000,  befolkning: 45400,  co2: 4.9, skat: 26.8, erhverv: 70 },
+    'Ærø':                     { ledighed: 5.5,  indkomst: 280000, boligpris: 10000, befolkning: 6200,   co2: 3.8, skat: 26.0, erhverv: 72 },
+    'Århus':                   { ledighed: 4.8,  indkomst: 380000, boligpris: 28000, befolkning: 360000, co2: 4.2, skat: 24.5, erhverv: 77 },
   };
 
   const METRICS = {
-    ledighed:   { label: 'Ledighed',     unit: '%',        goodHigh: false, format: v => v.toFixed(1) + '%' },
-    indkomst:   { label: 'Indkomst',     unit: 'kr/år',    goodHigh: true,  format: v => (v / 1000).toFixed(0) + 'k kr' },
-    boligpris:  { label: 'Boligpris',    unit: 'kr/m²',    goodHigh: false, format: v => v.toLocaleString('da-DK') + ' kr/m²' },
-    befolkning: { label: 'Befolkning',   unit: 'pers',     goodHigh: true,  format: v => v.toLocaleString('da-DK') },
-    co2:        { label: 'CO₂',          unit: 't/pers',   goodHigh: false, format: v => v.toFixed(1) + ' t/pers' },
+    ledighed:   { label: 'Ledighed',       unit: '%',     goodHigh: false, format: v => v.toFixed(1) + '%' },
+    indkomst:   { label: 'Indkomst',       unit: 'kr/år', goodHigh: true,  format: v => (v / 1000).toFixed(0) + 'k kr' },
+    boligpris:  { label: 'Boligpris',      unit: 'kr/m²', goodHigh: false, format: v => v.toLocaleString('da-DK') + ' kr/m²' },
+    befolkning: { label: 'Befolkning',     unit: 'pers',  goodHigh: true,  format: v => v.toLocaleString('da-DK') },
+    co2:        { label: 'CO₂',            unit: 't/pers',goodHigh: false, format: v => v.toFixed(1) + ' t/pers' },
+    skat:       { label: 'Kommuneskat',    unit: '%',     goodHigh: false, format: v => v.toFixed(1) + '%' },
+    erhverv:    { label: 'Erhvervsfrekvens',unit: '%',    goodHigh: true,  format: v => v.toFixed(0) + '%' },
   };
 
   const METRIC_RANGES = {
@@ -190,6 +192,8 @@ VG.danmarkskort = {};
     boligpris:  { min: 5500,   max: 52000 },
     befolkning: { min: 100,    max: 794128 },
     co2:        { min: 1.8,    max: 6.8 },
+    skat:       { min: 22.8,   max: 27.8 },
+    erhverv:    { min: 65,     max: 82 },
   };
 
   const CITIES = [
@@ -499,6 +503,47 @@ VG.danmarkskort = {};
   }
   function bytes(rgb, a) { return window.Cesium.Color.fromBytes(rgb[0], rgb[1], rgb[2], a == null ? 255 : a); }
 
+  // ── Airline colours (ICAO callsign prefix → [r,g,b]) ─────────────────────
+  const AIRLINE_COLORS = {
+    SAS:[0,45,130], DAN:[200,0,40], SJN:[0,100,200], EZY:[255,100,0],
+    RYR:[0,50,150], DLH:[255,200,0], BAW:[0,56,145], KLM:[0,155,227],
+    AFR:[0,60,150], IBE:[180,0,0],  THY:[220,0,40],  UAE:[0,120,80],
+    QTR:[140,0,50], FIN:[0,120,200], NOZ:[220,60,0], NAX:[220,60,0],
+    WZZ:[130,0,180], VLG:[250,180,0], TAP:[0,130,60], AUA:[150,0,0],
+    BEL:[0,90,180], LOT:[180,0,0],   CSN:[200,0,30], CCA:[180,0,20],
+    UAL:[0,40,130], AAL:[180,30,30], DAL:[0,50,120], SWA:[180,80,0],
+  };
+  const _planeCanvasCache = new Map();
+  function makePlaneCanvas(r, g, b) {
+    const key = `${r},${g},${b}`;
+    if (_planeCanvasCache.has(key)) return _planeCanvasCache.get(key);
+    const sz = 28, c = document.createElement('canvas');
+    c.width = c.height = sz;
+    const ctx = c.getContext('2d');
+    // Plane silhouette pointing UP (North). Simple body + wings + tail.
+    const cx = sz / 2, cy = sz / 2;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.92)`;
+    ctx.strokeStyle = `rgba(255,255,255,0.7)`;
+    ctx.lineWidth = 1;
+    // Body
+    ctx.beginPath(); ctx.ellipse(cx, cy, 3, 9, 0, 0, Math.PI * 2); ctx.fill();
+    // Wings
+    ctx.beginPath(); ctx.moveTo(cx, cy - 1); ctx.lineTo(cx - 11, cy + 5); ctx.lineTo(cx - 6, cy + 5); ctx.lineTo(cx, cy + 1); ctx.lineTo(cx + 6, cy + 5); ctx.lineTo(cx + 11, cy + 5); ctx.closePath(); ctx.fill();
+    // Tail
+    ctx.beginPath(); ctx.moveTo(cx, cy + 6); ctx.lineTo(cx - 5, cy + 10); ctx.lineTo(cx, cy + 8); ctx.lineTo(cx + 5, cy + 10); ctx.closePath(); ctx.fill();
+    // Outline
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.ellipse(cx, cy, 3, 9, 0, 0, Math.PI * 2); ctx.stroke();
+    _planeCanvasCache.set(key, c);
+    return c;
+  }
+  function airlineColor(callsign) {
+    if (!callsign) return [180, 220, 255];
+    const pfx = callsign.trim().toUpperCase().substring(0, 3);
+    return AIRLINE_COLORS[pfx] || AIRLINE_COLORS[pfx.substring(0, 2)] || [180, 220, 255];
+  }
+
   // ── State ──────────────────────────────────────────────────────────────────
   let Cesium     = null;
   let _viewer    = null;
@@ -506,6 +551,7 @@ VG.danmarkskort = {};
   let _view      = 'kommuner';
   let _pulse     = 0;
   let _rafId     = null;
+  let _pinnedTooltip = false;
   let _aircraft  = [];
   let _aircraftStatus = 'loading';
   let _ships     = [];
@@ -617,9 +663,22 @@ VG.danmarkskort = {};
 
     _viewer.camera.flyTo({ ...HOME(), duration: 0 });
 
-    // Hover tooltips
+    // Hover tooltips + click-to-pin
     const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
     handler.setInputAction((movement) => onHover(movement.endPosition), Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    handler.setInputAction((click) => {
+      const picked = _viewer.scene.pick(click.position);
+      const ent = picked && picked.id;
+      if (ent && ent._kind) {
+        // Pin the tooltip so the user can read/interact without it disappearing.
+        _pinnedTooltip = true;
+        onHoverForce(click.position, ent);
+      } else {
+        _pinnedTooltip = false;
+        const el = document.getElementById('dk-tooltip');
+        if (el) el.style.display = 'none';
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
     _viewer._dkHandler = handler;
 
     // Compass needle follows camera heading
@@ -855,13 +914,19 @@ VG.danmarkskort = {};
     _aircraft.forEach(d => {
       seen.add(d.icao24);
       if (!_acEnt.has(d.icao24)) {
+        const [ar, ag, ab] = airlineColor(d.callsign);
+        const canvas = makePlaneCanvas(ar, ag, ab);
         const e = ents.add({
           position: new Cesium.CallbackProperty(() => d.pos ? deg(d.pos[0], d.pos[1], (d.altitude || 0)) : undefined, false),
-          point: {
-            pixelSize: 6,
-            color: new Cesium.CallbackProperty(() => { const t = Math.max(0, Math.min(1, (d.altitude || 0) / 12000)); return Cesium.Color.fromBytes(Math.round(40 + t * 60), Math.round(255 - t * 40), Math.round(200 + t * 40), 235); }, false),
-            outlineColor: Cesium.Color.fromBytes(0, 255, 200, 120), outlineWidth: 1,
+          billboard: {
+            image: canvas,
+            width: 28, height: 28,
+            // rotation is CCW in screen-space. Heading is CW from North.
+            // rotation = -(heading in radians) makes 0° point up on screen.
+            rotation: new Cesium.CallbackProperty(() => -((d.heading || 0) * Math.PI / 180), false),
+            alignedAxis: Cesium.Cartesian3.ZERO,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scaleByDistance: new Cesium.NearFarScalar(1e4, 1.2, 8e6, 0.4),
           },
           _kind: 'aircraft', _data: d, _layer: 'lufttrafik',
         });
@@ -921,10 +986,18 @@ VG.danmarkskort = {};
           // the per-frame lerp), so this reads live position in O(1).
           position: new Cesium.CallbackProperty(() => deg(d.pos[0], d.pos[1], d.alt * 1000), false),
           point: {
-            pixelSize: d.surv ? 8 : 5,
-            color: d.surv ? Cesium.Color.fromBytes(255, 180, 80, 255) : Cesium.Color.fromBytes(220, 245, 255, 240),
-            outlineColor: d.surv ? Cesium.Color.fromBytes(255, 80, 30, 220) : Cesium.Color.fromBytes(120, 200, 255, 200),
-            outlineWidth: 1.5, disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            // Gold-amber for surveillance, cyan-white for others. Both large
+            // enough to be clearly visible against the star field.
+            pixelSize: d.surv ? 12 : 8,
+            color: d.surv
+              ? Cesium.Color.fromBytes(255, 160, 30, 255)
+              : Cesium.Color.fromBytes(160, 230, 255, 240),
+            outlineColor: d.surv
+              ? Cesium.Color.fromBytes(255, 60, 0, 200)
+              : Cesium.Color.fromBytes(80, 180, 255, 180),
+            outlineWidth: d.surv ? 4 : 3,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scaleByDistance: new Cesium.NearFarScalar(1e5, 1.4, 2e7, 0.7),
           },
           _kind: 'sat', _data: d, _layer: 'satellitter',
         };
@@ -999,32 +1072,41 @@ VG.danmarkskort = {};
     syncGroundTracks();
   }
 
-  // ── Hover tooltips ───────────────────────────────────────────────────────────
+  // ── Hover / pin tooltips ─────────────────────────────────────────────────────
+  function dispatchTooltip(ent, x, y, pinned) {
+    switch (ent._kind) {
+      case 'kommune':  tipKommune(ent, x, y, pinned); break;
+      case 'aircraft': tip(x, y, aircraftHTML(ent._data), pinned); break;
+      case 'ship':     tip(x, y, shipHTML(ent._data), pinned); break;
+      case 'sat':      tip(x, y, satHTML(ent._data), pinned); break;
+      case 'wind':     tip(x, y, windHTML(ent._data), pinned); break;
+      case 'port':     tip(x, y, portHTML(ent._data), pinned); break;
+      case 'ferry':    tip(x, y, ferryHTML(ent._data), pinned); break;
+      case 'cable':    tip(x, y, cableHTML(ent._data), pinned); break;
+      case 'jamming':  tip(x, y, jammingHTML(ent._data), pinned); break;
+      case 'notam':    tip(x, y, notamHTML(ent._data), pinned); break;
+    }
+  }
   function onHover(pos) {
+    if (_pinnedTooltip) return;  // pinned — don't overwrite
     const el = document.getElementById('dk-tooltip');
     if (!el || !_viewer) return;
     const picked = _viewer.scene.pick(pos);
     const ent = picked && picked.id;
     if (!ent || !ent._kind) { el.style.display = 'none'; return; }
-    const x = pos.x, y = pos.y;
-    switch (ent._kind) {
-      case 'kommune':  tipKommune(ent, x, y); break;
-      case 'aircraft': tip(x, y, aircraftHTML(ent._data)); break;
-      case 'ship':     tip(x, y, shipHTML(ent._data)); break;
-      case 'sat':      tip(x, y, satHTML(ent._data)); break;
-      case 'wind':     tip(x, y, windHTML(ent._data)); break;
-      case 'port':     tip(x, y, portHTML(ent._data)); break;
-      case 'ferry':    tip(x, y, ferryHTML(ent._data)); break;
-      case 'cable':    tip(x, y, cableHTML(ent._data)); break;
-      case 'jamming':  tip(x, y, jammingHTML(ent._data)); break;
-      case 'notam':    tip(x, y, notamHTML(ent._data)); break;
-      default: el.style.display = 'none';
-    }
+    dispatchTooltip(ent, pos.x, pos.y, false);
   }
-  function tip(x, y, html) {
+  function onHoverForce(pos, ent) {
+    dispatchTooltip(ent, pos.x, pos.y, true);
+  }
+  function closePin() { _pinnedTooltip = false; const el = document.getElementById('dk-tooltip'); if (el) el.style.display = 'none'; }
+  window.__dkClosePin = closePin;
+  function pinBtn() { return `<button class="dkt-pin-close" onclick="window.__dkClosePin()" title="Luk">×</button>`; }
+  function tip(x, y, html, pinned) {
     const el = document.getElementById('dk-tooltip');
     if (!el) return;
-    el.innerHTML = html;
+    el.innerHTML = (pinned ? pinBtn() : '') + html;
+    el.classList.toggle('dkt-pinned', !!pinned);
     el.style.display = 'block';
     el.style.left = (x + 14) + 'px';
     el.style.top  = (y - 10) + 'px';
@@ -1089,7 +1171,7 @@ VG.danmarkskort = {};
       <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>
       <div class="dkt-row"><span class="dkt-k">Radius</span><span class="dkt-v">${n.radius} nm</span></div>`;
   }
-  function tipKommune(ent, x, y) {
+  function tipKommune(ent, x, y, pinned) {
     const el = document.getElementById('dk-tooltip');
     if (!el) return;
     const name = ent._name;
@@ -1099,6 +1181,7 @@ VG.danmarkskort = {};
     if (kd) {
       Object.entries(METRICS).forEach(([k, m]) => {
         const v = kd[k];
+        if (v == null) return;
         const t = normalise(v, k);
         const bc = colorForValue(t, m.goodHigh);
         const barW = Math.round(t * 56);
@@ -1112,8 +1195,9 @@ VG.danmarkskort = {};
         </div>`;
       });
     }
-    el.innerHTML = `<div class="dkt-title">${name}</div>${rows}
+    el.innerHTML = (pinned ? pinBtn() : '') + `<div class="dkt-title">${name}</div>${rows}
       <div class="dkt-footer"><button class="dkt-goto" onclick="if(window.__navigateFromMap)window.__navigateFromMap('kommuner');else window.__mkClick&&window.__mkClick('kommuner')">Se alle kommuner →</button></div>`;
+    el.classList.toggle('dkt-pinned', !!pinned);
     el.style.display = 'block';
     el.style.left = (x + 14) + 'px';
     el.style.top  = (y - 10) + 'px';
