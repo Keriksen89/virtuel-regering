@@ -208,7 +208,8 @@ VG.danmarkskort = {};
   // Live positions are computed in-browser from TLE orbital elements via
   // satellite.js at the real current time, so they move in real time. We try to
   // refresh TLEs from CelesTrak client-side; otherwise we use this snapshot.
-  const CELESTRAK_TLE = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=tle';
+  const CELESTRAK_TLE = '/api/tle';
+  const CELESTRAK_DIRECT = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=tle';
   const TLE_FALLBACK = [
     ['ISS (ZARYA)',
      '1 25544U 98067A   24160.51782528  .00016717  00000-0  30074-3 0  9993',
@@ -425,8 +426,8 @@ VG.danmarkskort = {};
     // Merge fallback + surveillance TLEs; try CelesTrak live refresh in background
     const allFallback = [...TLE_FALLBACK, ...SURVEILLANCE_TLE];
     _satRecs = parseTLEs(allFallback.map(t => t.join('\n')).join('\n'));
-    fetch(CELESTRAK_TLE, { mode: 'cors' })
-      .then(r => r.ok ? r.text() : Promise.reject())
+    fetch(CELESTRAK_TLE)
+      .then(r => r.ok ? r.text() : fetch(CELESTRAK_DIRECT, { mode: 'cors' }).then(r2 => r2.ok ? r2.text() : Promise.reject()))
       .then(txt => {
         const recs = parseTLEs(txt);
         if (recs.length) {
@@ -542,6 +543,10 @@ VG.danmarkskort = {};
   let _initialized = false;
   let _aircraftTimer = null;
   let _shipTimer  = null;
+  let _aircraftRetryTimer = null;
+  let _shipRetryTimer = null;
+  let _aircraftRetryDelay = 0;
+  let _shipRetryDelay = 0;
   let _lastFrameT = 0;
 
   // ── Build deck.gl layers ───────────────────────────────────────────────────
@@ -1496,13 +1501,19 @@ VG.danmarkskort = {};
   }
 
   async function fetchAircraft() {
+    if (_aircraftRetryTimer) return;
     try {
-      const r = await fetch(OPENSKY_URL);
+      const r = await fetch(OPENSKY_URL, { signal: AbortSignal.timeout(9000) });
       if (r.ok) {
         const d = await r.json();
         const live = parseStates(d && d.states);
         _aircraft = mergeContacts(_aircraft, live, 'icao24');
         _aircraftStatus = live.length ? 'live' : (d.source === 'none' ? 'unavailable' : 'empty');
+        _aircraftRetryDelay = 0;
+      } else if (r.status === 503 || r.status === 502) {
+        _aircraftStatus = 'koldstart';
+        _aircraftRetryDelay = _aircraftRetryDelay ? Math.min(_aircraftRetryDelay * 2, 30000) : 6000;
+        _aircraftRetryTimer = setTimeout(() => { _aircraftRetryTimer = null; fetchAircraft(); }, _aircraftRetryDelay);
       } else {
         _aircraftStatus = 'unavailable';
       }
@@ -1514,13 +1525,19 @@ VG.danmarkskort = {};
 
   // ── Fetch real ships (AIS via server proxy) ─────────────────────────────────
   async function fetchShips() {
+    if (_shipRetryTimer) return;
     try {
-      const r = await fetch(AIS_URL);
+      const r = await fetch(AIS_URL, { signal: AbortSignal.timeout(9000) });
       if (r.ok) {
         const d = await r.json();
         const live = (d.vessels || []).filter(v => v.pos && v.pos.length === 2);
         _ships = mergeContacts(_ships, live, 'mmsi');
         _aisStatus = d.status || (live.length ? 'live' : 'empty');
+        _shipRetryDelay = 0;
+      } else if (r.status === 503 || r.status === 502) {
+        _aisStatus = 'koldstart';
+        _shipRetryDelay = _shipRetryDelay ? Math.min(_shipRetryDelay * 2, 30000) : 6000;
+        _shipRetryTimer = setTimeout(() => { _shipRetryTimer = null; fetchShips(); }, _shipRetryDelay);
       } else {
         _aisStatus = 'unavailable';
       }
@@ -1536,6 +1553,7 @@ VG.danmarkskort = {};
     if (status === 'no-key') return '<span style="color:#ff8040">AIS-nøgle mangler</span>';
     if (status === 'connecting' || status === 'reconnecting' || status === 'loading')
       return '<span style="color:#d4af37">forbinder…</span>';
+    if (status === 'koldstart') return '<span style="color:#d4af37">koldstart…</span>';
     if (status === 'empty') return '<span style="color:#888">ingen i området</span>';
     return '<span style="color:#cc5544">utilgængelig</span>';
   }

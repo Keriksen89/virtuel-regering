@@ -20,6 +20,7 @@ import newsRouter from './routes/news.js';
 import xfeedRouter from './routes/xfeed.js';
 import openskyRouter from './routes/opensky.js';
 import aisRouter from './routes/ais.js';
+import tleRouter from './routes/tle.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -38,7 +39,7 @@ app.use(helmet({
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://unpkg.com"],
       imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'", "https://www.reddit.com", "https://celestrak.org", "https://celestrak.com", "https://*.basemaps.cartocdn.com"],
+      connectSrc: ["'self'", "https://www.reddit.com", "https://*.basemaps.cartocdn.com", "https://celestrak.org", "https://celestrak.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://unpkg.com"],
       frameSrc: ["'self'", "https://platform.twitter.com", "https://twitter.com"],
       objectSrc: ["'none'"],
@@ -69,6 +70,7 @@ app.use('/api/news', newsRouter);
 app.use('/api/xfeed', xfeedRouter);
 app.use('/api/opensky', openskyRouter);
 app.use('/api/ais', aisRouter);
+app.use('/api/tle', tleRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({
