@@ -236,6 +236,58 @@ VG.danmarkskort = {};
     { id: 'EKCPH', name: 'CPH TMA',      center: [12.65, 55.62], radius: 45, type: 'tma' },
   ];
 
+  // ── Offshore wind farms ────────────────────────────────────────────────────
+  const WIND_FARMS = [
+    { name: 'Horns Rev 1',    pos: [7.90, 55.50], mw: 160 },
+    { name: 'Horns Rev 2',    pos: [7.65, 55.60], mw: 209 },
+    { name: 'Horns Rev 3',    pos: [7.73, 55.80], mw: 407 },
+    { name: 'Nysted',         pos: [11.75, 54.55], mw: 165 },
+    { name: 'Rødsand 2',      pos: [11.55, 54.58], mw: 207 },
+    { name: 'Anholt',         pos: [11.17, 56.60], mw: 400 },
+    { name: 'Middelgrunden',  pos: [12.68, 55.69], mw: 40 },
+    { name: 'Samsø Hav',      pos: [10.60, 55.90], mw: 23 },
+    { name: 'Krigers Flak',   pos: [12.50, 55.10], mw: 605 },
+    { name: 'Vesterhav Nord', pos: [8.05, 56.60],  mw: 180 },
+    { name: 'Vesterhav Syd',  pos: [7.85, 56.25],  mw: 170 },
+    { name: 'Thor (2027)',     pos: [7.55, 56.45],  mw: 1000 },
+  ];
+
+  // ── Major Danish ports ─────────────────────────────────────────────────────
+  const PORTS = [
+    { name: 'Aarhus Havn',      pos: [10.22, 56.15], type: 'container' },
+    { name: 'Esbjerg Havn',     pos: [8.45,  55.47], type: 'offshore'  },
+    { name: 'Fredericia Havn',  pos: [9.75,  55.56], type: 'oil'       },
+    { name: 'Aalborg Havn',     pos: [9.92,  57.05], type: 'bulk'      },
+    { name: 'Nordhavn (CPH)',    pos: [12.59, 55.71], type: 'container' },
+    { name: 'Helsingør Havn',   pos: [12.62, 56.03], type: 'ferry'     },
+    { name: 'Rødby Havn',       pos: [11.35, 54.66], type: 'ferry'     },
+    { name: 'Frederikshavn',    pos: [10.54, 57.43], type: 'ferry'     },
+    { name: 'Kalundborg Havn',  pos: [11.10, 55.68], type: 'oil'       },
+    { name: 'Grenaa Havn',      pos: [10.88, 56.42], type: 'ferry'     },
+  ];
+
+  // ── Ferry routes ───────────────────────────────────────────────────────────
+  const FERRY_ROUTES = [
+    { name: 'Rødby–Puttgarden',       path: [[11.35,54.66],[11.22,54.50]], op: 'Scandlines'         },
+    { name: 'Helsingør–Helsingborg',  path: [[12.62,56.03],[12.69,56.04]], op: 'Scandlines/ForSea'  },
+    { name: 'Frederikshavn–Göteborg', path: [[10.54,57.43],[11.97,57.71]], op: 'Stena Line'          },
+    { name: 'Frederikshavn–Oslo',     path: [[10.54,57.43],[10.73,59.91]], op: 'Stena Line'          },
+    { name: 'Aarhus–Odden',           path: [[10.22,56.15],[10.95,55.97]], op: 'Molslinjen'          },
+    { name: 'Bornholm–Køge',          path: [[14.70,55.10],[12.20,55.46]], op: 'Bornholmstrafikken'  },
+    { name: 'Rønne–Ystad',            path: [[14.70,55.10],[13.88,55.43]], op: 'Bornholmstrafikken'  },
+  ];
+
+  // ── Undersea cables & pipelines ────────────────────────────────────────────
+  const UNDERSEA_CABLES = [
+    { name: 'Viking Link (DK–UK)',    path: [[8.20,56.60],[6.40,55.80],[3.50,54.50],[0.80,53.50]], color: [60,160,255],  type: 'power' },
+    { name: 'Cobra Cable (DK–NL)',    path: [[8.00,56.00],[6.50,55.50],[5.00,53.50],[4.80,52.80]], color: [60,160,255],  type: 'power' },
+    { name: 'NordLink (DK–NO)',       path: [[8.00,56.00],[8.20,57.50],[7.00,58.50],[6.50,58.80]], color: [60,255,160],  type: 'power' },
+    { name: 'Skagerrak 4 (DK–NO)',    path: [[9.50,57.50],[8.80,58.50],[8.20,59.00]],              color: [60,255,160],  type: 'power' },
+    { name: 'Baltic Pipe (gas DK–NO)',path: [[10.00,57.00],[9.50,57.50],[8.50,58.00],[7.50,58.50]],color: [255,160,40],  type: 'gas'   },
+    { name: 'NordBalt (SE–LT)',       path: [[12.70,55.70],[14.50,56.20],[17.50,57.00],[21.00,56.50]],color:[60,200,255],type:'power'  },
+    { name: 'SwePol Link (SE–PL)',    path: [[14.00,55.50],[15.50,55.00],[16.50,54.50],[18.00,54.20]],color:[120,255,120],type:'power' },
+  ];
+
   // ── Tile background ────────────────────────────────────────────────────────
   const CARTO_TILES = [
     'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
@@ -473,7 +525,7 @@ VG.danmarkskort = {};
     }
 
     // ── Kommuner (GeoJson extruded) ──────────────────────────────────────────
-    if (geo && (view === 'kommuner' || view === 'lufttrafik' || view === 'skibstrafik' || view === 'satellitter' || view === 'overvågning')) {
+    if (geo && (view === 'kommuner' || view === 'lufttrafik' || view === 'skibstrafik' || view === 'satellitter' || view === 'overvågning' || view === 'infrastruktur')) {
       const metricCfg = METRICS[metric] || METRICS.ledighed;
       layers.push(new d.GeoJsonLayer({
         id: 'kommuner',
@@ -905,6 +957,162 @@ VG.danmarkskort = {};
       }));
     }
 
+    // ── INFRASTRUKTUR — wind farms, ports, cables, ferry routes ─────────────
+    const showInfra = view === 'infrastruktur';
+    const showInfraOverlay = view === 'skibstrafik' || view === 'overvågning';
+    if (showInfra || showInfraOverlay) {
+      const cabOpa = showInfra ? 0.9 : 0.3;
+      // Undersea cables & pipelines
+      layers.push(new d.PathLayer({
+        id: 'cables',
+        data: UNDERSEA_CABLES,
+        pickable: showInfra,
+        widthMinPixels: showInfra ? 2 : 1,
+        opacity: cabOpa,
+        getPath: c => c.path,
+        getColor: c => [...c.color, showInfra ? 200 : 80],
+        getWidth: c => c.type === 'gas' ? 3 : 2,
+        onHover: info => showTooltipCable(info),
+        updateTriggers: { opacity: view },
+      }));
+    }
+    if (showInfra || view === 'skibstrafik') {
+      // Ferry routes
+      layers.push(new d.PathLayer({
+        id: 'ferry-routes',
+        data: FERRY_ROUTES,
+        pickable: showInfra,
+        widthMinPixels: showInfra ? 2 : 1,
+        opacity: showInfra ? 0.8 : 0.25,
+        getPath: f => f.path,
+        getColor: [160, 210, 255, showInfra ? 200 : 80],
+        getWidth: 2,
+        dashArray: [8, 6],
+        onHover: info => showTooltipFerry(info),
+      }));
+      // Ports
+      const portColor = t => {
+        if (t === 'container') return [255, 200, 50, 230];
+        if (t === 'oil')       return [255, 80, 50, 230];
+        if (t === 'offshore')  return [100, 200, 255, 230];
+        if (t === 'ferry')     return [180, 140, 255, 230];
+        return [200, 200, 200, 200];
+      };
+      layers.push(new d.ScatterplotLayer({
+        id: 'ports-glow',
+        data: PORTS,
+        pickable: false,
+        opacity: showInfra ? 0.2 : 0.08,
+        stroked: false,
+        filled: true,
+        radiusMinPixels: showInfra ? 14 : 6,
+        radiusMaxPixels: showInfra ? 30 : 12,
+        getPosition: p => p.pos,
+        getFillColor: p => portColor(p.type),
+        updateTriggers: { opacity: view },
+      }));
+      layers.push(new d.ScatterplotLayer({
+        id: 'ports',
+        data: PORTS,
+        pickable: showInfra,
+        opacity: showInfra ? 1 : 0.5,
+        stroked: true,
+        filled: true,
+        radiusMinPixels: showInfra ? 5 : 3,
+        radiusMaxPixels: showInfra ? 12 : 6,
+        getPosition: p => p.pos,
+        getFillColor: p => portColor(p.type),
+        getLineColor: [255, 240, 180, 200],
+        getLineWidth: 1,
+        lineWidthUnits: 'pixels',
+        onHover: info => showTooltipPort(info),
+        updateTriggers: { opacity: view },
+      }));
+    }
+    if (showInfra) {
+      // Wind farms — pulsing green circles, size ∝ installed MW
+      const wPulse = 0.15 + 0.10 * Math.sin(pulse * 0.8);
+      layers.push(new d.ScatterplotLayer({
+        id: 'windfarm-glow',
+        data: WIND_FARMS,
+        pickable: false,
+        opacity: wPulse * 0.5,
+        stroked: false,
+        filled: true,
+        radiusMinPixels: 10,
+        radiusMaxPixels: 40,
+        getPosition: w => w.pos,
+        getFillColor: [60, 220, 120, 30],
+        updateTriggers: { opacity: pulse },
+      }));
+      layers.push(new d.ScatterplotLayer({
+        id: 'windfarms',
+        data: WIND_FARMS,
+        pickable: true,
+        opacity: 0.9,
+        stroked: true,
+        filled: true,
+        radiusMinPixels: 4,
+        radiusMaxPixels: 18,
+        getRadius: w => Math.sqrt(w.mw) * 300,
+        radiusUnits: 'meters',
+        getPosition: w => w.pos,
+        getFillColor: [40, 200, 100, 220],
+        getLineColor: [160, 255, 180, 200],
+        getLineWidth: 1.5,
+        lineWidthUnits: 'pixels',
+        onHover: info => showTooltipWindFarm(info),
+        updateTriggers: { opacity: pulse },
+      }));
+      layers.push(new d.TextLayer({
+        id: 'windfarm-labels',
+        data: WIND_FARMS,
+        pickable: false,
+        getPosition: w => w.pos,
+        getText: w => w.name,
+        getSize: 9,
+        getColor: [100, 255, 160, 200],
+        getPixelOffset: [0, -16],
+        fontFamily: '"Courier New", Courier, monospace',
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'bottom',
+        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
+      }));
+      // Port labels
+      layers.push(new d.TextLayer({
+        id: 'port-labels',
+        data: PORTS,
+        pickable: false,
+        getPosition: p => p.pos,
+        getText: p => p.name,
+        getSize: 9,
+        getColor: [255, 220, 100, 200],
+        getPixelOffset: [0, 14],
+        fontFamily: '"Courier New", Courier, monospace',
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'top',
+        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
+      }));
+      // Cable labels at midpoint
+      layers.push(new d.TextLayer({
+        id: 'cable-labels',
+        data: UNDERSEA_CABLES,
+        pickable: false,
+        getPosition: c => {
+          const mid = Math.floor(c.path.length / 2);
+          return c.path[mid];
+        },
+        getText: c => c.name,
+        getSize: 8,
+        getColor: c => [...c.color, 180],
+        getPixelOffset: [0, -10],
+        fontFamily: '"Courier New", Courier, monospace',
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'bottom',
+        characterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅabcdefghijklmnopqrstuvwxyzæøå0123456789 .,/·°%+-:@()#!',
+      }));
+    }
+
     // ── City pulsing rings (always visible) ──────────────────────────────────
     const p1 = (Math.sin(pulse) * 0.5 + 0.5);
     const p2 = (Math.sin(pulse + 1.5) * 0.5 + 0.5);
@@ -1059,6 +1267,71 @@ VG.danmarkskort = {};
     el.style.top  = (info.y - 10) + 'px';
   }
 
+  function showTooltipWindFarm(info) {
+    const el = document.getElementById('dk-tooltip');
+    if (!el) return;
+    if (!info || !info.object) { el.style.display = 'none'; return; }
+    const w = info.object;
+    el.innerHTML = `
+      <div class="dkt-title" style="color:#60dc80">⚡ ${w.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Kapacitet</span><span class="dkt-v">${w.mw} MW</span></div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">Havvind (offshore)</span></div>
+      <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${w.pos[1].toFixed(2)}°N ${w.pos[0].toFixed(2)}°E</span></div>
+    `;
+    el.style.display = 'block';
+    el.style.left = (info.x + 12) + 'px';
+    el.style.top  = (info.y - 10) + 'px';
+  }
+
+  function showTooltipPort(info) {
+    const el = document.getElementById('dk-tooltip');
+    if (!el) return;
+    if (!info || !info.object) { el.style.display = 'none'; return; }
+    const p = info.object;
+    const typeLabels = { container:'Container', oil:'Olie/gas', offshore:'Offshore service', ferry:'Færgehavn', bulk:'Bulk' };
+    const nearby = _ships.filter(s => {
+      const dx = s.pos[0] - p.pos[0], dy = s.pos[1] - p.pos[1];
+      return Math.sqrt(dx*dx + dy*dy) < 0.15;
+    }).length;
+    el.innerHTML = `
+      <div class="dkt-title" style="color:#ffd060">⚓ ${p.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabels[p.type] || p.type}</span></div>
+      ${nearby ? `<div class="dkt-row"><span class="dkt-k">AIS i nærheden</span><span class="dkt-v">${nearby} fartøjer</span></div>` : ''}
+    `;
+    el.style.display = 'block';
+    el.style.left = (info.x + 12) + 'px';
+    el.style.top  = (info.y - 10) + 'px';
+  }
+
+  function showTooltipFerry(info) {
+    const el = document.getElementById('dk-tooltip');
+    if (!el) return;
+    if (!info || !info.object) { el.style.display = 'none'; return; }
+    const f = info.object;
+    el.innerHTML = `
+      <div class="dkt-title" style="color:#a0c8ff">⛴ ${f.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Operatør</span><span class="dkt-v">${f.op}</span></div>
+    `;
+    el.style.display = 'block';
+    el.style.left = (info.x + 12) + 'px';
+    el.style.top  = (info.y - 10) + 'px';
+  }
+
+  function showTooltipCable(info) {
+    const el = document.getElementById('dk-tooltip');
+    if (!el) return;
+    if (!info || !info.object) { el.style.display = 'none'; return; }
+    const c = info.object;
+    const typeLabel = { power: 'Elkabel (HVDC)', gas: 'Gasrørledning' }[c.type] || c.type;
+    el.innerHTML = `
+      <div class="dkt-title" style="color:rgb(${c.color.join(',')})">▬ ${c.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>
+    `;
+    el.style.display = 'block';
+    el.style.left = (info.x + 12) + 'px';
+    el.style.top  = (info.y - 10) + 'px';
+  }
+
   function updateTooltip(info, currentMetric) {
     const el = document.getElementById('dk-tooltip');
     if (!el) return;
@@ -1069,23 +1342,24 @@ VG.danmarkskort = {};
     if (!name) { el.style.display = 'none'; return; }
 
     const metricCfg = METRICS[currentMetric];
-    const val = kd ? kd[currentMetric] : null;
-    const fmtVal = (val != null && metricCfg) ? metricCfg.format(val) : '—';
 
     let rows = '';
     if (kd) {
       Object.entries(METRICS).forEach(([k, m]) => {
         const v = kd[k];
+        const t = normalise(v, k);
+        const bc = colorForValue(t, m.goodHigh);
+        const barW = Math.round(t * 56);
         const active = k === currentMetric ? ' dkt-row-active' : '';
-        rows += `<div class="dkt-row${active}"><span class="dkt-k">${m.label}</span><span class="dkt-v">${m.format(v)}</span></div>`;
+        rows += `<div class="dkt-row${active}">
+          <span class="dkt-k">${m.label}</span>
+          <span class="dkt-v">${m.format(v)}</span>
+          <div class="dkt-bar" style="width:${barW}px;background:rgb(${bc[0]},${bc[1]},${bc[2]})"></div>
+        </div>`;
       });
     }
 
-    el.innerHTML = `
-      <div class="dkt-title">${name}</div>
-      <div class="dkt-highlight">${metricCfg ? metricCfg.label : currentMetric}: <strong>${fmtVal}</strong></div>
-      ${rows}
-    `;
+    el.innerHTML = `<div class="dkt-title">${name}</div>${rows}`;
     el.style.display = 'block';
     el.style.left = (info.x + 12) + 'px';
     el.style.top  = (info.y - 10) + 'px';
@@ -1200,7 +1474,7 @@ VG.danmarkskort = {};
       _pulse += 0.025;
 
       // Dead-reckon real contacts forward along their reported course/speed
-      if (_view === 'skibstrafik') advanceShips(_ships, dt);
+      if (_view === 'skibstrafik' || _view === 'infrastruktur') advanceShips(_ships, dt);
       if (_view === 'lufttrafik')  advanceAircraft(_aircraft, dt);
       if (_view === 'satellitter' || _view === 'overvågning') {
         const t = Date.now();
@@ -1270,6 +1544,7 @@ VG.danmarkskort = {};
       <button class="dk-btn" data-view="skibstrafik">SKIBSTRAFIK</button>
       <button class="dk-btn" data-view="satellitter">SATELLITTER</button>
       <button class="dk-btn dk-btn-intel" data-view="overvågning">⚑ OVERVÅGNING</button>
+      <button class="dk-btn dk-btn-infra" data-view="infrastruktur">⚡ INFRASTRUKTUR</button>
     </div>
     <div class="dk-metric-btns" id="dk-metric-btns">
       <button class="dk-btn active" data-metric="ledighed">LEDIGHED</button>
@@ -1416,7 +1691,8 @@ VG.danmarkskort = {};
         if (_view === 'kommuner') {
           updateTooltip(info, _metric);
         } else if (_view === 'lufttrafik' || _view === 'skibstrafik' ||
-                   _view === 'satellitter' || _view === 'overvågning') {
+                   _view === 'satellitter' || _view === 'overvågning' ||
+                   _view === 'infrastruktur') {
           if (!info || !info.object) {
             const tt = document.getElementById('dk-tooltip');
             if (tt) tt.style.display = 'none';

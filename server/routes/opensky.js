@@ -51,7 +51,7 @@ function inBox(s) {
 
 async function tryAdsbLol() {
   const url = `https://api.adsb.lol/v2/lat/${CENTER.lat}/lon/${CENTER.lon}/dist/${CENTER.distNm}`;
-  const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(9000) });
+  const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(6000) });
   if (!r.ok) throw new Error('adsb.lol ' + r.status);
   const d = await r.json();
   return fromAdsb(d.ac || d.aircraft);
@@ -59,7 +59,7 @@ async function tryAdsbLol() {
 
 async function tryAdsbFi() {
   const url = `https://opendata.adsb.fi/api/v2/lat/${CENTER.lat}/lon/${CENTER.lon}/dist/${CENTER.distNm}`;
-  const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(9000) });
+  const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(6000) });
   if (!r.ok) throw new Error('adsb.fi ' + r.status);
   const d = await r.json();
   return fromAdsb(d.ac || d.aircraft);
@@ -68,7 +68,7 @@ async function tryAdsbFi() {
 async function tryOpenSky() {
   const q = `lamin=${BBOX.lamin}&lomin=${BBOX.lomin}&lamax=${BBOX.lamax}&lomax=${BBOX.lomax}`;
   const r = await fetch(`https://opensky-network.org/api/states/all?${q}`, {
-    headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(9000),
+    headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(6000),
   });
   if (!r.ok) throw new Error('opensky ' + r.status);
   const d = await r.json();
