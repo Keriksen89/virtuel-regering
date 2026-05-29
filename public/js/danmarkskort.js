@@ -22,6 +22,8 @@ VG.danmarkskort = {};
   const AIRCRAFT_REFRESH_MS = 10000;
   const SHIP_REFRESH_MS = 12000;
   const LERP_MS = 2500;
+  const SAT_RECOMPUTE_MS = 1000;   // how often satellites are re-propagated
+  const SAT_LERP_MS = 1000;        // smooth glide between propagated positions
 
   const VIEW_DATA_LINKS = {
     kommuner:      [
@@ -337,9 +339,9 @@ VG.danmarkskort = {};
   const M_PER_DEG_LAT = 111320;
   function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
-  function advanceLerp(obj) {
+  function advanceLerp(obj, dur) {
     if (obj._lerpFrom && obj._lerpStart != null) {
-      const t = Math.min((performance.now() - obj._lerpStart) / LERP_MS, 1);
+      const t = Math.min((performance.now() - obj._lerpStart) / (dur || LERP_MS), 1);
       const e = easeInOut(t);
       obj.pos = [
         obj._lerpFrom[0] + (obj._lerpTo[0] - obj._lerpFrom[0]) * e,
@@ -411,12 +413,18 @@ VG.danmarkskort = {};
       .finally(() => { _satFreshUntil = 0; computeSatellites(); computeGroundTracks(); syncSatelliteEntities(); updateStats(); });
   }
 
+  // Stable satellite objects keyed by name. We mutate them in place (and set
+  // smooth lerp targets) rather than rebuilding the array each tick, so the
+  // entity position callbacks can read their own object directly — no O(N²)
+  // name lookups in the render loop.
+  const _satIndex = new Map();
   function computeSatellites() {
     const sat = window.satellite;
-    if (!sat || !_satRecs.length) { _satellites = []; return; }
+    if (!sat || !_satRecs.length) { _satellites = []; _satIndex.clear(); return; }
     const now = new Date();
     const gmst = sat.gstime(now);
-    const out = [];
+    const t0 = performance.now();
+    const seen = new Set();
     for (const s of _satRecs) {
       try {
         const pv = sat.propagate(s.rec, now);
@@ -426,11 +434,23 @@ VG.danmarkskort = {};
         const lat = sat.degreesLat(geo.latitude);
         const altKm = geo.height;
         if (altKm > 100 && altKm < 42000 && lat >= -90 && lat <= 90) {
-          out.push({ name: s.name, pos: [lon, lat], alt: altKm, surv: SURVEILLANCE_NAMES.has(s.name) });
+          seen.add(s.name);
+          let o = _satIndex.get(s.name);
+          if (!o) {
+            o = { name: s.name, pos: [lon, lat], alt: altKm, surv: SURVEILLANCE_NAMES.has(s.name) };
+            _satIndex.set(s.name, o);
+          } else {
+            o.alt = altKm;
+            // Snap (don't lerp) across the antimeridian or on big jumps,
+            // otherwise glide smoothly from the current rendered position.
+            if (Math.abs(lon - o.pos[0]) > 20) { o.pos = [lon, lat]; o._lerpFrom = null; }
+            else { o._lerpFrom = [o.pos[0], o.pos[1]]; o._lerpTo = [lon, lat]; o._lerpStart = t0; }
+          }
         }
       } catch {}
     }
-    _satellites = out;
+    for (const k of _satIndex.keys()) if (!seen.has(k)) _satIndex.delete(k);
+    _satellites = Array.from(_satIndex.values());
   }
 
   function computeGroundTracks() {
@@ -567,6 +587,11 @@ VG.danmarkskort = {};
     scene.skyAtmosphere.show = true;
     scene.fog.enabled = true;
     scene.highDynamicRange = false;
+    // Performance: cap the render rate (avoids overdrawing at 120/144 Hz) and
+    // load slightly coarser terrain tiles — both ease the load on weaker GPUs
+    // without a visible quality drop at this scale.
+    _viewer.targetFrameRate = 60;
+    scene.globe.maximumScreenSpaceError = 3;
     // CARTO's dark basemap is already dark; lift it slightly so coastlines and
     // labels stay legible under the gold HUD instead of crushing to black.
     if (_viewer.imageryLayers.length) {
@@ -582,6 +607,9 @@ VG.danmarkskort = {};
       Cesium.createWorldTerrainAsync().then(t => { if (_viewer) _viewer.scene.setTerrain(new Cesium.Terrain(Promise.resolve(t))); }).catch(() => {});
       Cesium.createOsmBuildingsAsync().then(ts => {
         _osmBuildings = ts;
+        // Coarser tile budget so worldwide buildings don't stream-stutter the
+        // camera; they sharpen as you zoom in.
+        _osmBuildings.maximumScreenSpaceError = 24;
         _osmBuildings.show = !_googleActive;
         _viewer.scene.primitives.add(_osmBuildings);
       }).catch(() => {});
@@ -651,13 +679,23 @@ VG.danmarkskort = {};
     ent._kd = name && KD[name] ? KD[name] : null;
     ent._kind = 'kommune';
     if (!ent.polygon) return;
-    ent.polygon.material = new Cesium.ColorMaterialProperty(new Cesium.CallbackProperty(() => kommuneColor(ent), false));
     ent.polygon.height = 0;
-    ent.polygon.extrudedHeight = new Cesium.CallbackProperty(() => kommuneHeight(ent), false);
     ent.polygon.outline = true;
     ent.polygon.outlineColor = Cesium.Color.fromBytes(212, 175, 55, 90);
     ent.polygon.closeTop = true;
     ent.polygon.closeBottom = true;
+    applyKommuneStyle(ent);
+  }
+  // Colour/height are constant between metric or view changes, so set plain
+  // values (not per-frame callbacks) — this avoids ~200 property evaluations
+  // every single frame across all municipalities.
+  function applyKommuneStyle(ent) {
+    if (!ent.polygon) return;
+    ent.polygon.material = new Cesium.ColorMaterialProperty(kommuneColor(ent));
+    ent.polygon.extrudedHeight = kommuneHeight(ent);
+  }
+  function restyleKommuner() {
+    if (_kommuneEntities) _kommuneEntities.forEach(applyKommuneStyle);
   }
 
   async function loadKommuner() {
@@ -878,26 +916,28 @@ VG.danmarkskort = {};
     _satellites.forEach(d => {
       seen.add(d.name);
       if (!_satEnt.has(d.name)) {
-        const e = ents.add({
-          position: new Cesium.CallbackProperty(() => { const s = _satByName(d.name); return s ? deg(s.pos[0], s.pos[1], s.alt * 1000) : deg(d.pos[0], d.pos[1], d.alt * 1000); }, false),
+        const spec = {
+          // `d` is a stable object (mutated in place by computeSatellites +
+          // the per-frame lerp), so this reads live position in O(1).
+          position: new Cesium.CallbackProperty(() => deg(d.pos[0], d.pos[1], d.alt * 1000), false),
           point: {
             pixelSize: d.surv ? 8 : 5,
             color: d.surv ? Cesium.Color.fromBytes(255, 180, 80, 255) : Cesium.Color.fromBytes(220, 245, 255, 240),
             outlineColor: d.surv ? Cesium.Color.fromBytes(255, 80, 30, 220) : Cesium.Color.fromBytes(120, 200, 255, 200),
             outlineWidth: 1.5, disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
-          label: {
-            text: d.name, font: '11px "Courier New", monospace',
-            fillColor: d.surv ? Cesium.Color.fromBytes(255, 160, 60, 220) : Cesium.Color.fromBytes(150, 220, 255, 200),
-            pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          },
-          // Tether from sub-satellite point up to the satellite
-          polyline: {
-            positions: new Cesium.CallbackProperty(() => { const s = _satByName(d.name); const p = s || d; return [deg(p.pos[0], p.pos[1], 0), deg(p.pos[0], p.pos[1], p.alt * 1000)]; }, false),
-            width: 1, material: Cesium.Color.fromBytes(120, 200, 255, 70),
-          },
           _kind: 'sat', _data: d, _layer: 'satellitter',
-        });
+        };
+        // Labels are expensive to render and unreadable when ~150 overlap, so
+        // only the named surveillance satellites get one. Hover shows the rest.
+        if (d.surv) {
+          spec.label = {
+            text: d.name, font: '11px "Courier New", monospace',
+            fillColor: Cesium.Color.fromBytes(255, 160, 60, 220),
+            pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          };
+        }
+        const e = ents.add(spec);
         e.show = showSat || (_view === 'overvågning' && d.surv);
         _satEnt.set(d.name, e);
       } else {
@@ -906,15 +946,15 @@ VG.danmarkskort = {};
     });
     for (const [k, e] of _satEnt) if (!seen.has(k)) { ents.remove(e); _satEnt.delete(k); }
   }
-  function _satByName(name) { return _satellites.find(s => s.name === name); }
 
   function syncGroundTracks() {
     if (!_viewer) return;
     const ents = _viewer.entities;
     while (_trackEnt.length) { const e = _trackEnt.pop(); ents.remove(e); }
-    const showHere = _view === 'satellitter' || _view === 'overvågning';
-    if (!showHere) return;
-    const list = _view === 'overvågning' ? _groundTracks.filter(t => t.isSurveillance) : _groundTracks;
+    // Orbital ground-tracks only appear in the surveillance view. The plain
+    // satellite view stays clean — just the moving points, no lines.
+    if (_view !== 'overvågning') return;
+    const list = _groundTracks.filter(t => t.isSurveillance);
     list.forEach(t => {
       const e = ents.add({
         polyline: {
@@ -954,6 +994,8 @@ VG.danmarkskort = {};
     for (const e of _acEnt.values()) e.show = (v === 'lufttrafik');
     for (const e of _shipEnt.values()) e.show = (v === 'skibstrafik' || v === 'infrastruktur');
     for (const e of _satEnt.values()) e.show = (v === 'satellitter') || (v === 'overvågning' && e._data && e._data.surv);
+    // Polygon colour alpha + extrusion depend on the active view.
+    restyleKommuner();
     syncGroundTracks();
   }
 
@@ -1224,9 +1266,12 @@ VG.danmarkskort = {};
       if (_view === 'skibstrafik' || _view === 'infrastruktur') advanceShips(_ships, dt);
       if (_view === 'lufttrafik') advanceAircraft(_aircraft, dt);
       if (_view === 'satellitter' || _view === 'overvågning') {
+        // Glide every satellite toward its last propagated target each frame.
+        for (let i = 0; i < _satellites.length; i++) advanceLerp(_satellites[i], SAT_LERP_MS);
         const t = Date.now();
-        if (t >= _satFreshUntil) { computeSatellites(); syncSatelliteEntities(); _satFreshUntil = t + 1000; updateStats(); }
-        if (t >= _groundTracksFreshUntil) { computeGroundTracks(); syncGroundTracks(); _groundTracksFreshUntil = t + 30000; }
+        if (t >= _satFreshUntil) { computeSatellites(); syncSatelliteEntities(); _satFreshUntil = t + SAT_RECOMPUTE_MS; updateStats(); }
+        // Ground-tracks are surveillance-only and expensive — compute sparingly.
+        if (_view === 'overvågning' && t >= _groundTracksFreshUntil) { computeGroundTracks(); syncGroundTracks(); _groundTracksFreshUntil = t + 30000; }
       }
       _rafId = requestAnimationFrame(frame);
     }
@@ -1359,6 +1404,7 @@ VG.danmarkskort = {};
       btn.addEventListener('click', () => {
         _metric = btn.dataset.metric;
         container.querySelectorAll('[data-metric]').forEach(b => b.classList.toggle('active', b === btn));
+        restyleKommuner();
         refreshLegend();
         const tt = document.getElementById('dk-tooltip');
         if (tt) tt.style.display = 'none';
