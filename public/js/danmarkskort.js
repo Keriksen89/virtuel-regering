@@ -531,8 +531,16 @@ VG.danmarkskort = {};
 
     if (_config.cesiumIonToken) Cesium.Ion.defaultAccessToken = _config.cesiumIonToken;
 
-    // Token-free OSM raster imagery is our reliable base layer.
-    _baseImagery = new Cesium.OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/' });
+    // Dark CARTO basemap as the reliable base layer. OpenStreetMap's own tile
+    // servers block direct app usage (their tile-usage policy), so we use
+    // CARTO's free dark raster basemap instead — it also matches the HUD
+    // aesthetic and its host is already in the server CSP allow-list.
+    _baseImagery = new Cesium.UrlTemplateImageryProvider({
+      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      subdomains: 'abcd',
+      credit: '© OpenStreetMap, © CARTO',
+      maximumLevel: 19,
+    });
 
     _viewer = new Cesium.Viewer(container, {
       baseLayer: Cesium.ImageryLayer.fromProviderAsync(Promise.resolve(_baseImagery), {}),
@@ -559,10 +567,11 @@ VG.danmarkskort = {};
     scene.skyAtmosphere.show = true;
     scene.fog.enabled = true;
     scene.highDynamicRange = false;
-    // Dim/cool the OSM imagery to match the dark gold HUD aesthetic.
+    // CARTO's dark basemap is already dark; lift it slightly so coastlines and
+    // labels stay legible under the gold HUD instead of crushing to black.
     if (_viewer.imageryLayers.length) {
       const l = _viewer.imageryLayers.get(0);
-      l.brightness = 0.55; l.saturation = 0.55; l.contrast = 1.15; l.gamma = 0.7;
+      l.brightness = 1.15; l.saturation = 0.85; l.contrast = 1.05; l.gamma = 1.0;
     }
     // Hide Cesium's default credit overlay clutter (keep required attributions
     // in the on-screen container that Cesium manages for Google tiles).
