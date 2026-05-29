@@ -513,6 +513,17 @@ VG.danmarkskort = {};
     BEL:[0,90,180], LOT:[180,0,0],   CSN:[200,0,30], CCA:[180,0,20],
     UAL:[0,40,130], AAL:[180,30,30], DAL:[0,50,120], SWA:[180,80,0],
   };
+  const AIRLINE_NAMES = {
+    SAS:'SAS Scandinavian Airlines', EZY:'easyJet', RYR:'Ryanair',
+    DLH:'Lufthansa', BAW:'British Airways', KLM:'KLM Royal Dutch Airlines',
+    AFR:'Air France', IBE:'Iberia', THY:'Turkish Airlines', UAE:'Emirates',
+    QTR:'Qatar Airways', FIN:'Finnair', NOZ:'Norwegian Air Norway',
+    NAX:'Norwegian Air Shuttle', WZZ:'Wizz Air', VLG:'Vueling Airlines',
+    TAP:'TAP Air Portugal', AUA:'Austrian Airlines', BEL:'Brussels Airlines',
+    LOT:'LOT Polish Airlines', CSN:'China Southern Airlines', CCA:'Air China',
+    UAL:'United Airlines', AAL:'American Airlines', DAL:'Delta Air Lines',
+    SWA:'Southwest Airlines', DAN:'Maersk Air', SJN:'SAS (Nordic)',
+  };
   const _planeCanvasCache = new Map();
   function makePlaneCanvas(r, g, b) {
     const key = `${r},${g},${b}`;
@@ -1113,9 +1124,11 @@ VG.danmarkskort = {};
   }
   function aircraftHTML(ac) {
     const spdKt = ac.speed ? Math.round(ac.speed * 1.94384) : null;
+    const pfx = (ac.callsign || '').trim().toUpperCase();
+    const airline = AIRLINE_NAMES[pfx.substring(0,3)] || AIRLINE_NAMES[pfx.substring(0,2)] || ac.origin || '—';
     return `<div class="dkt-title">${ac.callsign || ac.icao24 || 'Ukendt fly'}</div>
       <div class="dkt-row"><span class="dkt-k">ICAO24</span><span class="dkt-v">${ac.icao24 || '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Land</span><span class="dkt-v">${ac.origin || '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Flyselskab</span><span class="dkt-v">${airline}</span></div>
       <div class="dkt-row"><span class="dkt-k">Højde</span><span class="dkt-v">${ac.altitude ? Math.round(ac.altitude).toLocaleString('da-DK') + ' m' : 'jord'}</span></div>
       <div class="dkt-row"><span class="dkt-k">Fart</span><span class="dkt-v">${spdKt != null ? spdKt + ' kt' : '—'}</span></div>
       <div class="dkt-row"><span class="dkt-k">Kurs</span><span class="dkt-v">${ac.heading != null ? Math.round(ac.heading) + '°' : '—'}</span></div>
@@ -1560,6 +1573,22 @@ VG.danmarkskort = {};
     } else {
       startLoop();
     }
+  };
+
+  VG.danmarkskort.setContextView = function (view, metric) {
+    if (!_viewer || !_container) return;
+    if (view) {
+      _view = view;
+      _container.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    }
+    if (metric) {
+      _metric = metric;
+      _container.querySelectorAll('[data-metric]').forEach(b => b.classList.toggle('active', b.dataset.metric === metric));
+    }
+    applyView();
+    restyleKommuner();
+    refreshLegend();
+    window.dispatchEvent(new Event('resize'));
   };
 
   VG.danmarkskort.destroy = function () {
