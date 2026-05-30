@@ -239,9 +239,11 @@ router.get('/', async (req, res, next) => {
       )
     );
 
-    // Merge all articles, sort newest first
+    // Merge Danish-only articles, sort newest first (intl sources excluded by default)
+    const intlSrcs = new Set(FEEDS.filter(f => f.intl).map(f => f.src));
     const all = results
       .flatMap(r => r.status === 'fulfilled' ? r.value : [])
+      .filter(a => !intlSrcs.has(a.src))
       .sort((a, b) => (b.pubMs || 0) - (a.pubMs || 0));
 
     const limit = Math.min(parseInt(req.query.limit) || 20, 40);

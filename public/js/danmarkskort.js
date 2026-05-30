@@ -1045,6 +1045,8 @@ VG.danmarkskort = {};
   let _gridFreqTimer      = null;
   let _exchangeRates      = null;
   let _politikActivity    = null; // cached Folketing activity data
+  const _politikMinEnt    = new Map(); // id → entity (minister person markers)
+  let _politikMinFetched  = false;
   let _trafikEvents       = [];   // Vejdirektoratet traffic events
   let _trafikTimer        = null;
   const _trafikEnt        = new Map(); // id → entity
@@ -1349,31 +1351,28 @@ VG.danmarkskort = {};
       });
     });
 
-    // Ministry buildings (politik)
-    MINISTRY_LOCATIONS.forEach(m => {
-      const col = m.type === 'parliament'
-        ? [212, 175, 55]  // gold for Christiansborg
-        : (PARTY_COLORS_RGB[m.party] || [160, 160, 160]);
-      ents.add({
-        position: deg(m.pos[0], m.pos[1]),
-        point: {
-          pixelSize: m.type === 'parliament' ? 13 : 9,
-          color: Cesium.Color.fromBytes(col[0], col[1], col[2], 240),
-          outlineColor: Cesium.Color.fromBytes(255, 255, 255, 160),
-          outlineWidth: m.type === 'parliament' ? 3 : 1,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
-        label: {
-          text: m.name.split('(')[0].trim().split(',')[0].trim(),
-          font: `${m.type === 'parliament' ? '700' : '600'} 10px "Courier New", monospace`,
-          fillColor: Cesium.Color.fromBytes(col[0], col[1], col[2], 230),
-          style: Cesium.LabelStyle.FILL,
-          pixelOffset: new Cesium.Cartesian2(0, -16),
-          scaleByDistance: new Cesium.NearFarScalar(5.0e4, 1.2, 8.0e5, 0.4),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
-        _layer: 'politik', _kind: 'politik', _data: m, show: false,
-      });
+    // Christiansborg anchor (politik) — minister person markers are fetched dynamically
+    ents.add({
+      position: deg(12.5779, 55.6753),
+      point: {
+        pixelSize: 14,
+        color: Cesium.Color.fromBytes(212, 175, 55, 250),
+        outlineColor: Cesium.Color.fromBytes(255, 255, 255, 200),
+        outlineWidth: 3,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+      label: {
+        text: 'Christiansborg',
+        font: '700 10px "Courier New", monospace',
+        fillColor: Cesium.Color.fromBytes(212, 175, 55, 240),
+        style: Cesium.LabelStyle.FILL,
+        pixelOffset: new Cesium.Cartesian2(0, -18),
+        scaleByDistance: new Cesium.NearFarScalar(5.0e4, 1.2, 8.0e5, 0.4),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+      _layer: 'politik', _kind: 'politik',
+      _data: { id: 'ft', name: 'Christiansborg (Folketing)', pos: [12.5779, 55.6753], type: 'parliament' },
+      show: false,
     });
 
     // Military bases (forsvar)
@@ -1709,8 +1708,9 @@ VG.danmarkskort = {};
     if (v === 'tog') { fetchTog(); fetchGridFreq(); }
     // Keep grid frequency refreshed in infrastruktur view too.
     if (v === 'infrastruktur') fetchGridFreq();
-    // Fetch Folketing activity when entering politik view.
-    if (v === 'politik') fetchPolitikActivity();
+    // Minister person markers (politik view).
+    for (const e of _politikMinEnt.values()) e.show = (v === 'politik');
+    if (v === 'politik') { fetchPolitikActivity(); fetchPolitikMinistere(); }
     // Fetch traffic events + train positions for trafik/tog views.
     if (v === 'trafik' || v === 'tog') { fetchTrafikEvents(); fetchTrainPositions(); }
     // Telecom mast + WiFi hotspot layers (infra view).
@@ -1753,6 +1753,7 @@ VG.danmarkskort = {};
       case 'kyst':      tip(x, y, kystHTML(ent._data), pinned); break;
       case 'forsvar':   tip(x, y, forsvarHTML(ent._data), pinned); break;
       case 'politik':   tip(x, y, politikHTML(ent._data), pinned); break;
+      case 'minister':  tip(x, y, ministerHTML(ent._data), pinned); break;
       case 'trafik':    tip(x, y, trafikHTML(ent._data), pinned); break;
       case 'trainpos':  tip(x, y, trainPosHTML(ent._data), pinned); break;
       case 'telecom':   tip(x, y, infraHTML(ent._data), pinned); break;
@@ -2087,11 +2088,78 @@ VG.danmarkskort = {};
     'Thomas Danielsen': 'thomasd_dk',
   };
 
+  function ministerHTML(m) {
+    const col = m.color || '#888';
+    const partiLabel = { A:'Socialdemokratiet', V:'Venstre', M:'Moderaterne', I:'Liberal Alliance', D:'Danmarksdemokraterne', F:'SF', Ø:'Enhedslisten', C:'Konservative', B:'Radikale', O:'Dansk Folkeparti', Å:'Alternativet' }[m.parti] || m.parti;
+    const act = _politikActivity;
+    let latestSpeech = '';
+    if (act?.speeches?.length) {
+      const mine = act.speeches.find(s => s.taler && m.navn && s.taler.includes(m.navn.split(' ')[1]));
+      if (mine) {
+        const d = new Date(mine.dato);
+        const age = Math.round((Date.now() - d) / 3600000);
+        latestSpeech = `<div class="dkt-row"><span class="dkt-k">Seneste tale</span><span class="dkt-v">${age < 24 ? age + 't siden' : Math.floor(age / 24) + 'd siden'}</span></div>`;
+      }
+    }
+    const xRow = m.x ? `<div class="dkt-row"><span class="dkt-k">X / Twitter</span><span class="dkt-v"><a href="https://x.com/${m.x}" target="_blank" rel="noopener" style="color:${col}">@${m.x}</a></span></div>` : '';
+    return `<div class="dkt-title" style="color:${col}">👤 ${m.navn}</div>
+      <div class="dkt-row"><span class="dkt-k">Titel</span><span class="dkt-v" style="color:${col}">${m.title}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Parti</span><span class="dkt-v"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin-right:4px"></span>${m.parti} — ${partiLabel}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Valgkreds</span><span class="dkt-v">${m.storkreds}</span></div>
+      ${xRow}${latestSpeech}
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">Statsministeriet · ft.dk</span></div>`;
+  }
+
   async function fetchPolitikActivity() {
     try {
       const data = await fetch('/api/politiker/activity').then(r => r.json());
       _politikActivity = data;
     } catch (e) { console.warn('[politik] activity fetch failed', e); }
+  }
+
+  async function fetchPolitikMinistere() {
+    if (_politikMinFetched) return;
+    _politikMinFetched = true;
+    try {
+      const data = await fetch('/api/politiker/ministers').then(r => r.json());
+      syncPolitikMinistere(data.ministers || []);
+    } catch (e) { console.warn('[politik] ministers fetch failed', e); }
+  }
+
+  function syncPolitikMinistere(ministers) {
+    const show = (_view === 'politik');
+    ministers.forEach(m => {
+      if (_politikMinEnt.has(m.id)) return;
+      const rgb = hexToRgb(m.color);
+      const e = _viewer.entities.add({
+        position: deg(m.pos[0], m.pos[1]),
+        point: {
+          pixelSize: 12,
+          color: Cesium.Color.fromBytes(rgb[0], rgb[1], rgb[2], 245),
+          outlineColor: Cesium.Color.fromBytes(255, 255, 255, 200),
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: m.navn.split(' ').pop(),
+          font: '600 9px "Courier New", monospace',
+          fillColor: Cesium.Color.fromBytes(rgb[0], rgb[1], rgb[2], 220),
+          style: Cesium.LabelStyle.FILL,
+          pixelOffset: new Cesium.Cartesian2(0, -16),
+          scaleByDistance: new Cesium.NearFarScalar(3.0e5, 1.0, 2.0e6, 0.3),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        _layer: 'politik', _kind: 'minister', _data: m, show,
+      });
+      _politikMinEnt.set(m.id, e);
+    });
+  }
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return [r, g, b];
   }
 
   async function fetchTrafikEvents() {

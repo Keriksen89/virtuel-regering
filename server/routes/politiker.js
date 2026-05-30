@@ -5,58 +5,55 @@ import { fetchJSON } from '../lib/fetch.js';
 const router = Router();
 const ODA_BASE = 'https://oda.ft.dk/api';
 
-// Copenhagen ministry building locations (geocoded from official addresses)
-const MINISTRY_BUILDINGS = [
-  { id: 'stm',  name: 'Statsministeriet',                    address: 'Prins Jørgens Gård 11, 1218 København K',  pos: [12.5796, 55.6755], minister: 'Mette Frederiksen', party: 'A' },
-  { id: 'um',   name: 'Udenrigsministeriet',                 address: 'Asiatisk Plads 2, 1448 København K',        pos: [12.5938, 55.6712], minister: 'Lars Løkke Rasmussen', party: 'M' },
-  { id: 'fm',   name: 'Finansministeriet',                   address: 'Christiansborg Slotsplads 1, 1218 Kbh K',  pos: [12.5784, 55.6748], minister: 'Nicolai Wammen', party: 'A' },
-  { id: 'jm',   name: 'Justitsministeriet',                  address: 'Slotsholmsgade 10, 1216 København K',       pos: [12.5792, 55.6742], minister: 'Magnus Heunicke', party: 'A' },
-  { id: 'fmst', name: 'Forsvarsministeriet',                 address: 'Holmens Kanal 42, 1060 København K',        pos: [12.5908, 55.6773], minister: 'Troels Lund Poulsen', party: 'V' },
-  { id: 'sst',  name: 'Sundhedsministeriet',                 address: 'Bredgade 34, 1260 København K',             pos: [12.5871, 55.6848], minister: 'Sophie Løhde', party: 'V' },
-  { id: 'bm',   name: 'Beskæftigelsesministeriet',           address: 'Ved Stranden 8, 1061 København K',          pos: [12.5861, 55.6752], minister: 'Peter Hummelgaard', party: 'A' },
-  { id: 'em',   name: 'Erhvervsministeriet',                 address: 'Slotsholmsgade 10-12, 1216 København K',    pos: [12.5800, 55.6740], minister: 'Morten Bødskov', party: 'A' },
-  { id: 'skm',  name: 'Skatteministeriet',                   address: 'Nicolai Eigtveds Gade 28, 1402 Kbh K',     pos: [12.5991, 55.6726], minister: 'Jeppe Bruus', party: 'A' },
-  { id: 'trm',  name: 'Transportministeriet',                address: 'Frederiksholms Kanal 27F, 1220 Kbh K',     pos: [12.5744, 55.6736], minister: 'Thomas Danielsen', party: 'V' },
-  { id: 'uim',  name: 'Udlændinge- og Integrationsmin.',     address: 'Slotsholmsgade 10, 1216 København K',       pos: [12.5792, 55.6738], minister: 'Mattias Tesfaye', party: 'A' },
-  { id: 'ufm',  name: 'Uddannelses- og Forskningsmin.',      address: 'Styrelsen for Forskning, Kbh',              pos: [12.5720, 55.6810], minister: 'Christina Egelund', party: 'M' },
-  { id: 'kefm', name: 'Klima-, Energi- og Forsyningsmin.',   address: 'Holmens Kanal 20, 1060 København K',        pos: [12.5898, 55.6762], minister: 'Lars Aagaard', party: 'M' },
-  { id: 'ibm',  name: 'Indenrigs- og Boligministeriet',      address: 'Christiansborg Slotsplads 1, 1218 Kbh K',  pos: [12.5780, 55.6752], minister: 'Kaare Dybvad Bek', party: 'A' },
-  { id: 'uvm',  name: 'Undervisningsministeriet',            address: 'Frederiksholms Kanal 21, 1220 Kbh K',      pos: [12.5754, 55.6734], minister: 'Mattias Tesfaye', party: 'A' },
-  { id: 'ft',   name: 'Christiansborg (Folketing)',          address: 'Christiansborg Slotsplads, 1218 Kbh K',    pos: [12.5779, 55.6753], minister: null, party: null, type: 'parliament' },
-];
-
-// Public social media handles for Danish politicians (from their official profiles)
-const POLITICIAN_SOCIAL = [
-  { navn: 'Mette Frederiksen',      parti: 'A', x: 'mettefrederiksen', title: 'Statsminister' },
-  { navn: 'Lars Løkke Rasmussen',   parti: 'M', x: 'larsloekke',       title: 'Udenrigsminister' },
-  { navn: 'Nicolai Wammen',         parti: 'A', x: 'nicolaiwammen',    title: 'Finansminister' },
-  { navn: 'Peter Hummelgaard',      parti: 'A', x: 'phummelgaard',     title: 'Beskæftigelsesminister' },
-  { navn: 'Magnus Heunicke',        parti: 'A', x: 'magnusheunicke',   title: 'Justitsminister' },
-  { navn: 'Sophie Løhde',           parti: 'V', x: 'sophieloehde',     title: 'Sundhedsminister' },
-  { navn: 'Troels Lund Poulsen',    parti: 'V', x: 'troelslundp',      title: 'Forsvarsminister' },
-  { navn: 'Mattias Tesfaye',        parti: 'A', x: 'mattias_tesfaye',  title: 'Udlændinge- og integrationsminister' },
-  { navn: 'Jeppe Bruus',            parti: 'A', x: 'jeppebruus',       title: 'Skatteminister' },
-  { navn: 'Christina Egelund',      parti: 'M', x: 'cegelund',         title: 'Uddannelsesminister' },
-  { navn: 'Kaare Dybvad Bek',       parti: 'A', x: 'kaarebek',         title: 'Indenrigsminister' },
-  { navn: 'Pia Olsen Dyhr',         parti: 'F', x: 'piaolsendyhr',     title: 'Formand SF' },
-  { navn: 'Alex Vanopslagh',        parti: 'I', x: 'vanopslagh',       title: 'Formand Liberal Alliance' },
-  { navn: 'Inger Støjberg',         parti: 'D', x: 'ingerstojberg',    title: 'Formand Danmarksdemokraterne' },
-  { navn: 'Mai Villadsen',          parti: 'Ø', x: 'maivilladsen',     title: 'Formand Enhedslisten' },
-  { navn: 'Martin Lidegaard',       parti: 'B', x: 'mlidegaard',       title: 'Formand Radikale Venstre' },
-  { navn: 'Morten Messerschmidt',   parti: 'O', x: 'messerschmidt_m',  title: 'Formand Dansk Folkeparti' },
-  { navn: 'Torsten Gejl',           parti: 'Å', x: 'torstengejl',      title: 'Formand Alternativet' },
-  { navn: 'Rasmus Stoklund',        parti: 'A', x: 'stoklundm',        title: 'Transportminister' },
-];
-
 const PARTY_COLORS = {
   A: '#E32D1C', V: '#003F87', M: '#6B3FA0', I: '#00A0D6',
   D: '#1B3A6B', F: '#E84B3A', Ø: '#B22222', C: '#006B3C',
   B: '#9B1EAD', O: '#F4A82A', Å: '#00C165',
 };
 
-// GET /ministries — ministry building locations for globe
-router.get('/ministries', (req, res) => {
-  res.json({ buildings: MINISTRY_BUILDINGS, source: 'Statsministeriet · offentlig' });
+const MINISTER_X_HANDLES = {
+  'Mette Frederiksen':    'mettefrederiksen',
+  'Lars Løkke Rasmussen': 'larsloekke',
+  'Nicolai Wammen':       'nicolaiwammen',
+  'Magnus Heunicke':      'magnusheunicke',
+  'Troels Lund Poulsen':  'troelslundp',
+  'Sophie Løhde':         'sophieloehde',
+  'Peter Hummelgaard':    'phummelgaard',
+  'Mattias Tesfaye':      'mattias_tesfaye',
+  'Jeppe Bruus':          'jeppebruus',
+  'Christina Egelund':    'cegelund',
+  'Kaare Dybvad Bek':     'kaarebek',
+  'Lars Aagaard':         'lars_aagaard_dk',
+  'Rasmus Stoklund':      'stoklundm',
+};
+
+// Current government ministers — persons with their electoral storkreds positions.
+// Positions are constituency centers, not ministry building addresses.
+const MINISTERS = [
+  { id: 'frederiksen', navn: 'Mette Frederiksen',    title: 'Statsminister',                         parti: 'A', storkreds: 'Vestre Storkreds',                  pos: [12.501, 55.664] },
+  { id: 'loekke',      navn: 'Lars Løkke Rasmussen', title: 'Udenrigsminister',                      parti: 'M', storkreds: 'Sjællands Storkreds',               pos: [11.718, 55.716] },
+  { id: 'wammen',      navn: 'Nicolai Wammen',        title: 'Finansminister',                        parti: 'A', storkreds: 'Østjyllands Storkreds',             pos: [10.214, 56.153] },
+  { id: 'heunicke',    navn: 'Magnus Heunicke',       title: 'Justitsminister',                       parti: 'A', storkreds: 'Østre Storkreds',                   pos: [12.554, 55.694] },
+  { id: 'lund',        navn: 'Troels Lund Poulsen',   title: 'Forsvarsminister',                      parti: 'V', storkreds: 'Vestjyllands Storkreds',            pos: [9.023,  56.574] },
+  { id: 'loehde',      navn: 'Sophie Løhde',          title: 'Sundhedsminister',                      parti: 'V', storkreds: 'Nordsjællands Storkreds',           pos: [12.296, 55.917] },
+  { id: 'hummelgaard', navn: 'Peter Hummelgaard',     title: 'Beskæftigelsesminister',                parti: 'A', storkreds: 'Østre Storkreds',                   pos: [12.598, 55.706] },
+  { id: 'tesfaye',     navn: 'Mattias Tesfaye',       title: 'Udlændinge- og undervisningsminister',  parti: 'A', storkreds: 'Østre Storkreds',                   pos: [12.613, 55.671] },
+  { id: 'bruus',       navn: 'Jeppe Bruus',           title: 'Skatteminister',                        parti: 'A', storkreds: 'Midtjyllands Storkreds',            pos: [10.044, 56.462] },
+  { id: 'egelund',     navn: 'Christina Egelund',     title: 'Uddannelses- og forskningsminister',    parti: 'M', storkreds: 'Frederiksberg Storkreds',           pos: [12.523, 55.679] },
+  { id: 'dybvad',      navn: 'Kaare Dybvad Bek',      title: 'Indenrigs- og boligminister',           parti: 'A', storkreds: 'Østjyllands Storkreds',             pos: [10.183, 56.183] },
+  { id: 'aagaard',     navn: 'Lars Aagaard',          title: 'Klima-, energi- og forsyningsminister', parti: 'M', storkreds: 'Frederiksberg Storkreds',           pos: [12.538, 55.673] },
+  { id: 'stoklund',    navn: 'Rasmus Stoklund',        title: 'Transportminister',                     parti: 'A', storkreds: 'Syd- og Sønderjyllands Storkreds',  pos: [9.504,  55.303] },
+];
+
+// GET /ministers — current government ministers with constituency positions
+router.get('/ministers', (req, res) => {
+  const ministers = MINISTERS.map(m => ({
+    ...m,
+    x: MINISTER_X_HANDLES[m.navn] || null,
+    color: PARTY_COLORS[m.parti] || '#888',
+    type: 'minister',
+  }));
+  res.json({ ministers, source: 'Statsministeriet · offentlig', fetched: new Date().toISOString() });
 });
 
 // GET /social — known politician social media handles
