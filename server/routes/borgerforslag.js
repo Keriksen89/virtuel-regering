@@ -42,7 +42,8 @@ router.get('/active', async (req, res) => {
     res.setHeader('X-Cache', 'MISS');
     res.json(result);
   } catch (err) {
-    res.status(502).json({ error: 'Borgerforslag API unavailable', detail: err.message });
+    console.warn('[borgerforslag] active fetch failed:', err.message);
+    res.json({ proposals: [], unavailable: true, fetched: new Date().toISOString() });
   }
 });
 
@@ -59,7 +60,11 @@ router.get('/accepted', async (req, res) => {
     res.setHeader('X-Cache', 'MISS');
     res.json(result);
   } catch (err) {
-    res.status(502).json({ error: 'Borgerforslag API unavailable', detail: err.message });
+    // Degrade gracefully: the upstream borgerforslag.dk API is frequently
+    // flaky. Return an empty list with 200 (and a flag) instead of a 502 so
+    // the client doesn't log a console error — the panel handles emptiness.
+    console.warn('[borgerforslag] accepted fetch failed:', err.message);
+    res.json({ proposals: [], unavailable: true, fetched: new Date().toISOString() });
   }
 });
 

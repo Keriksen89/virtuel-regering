@@ -1098,7 +1098,7 @@ VG.danmarkskort = {};
           },
           _kind: 'ship', _data: d, _layer: 'skibstrafik',
         });
-        e.show = (_view === 'skibstrafik' || _view === 'infrastruktur');
+        e.show = (_view === 'skibstrafik');
         _shipEnt.set(d.mmsi, e);
       } else {
         _shipEnt.get(d.mmsi)._data = d;
@@ -1188,9 +1188,9 @@ VG.danmarkskort = {};
         case 'lufttrafik': e.show = (v === 'lufttrafik'); break;
         case 'skibstrafik': e.show = (v === 'skibstrafik'); break;
         case 'satellitter': e.show = (v === 'satellitter') || (v === 'overvågning' && e._data && e._data.surv); break;
-        case 'cables': e.show = (v === 'infrastruktur' || v === 'skibstrafik' || v === 'overvågning'); break;
+        case 'cables': e.show = (v === 'infrastruktur' || v === 'overvågning'); break;
         case 'ferry':
-        case 'ports': e.show = (v === 'infrastruktur' || v === 'skibstrafik'); break;
+        case 'ports': e.show = (v === 'infrastruktur'); break;
         case 'wind': e.show = (v === 'infrastruktur'); break;
         case 'overvågning': e.show = (v === 'overvågning'); break;
         case 'beredskab': e.show = (v === 'beredskab'); break;
@@ -1199,7 +1199,7 @@ VG.danmarkskort = {};
     });
     // Live entities
     for (const e of _acEnt.values()) e.show = (v === 'lufttrafik');
-    for (const e of _shipEnt.values()) e.show = (v === 'skibstrafik' || v === 'infrastruktur');
+    for (const e of _shipEnt.values()) e.show = (v === 'skibstrafik');
     for (const e of _satEnt.values()) e.show = (v === 'satellitter') || (v === 'overvågning' && e._data && (e._data.surv || e._data.type === 'recon'));
     for (const e of _weatherEnt.values()) e.show = (v === 'vejr');
     // Polygon colour alpha + extrusion depend on the active view.
@@ -1602,7 +1602,7 @@ VG.danmarkskort = {};
       const dt = Math.min((now - _lastFrameT) / 1000, 0.1);
       _lastFrameT = now;
       _pulse += 0.05;
-      if (_view === 'skibstrafik' || _view === 'infrastruktur') advanceShips(_ships, dt);
+      if (_view === 'skibstrafik') advanceShips(_ships, dt);
       if (_view === 'lufttrafik') advanceAircraft(_aircraft, dt);
       if (_view === 'vejr' || _view === 'beredskab') {
         if (!_weather.length) fetchWeather();
