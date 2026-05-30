@@ -80,7 +80,13 @@ app.use(helmet({
       upgradeInsecureRequests: null
     }
   },
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  // Google's referer-restricted Maps key requires a Referer header matching the
+  // site. Helmet's default (no-referrer) strips it entirely, so every tile
+  // fetch to tile.googleapis.com 403s. strict-origin-when-cross-origin sends
+  // just the origin (https://oculusomnividens.dk/) cross-origin — enough to
+  // satisfy the key restriction without leaking full URLs.
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
 app.use(compression());
