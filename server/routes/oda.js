@@ -182,4 +182,77 @@ router.get('/active-bills', async (req, res) => {
   }
 });
 
+// GET /members — all Folketing members (type 5 = party, type 6 = MP/actor)
+router.get('/members', async (req, res) => {
+  const cacheKey = 'oda:members';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  try {
+    // typeid 5 = parlamentarisk gruppe (partigruppe), typeid 6 = person/MF
+    const url = `${ODA_BASE}/Aktør?$filter=typeid%20eq%205&$select=id,navn,gruppenavnkort,opdateringsdato&$top=20`;
+    const membersUrl = `${ODA_BASE}/AktørAktør?$filter=rolleid%20eq%201%20and%20inaktiv%20eq%20false&$expand=fraAktør($select=id,navn,biografi)&$top=200`;
+
+    const [groupData, memberData] = await Promise.allSettled([
+      fetchJSON(url),
+      fetchJSON(membersUrl)
+    ]);
+
+    const groups = {};
+    if (groupData.status === 'fulfilled') {
+      for (const g of (groupData.value?.value || [])) {
+        groups[g.id] = { navn: g.navn, forkortelse: g.gruppenavnkort };
+      }
+    }
+
+    const members = [];
+    if (memberData.status === 'fulfilled') {
+      for (const rel of (memberData.value?.value || [])) {
+        if (rel.fraAktør) {
+          members.push({
+            id: rel.fraAktør.id,
+            navn: rel.fraAktør.navn,
+            partiId: rel.tilAktørid,
+            parti: groups[rel.tilAktørid]?.forkortelse || null,
+            partiNavn: groups[rel.tilAktørid]?.navn || null,
+          });
+        }
+      }
+    }
+
+    const result = { members, groups: Object.values(groups), fetched: new Date().toISOString(), source: 'Folketingets ODA-API' };
+    cache.set(cacheKey, result, 6 * 3600);
+    res.setHeader('X-Cache', 'MISS');
+    res.json(result);
+  } catch (err) {
+    console.warn('[oda] members failed:', err.message);
+    res.json({ members: [], groups: [], fetched: new Date().toISOString(), source: 'Folketingets ODA-API', error: 'temporarily unavailable' });
+  }
+});
+
+// GET /member-activity/:id — recent Folketing activity for a specific member
+router.get('/member-activity/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.status(400).json({ error: 'Invalid id' });
+
+  const cacheKey = `oda:member-activity:${id}`;
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  try {
+    const speechUrl = `${ODA_BASE}/Tale?$filter=aktørid%20eq%20${id}&$top=5&$orderby=opdateringsdato%20desc&$select=id,opdateringsdato,møde`;
+    const data = await fetchJSON(speechUrl);
+    const speeches = (data?.value || []).map(t => ({
+      id: t.id,
+      dato: t.opdateringsdato,
+    }));
+    const result = { id, speeches, fetched: new Date().toISOString() };
+    cache.set(cacheKey, result, 3600);
+    res.setHeader('X-Cache', 'MISS');
+    res.json(result);
+  } catch (err) {
+    res.json({ id, speeches: [], fetched: new Date().toISOString(), error: err.message });
+  }
+});
+
 export default router;

@@ -592,11 +592,19 @@ const DASH_WIDGETS = [
     w: 6, h: 8,
     content: 'livetv',
   },
+  {
+    id: 'politik',
+    icon: '<i class="ph ph-buildings"></i>',
+    title: 'Politisk Monitor',
+    panel: 'folketing',
+    w: 6, h: 9,
+    content: 'politik',
+  },
 ];
 
-const DASH_LS_KEY      = 'vg_dashboard_v8';
-const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v8';
-const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'markets', 'danmarkidag', 'nyhedsradar', 'intlnews', 'aiinsights', 'livetv', 'xdeck', 'reddit'];
+const DASH_LS_KEY      = 'vg_dashboard_v9';
+const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v9';
+const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'markets', 'danmarkidag', 'nyhedsradar', 'intlnews', 'aiinsights', 'livetv', 'xdeck', 'reddit', 'politik'];
 
 const STATUS_CLS = { ok: 'dw-ok', warn: 'dw-warn', bad: 'dw-bad' };
 const SRC_CLS    = {
@@ -745,6 +753,8 @@ VG.dashboard.renderPanel = function() {
       body = `<div class="dw-intlnews-body" id="dw-intlnews-body"><div class="dw-skeleton"></div><div class="dw-skeleton"></div><div class="dw-skeleton"></div></div>`;
     } else if (w.content === 'livetv') {
       body = `<div class="dw-livetv-body" id="dw-livetv-body"></div>`;
+    } else if (w.content === 'politik') {
+      body = `<div class="dw-politik-body" id="dw-politik-body"><div class="dw-skeleton"></div><div class="dw-skeleton"></div></div>`;
     } else if (w.render) {
       const sparkHtml = d.spark ? _sparks(d.spark, d.trendCls) : '';
       const gaugeHtml = d.gauge ? `<div class="dw-gauge-wrap"><div class="dw-gauge-track"><div class="dw-gauge-fill" style="width:${Math.max(2, Math.min(100, d.gauge.pct)).toFixed(1)}%;background:${d.gauge.color}"></div></div>${d.gauge.label ? `<span class="dw-gauge-lbl">${d.gauge.label}</span>` : ''}</div>` : '';
@@ -796,6 +806,7 @@ VG.dashboard.renderPanel = function() {
   VG.dashboard._fillPortfolio();
   VG.dashboard._fillIntlNews();
   VG.dashboard._fillLiveTV();
+  VG.dashboard._fillPolitik();
 
   document.getElementById('dw-edit-btn').onclick = () => {
     panel._dashEditMode = !panel._dashEditMode;
@@ -1299,4 +1310,91 @@ VG.dashboard._fillPolls = function() {
       </div>
       <span class="dw-poll-pct">${pct.toFixed(1).replace('.', ',')} %</span>
     </div>`).join('');
+};
+
+VG.dashboard._fillPolitik = async function() {
+  const el = document.getElementById('dw-politik-body');
+  if (!el) return;
+
+  const PARTY_COLORS = {
+    A: '#E32D1C', V: '#003F87', M: '#6B3FA0', I: '#00A0D6',
+    D: '#1B3A6B', F: '#E84B3A', Ø: '#B22222', C: '#006B3C',
+    B: '#9B1EAD', O: '#F4A82A', Å: '#00C165',
+  };
+
+  // Formation status from government data
+  const FORMATION_TIMELINE = [
+    { label: 'Valg afholdt',                       date: '2025',          status: 'done'   },
+    { label: 'Mandatfordeling opgjort',             date: '2025',          status: 'done'   },
+    { label: 'Forhandlingsleder udpeget',           date: 'Forår 2026',    status: 'done'   },
+    { label: 'Koalitionsforhandlinger',             date: 'Maj 2026',      status: 'active' },
+    { label: 'Koalitionsaftale underskrives',       date: 'Forventet 2026',status: 'pending'},
+    { label: 'Ny regering præsenteres',             date: 'Forventet 2026',status: 'pending'},
+  ];
+
+  // Render formation tracker immediately
+  const timelineHtml = FORMATION_TIMELINE.map(s => {
+    const icon = s.status === 'done' ? '✓' : s.status === 'active' ? '●' : '○';
+    const cls  = s.status === 'done' ? 'dpk-done' : s.status === 'active' ? 'dpk-active' : 'dpk-pending';
+    return `<div class="dpk-step ${cls}"><span class="dpk-icon">${icon}</span><span class="dpk-label">${s.label}</span><span class="dpk-date">${s.date}</span></div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="dpk-section-title">🏛 Regeringsdannelse — status</div>
+    <div class="dpk-timeline">${timelineHtml}</div>
+    <div class="dpk-section-title" style="margin-top:10px">📋 Folketing — seneste aktivitet</div>
+    <div id="dpk-activity"><div class="dw-skeleton"></div></div>
+    <div class="dpk-section-title" style="margin-top:10px">🗣 Seneste talere</div>
+    <div id="dpk-speeches"><div class="dw-skeleton"></div></div>
+    <div class="dpk-section-title" style="margin-top:10px">📜 Aktive lovforslag</div>
+    <div id="dpk-bills"><div class="dw-skeleton"></div></div>`;
+
+  // Fetch live Folketing activity
+  try {
+    const data = await fetch('/api/politiker/activity').then(r => r.json());
+
+    // Votes
+    const actEl = document.getElementById('dpk-activity');
+    if (actEl && data.votes?.length) {
+      actEl.innerHTML = data.votes.slice(0, 5).map(v => {
+        const ageH = Math.round((Date.now() - new Date(v.dato)) / 3600000);
+        const age = ageH < 24 ? `${ageH}t` : `${Math.floor(ageH/24)}d`;
+        const badge = v.vedtaget
+          ? `<span class="dpk-badge dpk-passed">Vedtaget</span>`
+          : `<span class="dpk-badge dpk-rejected">Forkastet</span>`;
+        return `<div class="dpk-row">${badge}<span class="dpk-item-title">${(v.titel||'').slice(0,70)}</span><span class="dpk-age">${age}</span></div>`;
+      }).join('');
+    } else if (actEl) {
+      actEl.innerHTML = '<p class="dw-empty">Ingen afstemninger (netværk utilgængeligt)</p>';
+    }
+
+    // Speeches
+    const spEl = document.getElementById('dpk-speeches');
+    if (spEl && data.speeches?.length) {
+      spEl.innerHTML = data.speeches.slice(0, 5).map(sp => {
+        const ageH = Math.round((Date.now() - new Date(sp.dato)) / 3600000);
+        const age = ageH < 24 ? `${ageH}t` : `${Math.floor(ageH/24)}d`;
+        const col = PARTY_COLORS[sp.parti] || '#888';
+        const badge = sp.parti ? `<span class="dpk-party-dot" style="background:${col}">${sp.parti}</span>` : '';
+        return `<div class="dpk-row">${badge}<span class="dpk-item-title">${sp.taler}</span><span class="dpk-age">${age}</span></div>`;
+      }).join('');
+    } else if (spEl) {
+      spEl.innerHTML = '<p class="dw-empty">Ingen taler tilgængelige</p>';
+    }
+
+    // Bills
+    const billEl = document.getElementById('dpk-bills');
+    if (billEl && data.bills?.length) {
+      billEl.innerHTML = data.bills.slice(0, 5).map(b => {
+        const ageH = Math.round((Date.now() - new Date(b.dato)) / 3600000);
+        const age = ageH < 24 ? `${ageH}t` : `${Math.floor(ageH/24)}d`;
+        return `<div class="dpk-row"><span class="dpk-badge dpk-bill">${b.status}</span><span class="dpk-item-title">${(b.titel||b.nummer||'').slice(0,65)}</span><span class="dpk-age">${age}</span></div>`;
+      }).join('');
+    } else if (billEl) {
+      billEl.innerHTML = '<p class="dw-empty">Ingen lovforslag tilgængelige</p>';
+    }
+  } catch (e) {
+    const actEl = document.getElementById('dpk-activity');
+    if (actEl) actEl.innerHTML = `<p class="dw-empty">FT API utilgængeligt</p>`;
+  }
 };

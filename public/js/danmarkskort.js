@@ -93,6 +93,12 @@ VG.danmarkskort = {};
       { panel: 'innovation',    icon: '🔬', label: 'Innovation & Tech',   stat: () => '' },
       { panel: 'medietillid',   icon: '📰', label: 'Medie & Tillid',     stat: () => '' },
     ],
+    politik: [
+      { panel: 'forsvar',       icon: '🛡', label: 'Forsvar & Sikkerhed', stat: () => '' },
+      { panel: 'udenrigshandel',icon: '🌐', label: 'Udenrigshandel',     stat: () => '' },
+      { panel: 'co2',           icon: '🌿', label: 'Klima & CO₂',        stat: () => '' },
+      { panel: 'indkomst',      icon: '💰', label: 'Økonomi & Ulighed',  stat: () => '' },
+    ],
   };
 
   const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2', skat:'laboratorium', erhverv:'ledighed', uddannelse:'innovation', valgdeltagelse:'demographics', medianalder:'demographics', kriminalitet:'forsvar', middellevetid:'demographics', boligejer:'boligmarked' };
@@ -608,6 +614,28 @@ VG.danmarkskort = {};
     { name: 'Færøernes Landstyre',        branch: 'fælles', unit: 'Danish liaison · coastal surveillance',      pos: [-6.768,  62.008], country: 'FO' },
   ];
 
+  // ── Ministry buildings + party HQs (for politik layer) ────────────────────────
+  const MINISTRY_LOCATIONS = [
+    { id: 'ft',   name: 'Christiansborg (Folketing)',          pos: [12.5779, 55.6753], type: 'parliament', minister: null,          party: null  },
+    { id: 'stm',  name: 'Statsministeriet',                    pos: [12.5796, 55.6755], type: 'ministry',   minister: 'Mette Frederiksen',    party: 'A' },
+    { id: 'um',   name: 'Udenrigsministeriet',                 pos: [12.5938, 55.6712], type: 'ministry',   minister: 'Lars Løkke Rasmussen', party: 'M' },
+    { id: 'fm',   name: 'Finansministeriet',                   pos: [12.5784, 55.6748], type: 'ministry',   minister: 'Nicolai Wammen',       party: 'A' },
+    { id: 'jm',   name: 'Justitsministeriet',                  pos: [12.5792, 55.6742], type: 'ministry',   minister: 'Magnus Heunicke',      party: 'A' },
+    { id: 'fmst', name: 'Forsvarsministeriet',                 pos: [12.5908, 55.6773], type: 'ministry',   minister: 'Troels Lund Poulsen',  party: 'V' },
+    { id: 'sst',  name: 'Sundhedsministeriet',                 pos: [12.5871, 55.6848], type: 'ministry',   minister: 'Sophie Løhde',         party: 'V' },
+    { id: 'bm',   name: 'Beskæftigelsesministeriet',           pos: [12.5861, 55.6752], type: 'ministry',   minister: 'Peter Hummelgaard',    party: 'A' },
+    { id: 'skm',  name: 'Skatteministeriet',                   pos: [12.5991, 55.6726], type: 'ministry',   minister: 'Jeppe Bruus',          party: 'A' },
+    { id: 'trm',  name: 'Transportministeriet',                pos: [12.5744, 55.6736], type: 'ministry',   minister: 'Thomas Danielsen',     party: 'V' },
+    { id: 'kefm', name: 'Klima-, Energi- og Forsyningsmin.',   pos: [12.5898, 55.6762], type: 'ministry',   minister: 'Lars Aagaard',         party: 'M' },
+    { id: 'ibm',  name: 'Indenrigs- og Boligministeriet',      pos: [12.5780, 55.6752], type: 'ministry',   minister: 'Kaare Dybvad Bek',     party: 'A' },
+  ];
+
+  const PARTY_COLORS_RGB = {
+    A: [227, 45, 28], V: [0, 63, 135], M: [107, 63, 160], I: [0, 160, 214],
+    D: [27, 58, 107], F: [232, 75, 58], Ø: [178, 34, 34],  C: [0, 107, 60],
+    B: [155, 30, 173], O: [244, 168, 42], Å: [0, 193, 101],
+  };
+
   // MMSI numbers of active Danish naval vessels — highlighted in skibstrafik+forsvar views.
   const NAVAL_MMSI = new Set([
     219103000, // HDMS Iver Huitfeldt (F360)
@@ -966,6 +994,7 @@ VG.danmarkskort = {};
   let _gridFreq           = null;
   let _gridFreqTimer      = null;
   let _exchangeRates      = null;
+  let _politikActivity    = null; // cached Folketing activity data
 
   // ── Cesium globe init ────────────────────────────────────────────────────────
   const HOME = () => ({
@@ -1226,6 +1255,33 @@ VG.danmarkskort = {};
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         _layer: 'tog', _kind: 'tog', _data: s, show: false,
+      });
+    });
+
+    // Ministry buildings (politik)
+    MINISTRY_LOCATIONS.forEach(m => {
+      const col = m.type === 'parliament'
+        ? [212, 175, 55]  // gold for Christiansborg
+        : (PARTY_COLORS_RGB[m.party] || [160, 160, 160]);
+      ents.add({
+        position: deg(m.pos[0], m.pos[1]),
+        point: {
+          pixelSize: m.type === 'parliament' ? 13 : 9,
+          color: Cesium.Color.fromBytes(col[0], col[1], col[2], 240),
+          outlineColor: Cesium.Color.fromBytes(255, 255, 255, 160),
+          outlineWidth: m.type === 'parliament' ? 3 : 1,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: m.name.split('(')[0].trim().split(',')[0].trim(),
+          font: `${m.type === 'parliament' ? '700' : '600'} 10px "Courier New", monospace`,
+          fillColor: Cesium.Color.fromBytes(col[0], col[1], col[2], 230),
+          style: Cesium.LabelStyle.FILL,
+          pixelOffset: new Cesium.Cartesian2(0, -16),
+          scaleByDistance: new Cesium.NearFarScalar(5.0e4, 1.2, 8.0e5, 0.4),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        _layer: 'politik', _kind: 'politik', _data: m, show: false,
       });
     });
 
@@ -1524,6 +1580,7 @@ VG.danmarkskort = {};
         case 'vejr': e.show = (v === 'vejr'); break;
         case 'tog': e.show = (v === 'tog'); break;
         case 'forsvar': e.show = (v === 'forsvar'); break;
+        case 'politik': e.show = (v === 'politik'); break;
       }
     });
     // Live entities
@@ -1543,9 +1600,9 @@ VG.danmarkskort = {};
     // Grid frequency: visible in infrastruktur + tog views.
     const freqEl = document.getElementById('dk-gridfreq');
     if (freqEl) freqEl.style.display = (v === 'infrastruktur' || v === 'tog') ? '' : 'none';
-    // Metric/legend buttons: also hide in tog and forsvar views.
+    // Metric/legend buttons: also hide in tog, forsvar and politik views.
     const metricBtns = document.getElementById('dk-metric-btns');
-    if (metricBtns && (v === 'tog' || v === 'forsvar')) metricBtns.style.display = 'none';
+    if (metricBtns && (v === 'tog' || v === 'forsvar' || v === 'politik')) metricBtns.style.display = 'none';
     // Sync kyst entities visibility.
     for (const e of _kystEnt.values()) e.show = (v === 'vejr');
     // Pre-fetch recent news for beredskab tooltips.
@@ -1554,6 +1611,8 @@ VG.danmarkskort = {};
     if (v === 'tog') { fetchTog(); fetchGridFreq(); }
     // Keep grid frequency refreshed in infrastruktur view too.
     if (v === 'infrastruktur') fetchGridFreq();
+    // Fetch Folketing activity when entering politik view.
+    if (v === 'politik') fetchPolitikActivity();
   }
 
   // ── Hover / pin tooltips ─────────────────────────────────────────────────────
@@ -1575,6 +1634,7 @@ VG.danmarkskort = {};
       case 'tog':       tip(x, y, trainStationHTML(ent._data), pinned); break;
       case 'kyst':      tip(x, y, kystHTML(ent._data), pinned); break;
       case 'forsvar':   tip(x, y, forsvarHTML(ent._data), pinned); break;
+      case 'politik':   tip(x, y, politikHTML(ent._data), pinned); break;
     }
   }
   function onHover(pos) {
@@ -1851,6 +1911,47 @@ VG.danmarkskort = {};
       <div class="dkt-row"><span class="dkt-k">Land</span><span class="dkt-v">${countryLabel}</span></div>
       <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${b.pos[1].toFixed(3)}°N ${b.pos[0].toFixed(3)}°E</span></div>
       <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">forsvaret.dk · offentligt</span></div>`;
+  }
+
+  function politikHTML(m) {
+    const rgb = PARTY_COLORS_RGB[m.party] || [212, 175, 55];
+    const col = m.type === 'parliament' ? '#d4af37' : `rgb(${rgb.join(',')})`;
+    const icon = m.type === 'parliament' ? '🏛' : '🏢';
+    const act = _politikActivity;
+    let actHtml = '';
+    if (act && m.type === 'parliament') {
+      const latest = act.votes[0];
+      if (latest) {
+        const d = new Date(latest.dato);
+        const age = Math.round((Date.now() - d) / 3600000);
+        actHtml = `<div class="dkt-row"><span class="dkt-k">Seneste afstemning</span><span class="dkt-v">${latest.titel?.slice(0,50) || '—'}… (${age < 24 ? age+'t' : Math.floor(age/24)+'d'} siden)</span></div>`;
+      }
+    }
+    const xHandle = m.minister ? POLITICIAN_X_HANDLES[m.minister] : null;
+    const xRow = xHandle ? `<div class="dkt-row"><span class="dkt-k">X / Twitter</span><span class="dkt-v">@${xHandle}</span></div>` : '';
+    return `<div class="dkt-title" style="color:${col}">${icon} ${m.name}</div>
+      ${m.minister ? `<div class="dkt-row"><span class="dkt-k">Minister</span><span class="dkt-v" style="color:${col}">${m.minister}</span></div>` : ''}
+      ${m.party ? `<div class="dkt-row"><span class="dkt-k">Parti</span><span class="dkt-v">${m.party}</span></div>` : ''}
+      ${xRow}
+      ${actHtml}
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">ft.dk · Statsministeriet</span></div>`;
+  }
+
+  const POLITICIAN_X_HANDLES = {
+    'Mette Frederiksen': 'mettefrederiksen', 'Lars Løkke Rasmussen': 'larsloekke',
+    'Nicolai Wammen': 'nicolaiwammen',       'Peter Hummelgaard': 'phummelgaard',
+    'Magnus Heunicke': 'magnusheunicke',     'Sophie Løhde': 'sophieloehde',
+    'Troels Lund Poulsen': 'troelslundp',    'Mattias Tesfaye': 'mattias_tesfaye',
+    'Jeppe Bruus': 'jeppebruus',             'Christina Egelund': 'cegelund',
+    'Kaare Dybvad Bek': 'kaarebek',          'Lars Aagaard': 'lars_aagaard_dk',
+    'Thomas Danielsen': 'thomasd_dk',
+  };
+
+  async function fetchPolitikActivity() {
+    try {
+      const data = await fetch('/api/politiker/activity').then(r => r.json());
+      _politikActivity = data;
+    } catch (e) { console.warn('[politik] activity fetch failed', e); }
   }
 
   function windHTML(w) {
@@ -2429,6 +2530,7 @@ VG.danmarkskort = {};
       <button class="dk-btn dk-btn-beredskab" data-view="beredskab">🚨 BEREDSKAB</button>
       <button class="dk-btn dk-btn-tog" data-view="tog">🚆 TOG</button>
       <button class="dk-btn dk-btn-forsvar" data-view="forsvar">🛡 FORSVAR</button>
+      <button class="dk-btn dk-btn-politik" data-view="politik">🏛 POLITIK</button>
     </div>
     <div class="dk-metric-btns" id="dk-metric-btns">
       <button class="dk-btn active" data-metric="ledighed">LEDIGHED</button>
