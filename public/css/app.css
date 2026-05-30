@@ -5554,6 +5554,11 @@ body.dk-immersive.dk-peek .dk-peek-backdrop {
 .dk-btn-telecom.dk-btn-active,
 .dk-btn-telecom:hover { background: rgba(155,89,182,0.4) !important; border-color: rgba(200,150,255,0.9) !important; color: #cc99ff !important; }
 
+.dk-btn-miljo { background: rgba(20,140,110,0.25) !important; border-color: rgba(40,180,140,0.5) !important; color: rgba(90,220,180,0.85) !important; }
+.dk-btn-miljo.active,
+.dk-btn-miljo.dk-btn-active,
+.dk-btn-miljo:hover { background: rgba(40,180,140,0.4) !important; border-color: rgba(80,230,190,0.9) !important; color: #6effc8 !important; }
+
 /* ── Politik widget (dpk-*) ────────────────────────────────────────────── */
 .dpk-timeline { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
 .dpk-step {

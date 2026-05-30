@@ -151,11 +151,46 @@ const IOT_REGIONS = [
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 
+// Live WiGLE network density lookup (requires WIGLE_API_NAME + WIGLE_API_TOKEN).
+// Augments the curated hotspots with crowdsourced WiFi observations. Falls back
+// to the curated set on any error. Cached 12h in memory.
+let _wigleCache = null, _wigleAt = 0;
+async function getWigleHotspots() {
+  const name = process.env.WIGLE_API_NAME, token = process.env.WIGLE_API_TOKEN;
+  if (!name || !token) return null;
+  if (_wigleCache && Date.now() - _wigleAt < 12 * 3600 * 1000) return _wigleCache;
+  const auth = 'Basic ' + Buffer.from(`${name}:${token}`).toString('base64');
+  // Sample search around Copenhagen; WiGLE paginates — kept small for the demo.
+  const url = 'https://api.wigle.net/api/v2/network/search?latrange1=55.55&latrange2=55.75&longrange1=12.45&longrange2=12.65&resultsPerPage=100';
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const r = await fetch(url, { headers: { Authorization: auth }, signal: ctrl.signal });
+    const j = await r.json();
+    const nets = j.results || [];
+    const spots = nets.filter(n => n.trilat && n.trilong).map(n => ({
+      lat: +(+n.trilat).toFixed(5), lon: +(+n.trilong).toFixed(5),
+      name: n.ssid || '(skjult SSID)', type: 'YOUSEE', ssid: n.ssid || '—',
+    }));
+    if (spots.length) { _wigleCache = spots; _wigleAt = Date.now(); return spots; }
+    return null;
+  } catch (_) {
+    return null;
+  } finally {
+    clearTimeout(to);
+  }
+}
+
 // GET /api/wifi/hotspots
-router.get('/hotspots', (req, res) => {
+router.get('/hotspots', async (req, res) => {
   const { type } = req.query;
-  const spots = type ? HOTSPOTS.filter(h => h.type === type.toUpperCase()) : HOTSPOTS;
-  res.json({ hotspots: spots, total: spots.length, types: TYPE_META, source: 'static-curated' });
+  const live = await getWigleHotspots();
+  const base = live ? HOTSPOTS.concat(live) : HOTSPOTS;
+  const spots = type ? base.filter(h => h.type === type.toUpperCase()) : base;
+  res.json({
+    hotspots: spots, total: spots.length, types: TYPE_META,
+    source: live ? 'wigle-augmented' : 'static-curated',
+  });
 });
 
 // GET /api/wifi/digital-divide

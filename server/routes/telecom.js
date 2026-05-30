@@ -117,19 +117,57 @@ function getTowers() {
   return towers;
 }
 
+const RADIO_FROM_OCID = { GSM: 'GSM', UMTS: 'UMTS', LTE: 'LTE', NR: 'NR', CDMA: 'UMTS' };
+
+// Live OpenCelliD lookup (requires OPENCELLID_KEY). Falls back to the static
+// model on any error so the layer always renders. Cached 6h in memory.
+let _liveCache = null, _liveCacheAt = 0;
+async function getLiveTowers(bbox) {
+  const key = process.env.OPENCELLID_KEY;
+  if (!key) return null;
+  if (_liveCache && Date.now() - _liveCacheAt < 6 * 3600 * 1000) return _liveCache;
+  // Denmark bounding box (or caller-supplied)
+  const bb = bbox || '54.5,7.8,57.8,15.3';
+  const url = `https://opencellid.org/cell/getInArea?key=${key}&BBOX=${bb}&format=json&limit=8000`;
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    const j = await r.json();
+    const cells = j.cells || j.list || [];
+    const towers = cells.map(c => {
+      const mnc = String(c.mnc).padStart(2, '0');
+      return {
+        lat: +(+c.lat).toFixed(5), lon: +(+c.lon).toFixed(5),
+        radio: RADIO_FROM_OCID[c.radio] || 'LTE',
+        mnc, operator: OPERATOR[mnc] || `MNC ${mnc}`,
+        area: 'OpenCelliD',
+      };
+    });
+    if (towers.length) { _liveCache = towers; _liveCacheAt = Date.now(); return towers; }
+    return null;
+  } catch (_) {
+    return null;
+  } finally {
+    clearTimeout(to);
+  }
+}
+
 // GET /api/telecom/masts
-router.get('/masts', (req, res) => {
-  const towers = getTowers();
-  // Optionally filter by bbox: ?minLat=&maxLat=&minLon=&maxLon=
+router.get('/masts', async (req, res) => {
   const { minLat, maxLat, minLon, maxLon } = req.query;
-  if (minLat && maxLat && minLon && maxLon) {
+  const bbox = (minLat && maxLat && minLon && maxLon) ? `${minLat},${minLon},${maxLat},${maxLon}` : null;
+  const live = await getLiveTowers(bbox);
+  const towers = live || getTowers();
+  const source = live ? 'opencellid-live' : 'static-model';
+  if (!live && minLat && maxLat && minLon && maxLon) {
     const filtered = towers.filter(t =>
       t.lat >= +minLat && t.lat <= +maxLat &&
       t.lon >= +minLon && t.lon <= +maxLon
     );
-    return res.json({ towers: filtered, total: filtered.length, source: 'static-model' });
+    return res.json({ towers: filtered, total: filtered.length, source });
   }
-  res.json({ towers, total: towers.length, source: 'static-model' });
+  res.json({ towers, total: towers.length, source });
 });
 
 // GET /api/telecom/stats — aggregated summary

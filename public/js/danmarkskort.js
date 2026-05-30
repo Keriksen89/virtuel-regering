@@ -111,6 +111,12 @@ VG.danmarkskort = {};
       { panel: 'energi',        icon: '⚡', label: 'Energi & Strøm',      stat: () => '' },
       { panel: 'kommuner',      icon: '🗺', label: 'Kommuner (detail)',   stat: () => '' },
     ],
+    miljo: [
+      { panel: 'naturvand',     icon: '💧', label: 'Natur & Ressourcer',  stat: () => '' },
+      { panel: 'co2',           icon: '🌿', label: 'Klima & CO₂',         stat: () => '' },
+      { panel: 'energi',        icon: '⚡', label: 'Energi & Strøm',      stat: () => '' },
+      { panel: 'sundhed',       icon: '🏥', label: 'Sundhed',             stat: () => '' },
+    ],
   };
 
   const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2', skat:'laboratorium', erhverv:'ledighed', uddannelse:'innovation', valgdeltagelse:'demographics', medianalder:'demographics', kriminalitet:'forsvar', middellevetid:'demographics', boligejer:'boligmarked', healthineq:'sundhed', mental:'psykiatri', green:'co2', mobility:'dsb' };
@@ -998,6 +1004,7 @@ VG.danmarkskort = {};
   let _infraLoaded = false;
   let _wifiPoints = null;       // WiFi hotspot PointPrimitiveCollection
   let _wifiLoaded = false;
+  const _pointLayers = {};      // generic /points layers: name -> { coll, loaded }
   let _container = null;
   let _initialized = false;
   let _aircraftTimer = null;
@@ -1652,7 +1659,7 @@ VG.danmarkskort = {};
     if (freqEl) freqEl.style.display = (v === 'infrastruktur') ? '' : 'none';
     // Metric/legend buttons: also hide in tog, forsvar, trafik and politik views.
     const metricBtns = document.getElementById('dk-metric-btns');
-    if (metricBtns && (v === 'tog' || v === 'forsvar' || v === 'politik' || v === 'trafik' || v === 'infra')) metricBtns.style.display = 'none';
+    if (metricBtns && (v === 'tog' || v === 'forsvar' || v === 'politik' || v === 'trafik' || v === 'infra' || v === 'miljo')) metricBtns.style.display = 'none';
     // Sync kyst entities visibility.
     for (const e of _kystEnt.values()) e.show = (v === 'vejr');
     // Sync trafik event entities.
@@ -1675,6 +1682,17 @@ VG.danmarkskort = {};
     if (v === 'infra') {
       if (!_infraLoaded) fetchAndBuildInfra(); else if (_infraPoints) _infraPoints.show = true;
       if (!_wifiLoaded)  fetchAndBuildWifi();  else if (_wifiPoints)  _wifiPoints.show  = true;
+    }
+    // Environment overlay (miljo view): air quality + seismic + tide gauges.
+    const MILJO_LAYERS = [
+      ['luftkvalitet', '/api/luftkvalitet/points'],
+      ['seismik',      '/api/seismik/points'],
+      ['vandstand',    '/api/vandstand/points'],
+    ];
+    const inMiljo = (v === 'miljo');
+    for (const [name, ep] of MILJO_LAYERS) {
+      if (inMiljo) loadPointLayer(name, ep, true);
+      else showPointLayer(name, false);
     }
   }
 
@@ -1702,6 +1720,7 @@ VG.danmarkskort = {};
       case 'trainpos':  tip(x, y, trainPosHTML(ent._data), pinned); break;
       case 'telecom':   tip(x, y, infraHTML(ent._data), pinned); break;
       case 'wifi':      tip(x, y, wifiHTML(ent._data), pinned); break;
+      case 'datapoint': tip(x, y, dataPointHTML(ent._data), pinned); break;
     }
   }
   function onHover(pos) {
@@ -2192,6 +2211,47 @@ VG.danmarkskort = {};
       console.warn('[wifi] fetch failed', e);
       _wifiLoaded = false;
     }
+  }
+
+  // Generic /points layer loader — builds a PointPrimitiveCollection from any
+  // endpoint returning { points: [{ lat, lon, color:[r,g,b], size, tip }] }.
+  async function loadPointLayer(name, endpoint, visible) {
+    if (!_viewer) return;
+    let L = _pointLayers[name];
+    if (L && L.loaded) { if (L.coll) L.coll.show = visible; return; }
+    _pointLayers[name] = L = { coll: null, loaded: true };
+    try {
+      const d = await fetch(endpoint).then(r => r.json());
+      const pts = d.points || [];
+      const coll = new Cesium.PointPrimitiveCollection();
+      for (const p of pts) {
+        const c = p.color || [255, 255, 255];
+        coll.add({
+          position: Cesium.Cartesian3.fromDegrees(p.lon, p.lat, 120),
+          color: Cesium.Color.fromBytes(c[0], c[1], c[2], 235),
+          pixelSize: p.size || 8,
+          outlineColor: Cesium.Color.BLACK.withAlpha(0.5),
+          outlineWidth: 1,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          id: { _kind: 'datapoint', _data: p },
+        });
+      }
+      _viewer.scene.primitives.add(coll);
+      coll.show = visible;
+      L.coll = coll;
+    } catch (e) {
+      console.warn('[points] load failed', name, e);
+      L.loaded = false;
+    }
+  }
+  function showPointLayer(name, visible) {
+    const L = _pointLayers[name];
+    if (L && L.coll) L.coll.show = visible;
+  }
+  function dataPointHTML(d) {
+    const t = d.tip || {};
+    const rows = (t.rows || []).map(r => `<div class="dkt-row"><span class="dkt-k">${r[0]}</span><span class="dkt-v">${r[1]}</span></div>`).join('');
+    return `<div class="dkt-title">${t.title || 'Datapunkt'}</div>${rows}`;
   }
 
   function trafikHTML(ev) {
@@ -2796,6 +2856,7 @@ VG.danmarkskort = {};
       <button class="dk-btn dk-btn-trafik" data-view="trafik">🚦 TRAFIK</button>
       <button class="dk-btn dk-btn-politik" data-view="politik">🏛 POLITIK</button>
       <button class="dk-btn dk-btn-telecom" data-view="infra">📡 NETVÆRK</button>
+      <button class="dk-btn dk-btn-miljo" data-view="miljo">🌫 MILJØ</button>
     </div>
     <div class="dk-metric-btns" id="dk-metric-btns">
       <button class="dk-btn active" data-metric="ledighed">LEDIGHED</button>
@@ -3002,6 +3063,7 @@ VG.danmarkskort = {};
     stopLoop();
     if (_viewer && _infraPoints) { try { _viewer.scene.primitives.remove(_infraPoints); } catch (_) {} }
     if (_viewer && _wifiPoints)  { try { _viewer.scene.primitives.remove(_wifiPoints); } catch (_) {} }
+    for (const k in _pointLayers) { const L = _pointLayers[k]; if (_viewer && L && L.coll) { try { _viewer.scene.primitives.remove(L.coll); } catch (_) {} } delete _pointLayers[k]; }
     _infraPoints = null; _infraLoaded = false; _wifiPoints = null; _wifiLoaded = false;
     if (_viewer) {
       try { if (_viewer._dkHandler) _viewer._dkHandler.destroy(); } catch {}
