@@ -8,19 +8,11 @@
 // re-fire on its own mutations and loop forever. The `_applying` guard plus
 // dedupe-by-id are belt-and-suspenders on top of the narrow observation.
 (function () {
-  const MAP_AFFINITY = {
-    ledighed:     { view: 'kommuner',      metric: 'ledighed' },
-    indkomst:     { view: 'kommuner',      metric: 'indkomst' },
-    boligmarked:  { view: 'kommuner',      metric: 'boligpris' },
-    demographics: { view: 'kommuner',      metric: 'befolkning' },
-    co2:          { view: 'kommuner',      metric: 'co2' },
-    laboratorium: { view: 'kommuner',      metric: 'skat' },
-    erhverv:      { view: 'kommuner',      metric: 'erhverv' },
-    kommuner:     { view: 'kommuner',      metric: 'ledighed' },
-    energi:       { view: 'infrastruktur', metric: null },
-    naturvand:    { view: 'infrastruktur', metric: null },
-    dsb:          { view: 'infrastruktur', metric: null },
-  };
+  // Map-split is disabled: the globe should appear ONLY on the dedicated
+  // Danmarksmaskinen page, never side-by-side with data panels. Keeping the
+  // (now empty) affinity map means applyMapSplit() always removes the
+  // .map-split-active class, so no data panel ever shows the globe.
+  const MAP_AFFINITY = {};
 
   let _lastId = null;
   let _applying = false;
