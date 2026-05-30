@@ -696,11 +696,21 @@ const DASH_WIDGETS = [
     w: 4, h: 7,
     content: 'iotdensity',
   },
+  { id: 'luftkvalitet', icon: '<i class="ph ph-wind"></i>',          title: 'Luftkvalitet',      panel: 'naturvand',   w: 4, h: 7, content: 'generic', endpoint: '/api/luftkvalitet' },
+  { id: 'seismik',      icon: '<i class="ph ph-wave-sine"></i>',     title: 'Seismik',           panel: 'naturvand',   w: 4, h: 6, content: 'generic', endpoint: '/api/seismik' },
+  { id: 'vandstand',    icon: '<i class="ph ph-waves"></i>',         title: 'Vandstand',         panel: 'naturvand',   w: 4, h: 7, content: 'generic', endpoint: '/api/vandstand' },
+  { id: 'elspot',       icon: '<i class="ph ph-lightning"></i>',     title: 'Elspotpriser',      panel: 'energi',      w: 4, h: 7, content: 'generic', endpoint: '/api/elspot' },
+  { id: 'ladestander',  icon: '<i class="ph ph-plug"></i>',          title: 'Ladestandere',      panel: 'dsb',         w: 4, h: 6, content: 'generic', endpoint: '/api/ladestander' },
+  { id: 'flystatus',    icon: '<i class="ph ph-airplane-tilt"></i>', title: 'Lufthavnsstatus',   panel: 'dsb',         w: 4, h: 7, content: 'generic', endpoint: '/api/flystatus' },
+  { id: 'cvr',          icon: '<i class="ph ph-buildings"></i>',     title: 'Erhvervsliv (CVR)', panel: 'erhverv',     w: 4, h: 6, content: 'generic', endpoint: '/api/cvr' },
+  { id: 'kriminalitet', icon: '<i class="ph ph-shield-warning"></i>',title: 'Kriminalitet',      panel: 'forsvar',     w: 4, h: 6, content: 'generic', endpoint: '/api/kriminalitet' },
+  { id: 'udbud',        icon: '<i class="ph ph-gavel"></i>',         title: 'Offentlige Udbud',  panel: 'folketing',   w: 4, h: 6, content: 'generic', endpoint: '/api/udbud' },
+  { id: 'bbr',          icon: '<i class="ph ph-house-line"></i>',    title: 'Bygninger & Energimærker', panel: 'boligmarked', w: 4, h: 7, content: 'generic', endpoint: '/api/bbr' },
 ];
 
 const DASH_LS_KEY      = 'vg_dashboard_v11';
 const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v11';
-const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'markets', 'danmarkidag', 'nyhedsradar', 'intlnews', 'aiinsights', 'livetv', 'xdeck', 'reddit', 'politik', 'kanylex', 'healthpressure', 'demoproj', 'policysim', 'energyhealth', 'mentalhealth', 'greenreadiness', 'mobilityindex', 'organdonation', 'wificoverage', 'digitaldivide', 'iotdensity'];
+const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'markets', 'danmarkidag', 'nyhedsradar', 'intlnews', 'aiinsights', 'livetv', 'xdeck', 'reddit', 'politik', 'kanylex', 'healthpressure', 'demoproj', 'policysim', 'energyhealth', 'mentalhealth', 'greenreadiness', 'mobilityindex', 'organdonation', 'wificoverage', 'digitaldivide', 'iotdensity', 'luftkvalitet', 'seismik', 'vandstand', 'elspot', 'ladestander', 'flystatus', 'cvr', 'kriminalitet', 'udbud', 'bbr'];
 
 const STATUS_CLS = { ok: 'dw-ok', warn: 'dw-warn', bad: 'dw-bad' };
 const SRC_CLS    = {
@@ -875,6 +885,8 @@ VG.dashboard.renderPanel = function() {
       body = `<div class="dw-derived-body" id="dw-digitaldivide-body"><div class="dw-skeleton"></div></div>`;
     } else if (w.content === 'iotdensity') {
       body = `<div class="dw-derived-body" id="dw-iotdensity-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'generic') {
+      body = `<div class="dw-derived-body" id="dw-${w.id}-body"><div class="dw-skeleton"></div></div>`;
     } else if (w.render) {
       const sparkHtml = d.spark ? _sparks(d.spark, d.trendCls) : '';
       const gaugeHtml = d.gauge ? `<div class="dw-gauge-wrap"><div class="dw-gauge-track"><div class="dw-gauge-fill" style="width:${Math.max(2, Math.min(100, d.gauge.pct)).toFixed(1)}%;background:${d.gauge.color}"></div></div>${d.gauge.label ? `<span class="dw-gauge-lbl">${d.gauge.label}</span>` : ''}</div>` : '';
@@ -939,6 +951,9 @@ VG.dashboard.renderPanel = function() {
   VG.dashboard._fillWifiCoverage();
   VG.dashboard._fillDigitalDivide();
   VG.dashboard._fillIotDensity();
+  for (const gw of DASH_WIDGETS) {
+    if (gw.content === 'generic') VG.dashboard._fillGeneric(gw.id, gw.endpoint);
+  }
 
   document.getElementById('dw-edit-btn').onclick = () => {
     panel._dashEditMode = !panel._dashEditMode;
@@ -1868,6 +1883,34 @@ VG.dashboard._fillOrganDonation = function() {
       <p class="dv-organ-desc">Det er gratis og tager under 2 minutter via sundhed.dk</p>
     </div>
     ${_derivedNote('Sundhedsstyrelsen · Scandiatransplant statistik 2023')}`;
+};
+
+// Generic renderer for the standard { kpi, meta, sections, note } widget schema.
+VG.dashboard._fillGeneric = async function(id, endpoint) {
+  const el = document.getElementById('dw-' + id + '-body');
+  if (!el || !endpoint) return;
+  const bar = (label, num, max, color, displayVal) => {
+    const pct = Math.max(2, Math.min(100, (Number(num) || 0) / (max || 1) * 100));
+    return `<div class="dv-bar-row"><span class="dv-bar-lbl">${label}</span><div class="dv-bar-track"><div class="dv-bar-fill" style="width:${pct.toFixed(1)}%;background:${color || '#d4af37'}"></div></div><span class="dv-bar-val">${displayVal != null ? displayVal : num}</span></div>`;
+  };
+  try {
+    const d = await fetch(endpoint).then(r => r.json());
+    let html = '';
+    if (d.kpi) html += `<div class="dv-kpi-big" style="color:${d.kpi.color || '#d4af37'}">${d.kpi.big} <span class="dv-kpi-unit">${d.kpi.unit || ''}</span></div>`;
+    for (const m of (d.meta || [])) {
+      html += `<div class="dv-meta-row"><span>${m.label}</span><span${m.color ? ` style="color:${m.color}"` : ''}>${m.value}</span></div>`;
+    }
+    for (const s of (d.sections || [])) {
+      html += `<div class="dv-section">${s.title}</div>`;
+      for (const row of (s.rows || [])) {
+        html += bar(row.label, row.value, row.max, row.color, row.valueLabel);
+      }
+    }
+    if (d.note) html += _derivedNote(d.note);
+    el.innerHTML = html || '<p class="dw-empty">Ingen data</p>';
+  } catch (e) {
+    el.innerHTML = '<p class="dw-empty">Data utilgængeligt</p>';
+  }
 };
 
 VG.dashboard._fillWifiCoverage = async function() {

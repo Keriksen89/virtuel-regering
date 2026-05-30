@@ -33,6 +33,16 @@ import trafikRouter from './routes/trafik.js';
 import derivedRouter from './routes/derived.js';
 import telecomRouter from './routes/telecom.js';
 import wifiRouter from './routes/wifi.js';
+import luftkvalitetRouter from './routes/luftkvalitet.js';
+import seismikRouter from './routes/seismik.js';
+import vandstandRouter from './routes/vandstand.js';
+import elspotRouter from './routes/elspot.js';
+import ladestanderRouter from './routes/ladestander.js';
+import flystatusRouter from './routes/flystatus.js';
+import cvrRouter from './routes/cvr.js';
+import kriminalitetRouter from './routes/kriminalitet.js';
+import udbudRouter from './routes/udbud.js';
+import bbrRouter from './routes/bbr.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -105,6 +115,16 @@ app.use('/api/trafik', trafikRouter);
 app.use('/api/derived', derivedRouter);
 app.use('/api/telecom', telecomRouter);
 app.use('/api/wifi', wifiRouter);
+app.use('/api/luftkvalitet', luftkvalitetRouter);
+app.use('/api/seismik', seismikRouter);
+app.use('/api/vandstand', vandstandRouter);
+app.use('/api/elspot', elspotRouter);
+app.use('/api/ladestander', ladestanderRouter);
+app.use('/api/flystatus', flystatusRouter);
+app.use('/api/cvr', cvrRouter);
+app.use('/api/kriminalitet', kriminalitetRouter);
+app.use('/api/udbud', udbudRouter);
+app.use('/api/bbr', bbrRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({
