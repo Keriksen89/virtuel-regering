@@ -522,6 +522,14 @@ VG.danmarkskort = {};
     { name: 'Slagelse Sygehus',                  lat: 55.409, lon: 11.354, type: 'Hospitals' },
   ];
 
+  // ── Geo helpers ──────────────────────────────────────────────────────────────
+  function distKm(lat1, lon1, lat2, lon2) {
+    const R = 6371, toRad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * toRad, dLon = (lon2 - lon1) * toRad;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*toRad)*Math.cos(lat2*toRad)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
   // ── Dead-reckoning helpers ───────────────────────────────────────────────────
   const M_PER_DEG_LAT = 111320;
   function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
@@ -853,6 +861,8 @@ VG.danmarkskort = {};
   const _trackEnt    = [];          // ground-track polyline entities
   let _weather       = [];
   let _staticBuilt   = false;
+  let _beredskabNews      = [];
+  let _beredskabNewsFetch = 0;
 
   // ── Cesium globe init ────────────────────────────────────────────────────────
   const HOME = () => ({
@@ -1075,7 +1085,7 @@ VG.danmarkskort = {};
           scaleByDistance: new Cesium.NearFarScalar(2.0e5, 1.1, 3.0e6, 0.4),
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
-        _layer: 'cities',
+        _layer: 'cities', _kind: 'city', _data: c,
       });
     });
 
@@ -1353,6 +1363,8 @@ VG.danmarkskort = {};
     // Power readout is only relevant in the infrastructure view.
     const powerEl = document.getElementById('dk-power');
     if (powerEl) powerEl.style.display = (v === 'infrastruktur') ? '' : 'none';
+    // Pre-fetch recent news for beredskab tooltips.
+    if (v === 'beredskab') fetchBeredskabNews();
   }
 
   // ── Hover / pin tooltips ─────────────────────────────────────────────────────
@@ -1370,6 +1382,7 @@ VG.danmarkskort = {};
       case 'notam':     tip(x, y, notamHTML(ent._data), pinned); break;
       case 'vejr':      tip(x, y, weatherHTML(ent._data), pinned); break;
       case 'beredskab': tip(x, y, beredskabHTML(ent._data), pinned); break;
+      case 'city':      tip(x, y, cityHTML(ent._data), pinned); break;
     }
   }
   function onHover(pos) {
@@ -1447,8 +1460,66 @@ VG.danmarkskort = {};
   }
   function beredskabHTML(b) {
     const icons = { brand: '🔥', sygehus: '🏥' };
+    const relevantTopics = b.kind === 'brand'
+      ? ['Kriminalitet', 'Katastrofer', 'Forsvar']
+      : ['Sundhed', 'Psykiatri'];
+    const recentNews = _beredskabNews.filter(n =>
+      relevantTopics.includes(n.topicLabel) && n.minutesAgo != null && n.minutesAgo < 60
+    ).slice(0, 3);
+    const newsHTML = recentNews.length
+      ? `<div class="dkt-section">Aktuelle hændelser (seneste time)</div>` +
+        recentNews.map(n => `<div class="dkt-news-item">${n.minutesAgo < 10 ? '<span class="dkt-live">●</span> ' : ''}${n.title}</div>`).join('')
+      : '';
     return `<div class="dkt-title" style="color:${b.kind === 'brand' ? '#ff6060' : '#60c8ff'}">${icons[b.kind] || '⚠️'} ${b.name}</div>
-      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${b.subtype || (b.kind === 'brand' ? 'Brandstation' : 'Sygehus')}</span></div>`;
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${b.subtype || (b.kind === 'brand' ? 'Brandstation' : 'Sygehus')}</span></div>
+      ${newsHTML}`;
+  }
+
+  function cityHTML(c) {
+    const lat = c.pos[1], lon = c.pos[0];
+    const pop = c.pop ? c.pop.toLocaleString('da-DK') : '—';
+    let beredskabSection = '';
+    if (_view === 'beredskab') {
+      const nearBrand = BRANDSTATIONER
+        .map(b => ({ ...b, km: distKm(lat, lon, b.lat, b.lon) }))
+        .filter(b => b.km < 25)
+        .sort((a, b) => a.km - b.km)
+        .slice(0, 3);
+      const nearSygehus = SYGEHUSE
+        .map(h => ({ ...h, km: distKm(lat, lon, h.lat, h.lon) }))
+        .filter(h => h.km < 40)
+        .sort((a, b) => a.km - b.km)
+        .slice(0, 3);
+      const brandRows = nearBrand.map(b =>
+        `<div class="dkt-row"><span class="dkt-k" style="color:#ff9060">🔥</span><span class="dkt-v">${b.name} <em>(${b.km.toFixed(1)} km)</em></span></div>`
+      ).join('');
+      const sygehusRows = nearSygehus.map(h =>
+        `<div class="dkt-row"><span class="dkt-k" style="color:#60c8ff">🏥</span><span class="dkt-v">${h.name} <em>(${h.km.toFixed(1)} km)</em></span></div>`
+      ).join('');
+      if (brandRows || sygehusRows) {
+        beredskabSection = `<div class="dkt-section">Beredskab i nærheden</div>${brandRows}${sygehusRows}`;
+      }
+      const recentNews = _beredskabNews.filter(n => n.minutesAgo != null && n.minutesAgo < 60).slice(0, 3);
+      if (recentNews.length) {
+        beredskabSection += `<div class="dkt-section">Aktuelle hændelser</div>` +
+          recentNews.map(n => `<div class="dkt-news-item">${n.minutesAgo < 10 ? '<span class="dkt-live">●</span> ' : ''}${n.title}</div>`).join('');
+      }
+    }
+    return `<div class="dkt-title" style="color:#d4af37">● ${c.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Befolkning</span><span class="dkt-v">${pop}</span></div>
+      ${beredskabSection}`;
+  }
+
+  async function fetchBeredskabNews() {
+    const now = Date.now();
+    if (now - _beredskabNewsFetch < 5 * 60 * 1000) return;
+    _beredskabNewsFetch = now;
+    try {
+      const res = await fetch('/api/news?limit=40');
+      if (!res.ok) return;
+      const data = await res.json();
+      _beredskabNews = (data.items || data || []).filter(n => n.minutesAgo != null && n.minutesAgo < 60);
+    } catch (_) {}
   }
   function windHTML(w) {
     return `<div class="dkt-title" style="color:#60dc80">⚡ ${w.name}</div>

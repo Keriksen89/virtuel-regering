@@ -4967,6 +4967,35 @@ body.dk-immersive.dk-peek .dk-peek-backdrop {
 }
 .dkt-goto:hover { background: rgba(212,175,55,0.2); color: #d4af37; }
 
+/* Beredskab tooltip section headers + news items */
+.dkt-section {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(212,175,55,0.5);
+  margin: 8px 0 3px;
+  border-top: 1px solid rgba(212,175,55,0.12);
+  padding-top: 6px;
+}
+.dkt-news-item {
+  font-size: 10px;
+  color: rgba(255,255,255,0.78);
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  line-height: 1.35;
+  max-width: 220px;
+  word-break: break-word;
+}
+.dkt-live {
+  color: #ff5252;
+  animation: dktLivePulse 1.2s ease-in-out infinite;
+  font-size: 9px;
+}
+@keyframes dktLivePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 /* From-map panel transition */
 .dk-portal-transition .panel.active {
   animation: panelFromMap 0.5s ease;
