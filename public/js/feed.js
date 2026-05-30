@@ -191,69 +191,305 @@ VG.feed._generateInsights = function() {
   return insights;
 };
 
+// ── Topic colour map ──────────────────────────────────────────────────────────
+VG.feed._TOPIC_COLORS = {
+  'Inflation & Priser':  '#e67e22',
+  'Ledighed':            '#3498db',
+  'Boligmarked':         '#9b59b6',
+  'Sundhed':             '#e74c3c',
+  'Klima & CO₂':         '#27ae60',
+  'Energi & Strøm':      '#f1c40f',
+  'Forsvar':             '#2c3e50',
+  'Folkeskolen':         '#16a085',
+  'Integration':         '#d35400',
+  'Kriminalitet':        '#c0392b',
+  'Erhverv & Vækst':     '#2980b9',
+  'Landbrug':            '#6d9b3a',
+  'Psykiatri':           '#8e44ad',
+  'Ældrepleje':          '#1abc9c',
+  'Indkomst & Ulighed':  '#e91e63',
+  'Statsgæld':           '#795548',
+  'Statsbudget':         '#607d8b',
+  'Pension':             '#ff7043',
+  'Ventetider':          '#00bcd4',
+  'Natur & Miljø':       '#4caf50',
+  'Boligkrise':          '#ab47bc',
+  'Uddannelse':          '#26c6da',
+  'Udenrigshandel':      '#5c6bc0',
+};
+
+VG.feed._topicColor = function(label) {
+  return VG.feed._TOPIC_COLORS[label] || '#888';
+};
+
+// ── News cache ────────────────────────────────────────────────────────────────
+VG.feed._news   = null;
+VG.feed._newsAt = 0;
+const _NEWS_TTL = 3 * 60 * 1000; // 3 minutes
+
+VG.feed._fetchNews = async function() {
+  if (VG.feed._news && (Date.now() - VG.feed._newsAt) < _NEWS_TTL) {
+    return VG.feed._news;
+  }
+  const resp = await fetch('/api/news?limit=30');
+  if (!resp.ok) throw new Error('News fetch failed: ' + resp.status);
+  const data = await resp.json();
+  VG.feed._news   = data;
+  VG.feed._newsAt = Date.now();
+  return data;
+};
+
+// ── Entry point ───────────────────────────────────────────────────────────────
 VG.feed.load = function() {
   const panel = document.getElementById('panel-feed');
   if (!panel) return;
   VG.feed.renderPanel(panel);
 };
 
-VG.feed.renderPanel = function(panel) {
+// ── Main render (async) ───────────────────────────────────────────────────────
+VG.feed.renderPanel = async function(panel) {
   if (!panel) return;
 
-  const insights     = VG.feed._generateInsights();
+  // Preserve tab/filter state across re-renders
+  const activeTab    = panel._feedTab    || 'news';
   const activeFilter = panel._feedFilter || 'all';
-
-  const cats     = ['all', ...new Set(insights.map(i => i.category))];
-  const filtered = activeFilter === 'all'
-    ? insights
-    : insights.filter(i => i.category === activeFilter);
-
-  const tagCls = { alert: 'ft-alert', warn: 'ft-warn', ok: 'ft-ok', info: 'ft-info' };
-
-  const filtersHtml = cats.map(c => {
-    const active = (c === 'all' && activeFilter === 'all') || c === activeFilter;
-    return `<button class="feed-filter-btn${active ? ' active' : ''}" data-fcat="${c}">${c === 'all' ? 'Alle' : c}</button>`;
-  }).join('');
-
-  const itemsHtml = filtered.map(item => {
-    const tc       = tagCls[item.tagType] || 'ft-info';
-    const voteHtml = VG.votes ? VG.votes.renderBar(item.id, item.basePos, item.baseNeg) : '';
-    return `
-      <article class="feed-card" data-fid="${item.id}">
-        <div class="feed-card-meta">
-          <span class="feed-cat-label">${item.icon} ${item.category}</span>
-          <span class="feed-tag ${tc}">${item.tag}</span>
-          <span class="feed-time">${item.time}</span>
-          <span class="feed-ai-pill">✦ AI Indsigt</span>
-        </div>
-        <h3 class="feed-card-headline">${item.headline}</h3>
-        <p class="feed-card-body">${item.body}</p>
-        <div class="feed-card-footer">
-          ${voteHtml}
-          <button class="feed-explore" data-goto="${item.panel}">Se data →</button>
-        </div>
-      </article>`;
-  }).join('') || '<p class="feed-empty">Ingen indsigter i denne kategori endnu.</p>';
 
   const sentiment = VG.votes ? VG.votes.renderSentimentBadge() : '';
 
+  // ── Paint skeleton immediately ────────────────────────────────────────────
   panel.innerHTML = `
     <div class="feed-page-header">
       <div>
-        <h2 class="feed-page-title">Nyheder & Indsigter</h2>
-        <p class="feed-page-sub">AI-genererede indsigter fra live DST-, Nationalbank- og klimadata — tilføj din stemme til debatten.</p>
+        <h2 class="feed-page-title">Nyheder &amp; Indsigter</h2>
+        <p class="feed-page-sub">Live nyheder fra danske medier og AI-genererede indsigter fra DST-, Nationalbank- og klimadata.</p>
       </div>
       ${sentiment ? `<div class="feed-sentiment-wrap">Platform-stemning ${sentiment}</div>` : ''}
     </div>
-    <div class="feed-filters">${filtersHtml}</div>
-    <div class="feed-list">${itemsHtml}</div>`;
+    <div id="feed-radar-wrap" class="feed-radar-wrap">
+      <div class="feed-radar-skeleton"></div>
+    </div>
+    <div id="feed-pills-wrap" class="feed-filters">
+      <button class="feed-filter-btn active" data-fcat="all">Alle</button>
+    </div>
+    <div class="feed-tab-bar">
+      <button class="feed-tab-btn${activeTab === 'news' ? ' active' : ''}" data-tab="news">&#128240; Live Nyheder</button>
+      <button class="feed-tab-btn${activeTab === 'insights' ? ' active' : ''}" data-tab="insights">&#10022; AI Indsigter</button>
+    </div>
+    <div id="feed-content" class="feed-list">
+      <div class="feed-skeleton-card"></div>
+      <div class="feed-skeleton-card"></div>
+      <div class="feed-skeleton-card"></div>
+    </div>`;
 
-  // Filter buttons
-  panel.querySelectorAll('[data-fcat]').forEach(btn => {
-    btn.onclick = () => { panel._feedFilter = btn.dataset.fcat; VG.feed.renderPanel(panel); };
+  // Wire up tab buttons immediately
+  panel.querySelectorAll('.feed-tab-btn').forEach(btn => {
+    btn.onclick = () => {
+      panel._feedTab = btn.dataset.tab;
+      VG.feed.renderPanel(panel);
+    };
   });
-  // Explore buttons
+
+  // ── Fetch news ────────────────────────────────────────────────────────────
+  let newsData = null;
+  try {
+    newsData = await VG.feed._fetchNews();
+  } catch (e) {
+    newsData = null;
+  }
+
+  const items = (newsData && newsData.items) ? newsData.items : [];
+
+  // ── Build topic list from live news (up to 12 unique topics) ─────────────
+  const topicCounts = {};
+  items.forEach(item => {
+    if (item.topicLabel) {
+      topicCounts[item.topicLabel] = (topicCounts[item.topicLabel] || 0) + 1;
+    }
+  });
+  const allTopics = Object.entries(topicCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([label, count]) => ({ label, count }));
+
+  // ── Radar: horizontal bar chart ───────────────────────────────────────────
+  const radarWrap = panel.querySelector('#feed-radar-wrap');
+  if (radarWrap) {
+    if (allTopics.length === 0) {
+      radarWrap.innerHTML = '';
+    } else {
+      const maxCount = allTopics[0].count || 1;
+      const barsHtml = allTopics.map(({ label, count }) => {
+        const pct   = Math.max(6, Math.round(count / maxCount * 100));
+        const color = VG.feed._topicColor(label);
+        const isActive = activeFilter === label;
+        return `
+          <div class="feed-radar-row${isActive ? ' active' : ''}" data-rtopic="${_esc(label)}" title="${_esc(label)}: ${count} artikler">
+            <span class="feed-radar-label">${_esc(label)}</span>
+            <div class="feed-radar-bar-track">
+              <div class="feed-radar-bar-fill" style="width:${pct}%;background:${color}"></div>
+            </div>
+            <span class="feed-radar-count">${count}</span>
+          </div>`;
+      }).join('');
+      radarWrap.innerHTML = `
+        <div class="feed-radar-header">
+          <span class="feed-radar-title">Nyhedsradar</span>
+          <span class="feed-radar-sub">Artikler per emne — klik for at filtrere</span>
+        </div>
+        <div class="feed-radar-bars">${barsHtml}</div>`;
+
+      radarWrap.querySelectorAll('[data-rtopic]').forEach(row => {
+        row.onclick = () => {
+          const topic = row.dataset.rtopic;
+          panel._feedFilter = (panel._feedFilter === topic) ? 'all' : topic;
+          VG.feed.renderPanel(panel);
+        };
+      });
+    }
+  }
+
+  // ── Filter pills ──────────────────────────────────────────────────────────
+  const pillsWrap = panel.querySelector('#feed-pills-wrap');
+  if (pillsWrap) {
+    const pillsHtml = [
+      `<button class="feed-filter-btn${activeFilter === 'all' ? ' active' : ''}" data-fcat="all">Alle</button>`,
+      ...allTopics.map(({ label }) => {
+        const color  = VG.feed._topicColor(label);
+        const isAct  = activeFilter === label;
+        const dotStyle = `display:inline-block;width:7px;height:7px;border-radius:50%;background:${color};margin-right:5px;vertical-align:middle;`;
+        return `<button class="feed-filter-btn${isAct ? ' active' : ''}" data-fcat="${_esc(label)}"><span style="${dotStyle}"></span>${_esc(label)}</button>`;
+      }),
+    ].join('');
+    pillsWrap.innerHTML = pillsHtml;
+    pillsWrap.querySelectorAll('[data-fcat]').forEach(btn => {
+      btn.onclick = () => {
+        panel._feedFilter = btn.dataset.fcat;
+        VG.feed.renderPanel(panel);
+      };
+    });
+  }
+
+  // ── Content area ──────────────────────────────────────────────────────────
+  const contentEl = panel.querySelector('#feed-content');
+  if (!contentEl) return;
+
+  const currentTab    = panel._feedTab    || 'news';
+  const currentFilter = panel._feedFilter || 'all';
+
+  if (currentTab === 'news') {
+    _renderNewsTab(contentEl, items, currentFilter);
+  } else {
+    _renderInsightsTab(contentEl, currentFilter);
+  }
+
+  // Wire explore buttons
   panel.querySelectorAll('[data-goto]').forEach(btn => {
     btn.onclick = () => window.__mkClick && window.__mkClick(btn.dataset.goto);
   });
 };
+
+// ── HTML escape helper ────────────────────────────────────────────────────────
+function _esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── News tab renderer ─────────────────────────────────────────────────────────
+function _renderNewsTab(container, items, filter) {
+  if (!items || items.length === 0) {
+    container.innerHTML = '<p class="feed-empty">Ingen live nyheder tilgængelige — prøv igen om lidt.</p>';
+    return;
+  }
+
+  const filtered = filter === 'all'
+    ? items
+    : items.filter(item => item.topicLabel === filter);
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<p class="feed-empty">Ingen nyheder i dette emne.</p>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(item => {
+    const color      = VG.feed._topicColor(item.topicLabel || '');
+    const isBreaking = item.minutesAgo != null && item.minutesAgo < 120;
+    const desc       = item.description
+      ? (item.description.length > 180 ? item.description.slice(0, 180) + '…' : item.description)
+      : '';
+
+    // Sentiment indicator
+    let sentIcon = '<span class="feed-sent-neutral" title="Neutral">&#9679;</span>';
+    if (item.sentiment === 1)  sentIcon = '<span class="feed-sent-pos" title="Positiv nyhed">&#9650;</span>';
+    if (item.sentiment === -1) sentIcon = '<span class="feed-sent-neg" title="Negativ nyhed">&#9660;</span>';
+
+    // DREAM tag
+    let dreamTag = '';
+    if (item.dream && item.dream.fiscalDKK != null) {
+      const sign = item.dream.fiscalDKK >= 0 ? '+' : '';
+      dreamTag = `<span class="feed-dream-tag" title="DREAM fiskal effekt">${sign}${(item.dream.fiscalDKK / 1e9).toFixed(1).replace('.', ',')} mia.</span>`;
+    }
+
+    const dotStyle = `display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;margin-top:3px;`;
+
+    return `
+      <article class="feed-card feed-news-card">
+        <div class="feed-card-meta">
+          ${isBreaking ? '<span class="feed-breaking">BREAKING</span>' : ''}
+          <span style="${dotStyle}"></span>
+          <span class="feed-cat-label">${_esc(item.topicLabel || 'Nyheder')}</span>
+          <span class="feed-source-badge">${_esc(item.source || '')}</span>
+          <span class="feed-time">${_esc(item.age || '')}</span>
+        </div>
+        <h3 class="feed-card-headline">${_esc(item.headline || '')}</h3>
+        ${desc ? `<p class="feed-card-body">${_esc(desc)}</p>` : ''}
+        <div class="feed-card-footer">
+          <div class="feed-news-bottom-left">
+            ${sentIcon}
+            ${dreamTag}
+          </div>
+          <div class="feed-news-bottom-right">
+            ${item.link ? `<a class="feed-read-link" href="${_esc(item.link)}" target="_blank" rel="noopener">L&aelig;s &rarr;</a>` : ''}
+            ${item.panel ? `<button class="feed-explore" data-goto="${_esc(item.panel)}">Se data &rarr;</button>` : ''}
+          </div>
+        </div>
+      </article>`;
+  }).join('');
+}
+
+// ── Insights tab renderer ─────────────────────────────────────────────────────
+function _renderInsightsTab(container, filter) {
+  const insights   = VG.feed._generateInsights();
+  const tagCls     = { alert: 'ft-alert', warn: 'ft-warn', ok: 'ft-ok', info: 'ft-info' };
+
+  const filtered = filter === 'all'
+    ? insights
+    : insights.filter(i => i.category === filter);
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<p class="feed-empty">Ingen indsigter i denne kategori endnu.</p>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(item => {
+    const tc       = tagCls[item.tagType] || 'ft-info';
+    const voteHtml = VG.votes ? VG.votes.renderBar(item.id, item.basePos, item.baseNeg) : '';
+    return `
+      <article class="feed-card" data-fid="${_esc(item.id)}">
+        <div class="feed-card-meta">
+          <span class="feed-cat-label">${item.icon} ${_esc(item.category)}</span>
+          <span class="feed-tag ${tc}">${_esc(item.tag)}</span>
+          <span class="feed-time">${_esc(item.time)}</span>
+          <span class="feed-ai-pill">&#10022; AI Indsigt</span>
+        </div>
+        <h3 class="feed-card-headline">${_esc(item.headline)}</h3>
+        <p class="feed-card-body">${_esc(item.body)}</p>
+        <div class="feed-card-footer">
+          ${voteHtml}
+          <button class="feed-explore" data-goto="${_esc(item.panel)}">Se data &rarr;</button>
+        </div>
+      </article>`;
+  }).join('');
+}

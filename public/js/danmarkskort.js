@@ -69,6 +69,18 @@ VG.danmarkskort = {};
       { panel: 'dsb',           icon: '🚆', label: 'Transport',         stat: () => '' },
       { panel: 'naturvand',     icon: '💧', label: 'Natur & Miljø',     stat: () => '' },
     ],
+    vejr: [
+      { panel: 'co2',       icon: '🌿', label: 'Klima & CO₂',        stat: () => '' },
+      { panel: 'energi',    icon: '⚡', label: 'Energi & Strøm',     stat: () => '' },
+      { panel: 'landbrug',  icon: '🌾', label: 'Landbrug & Fiskeri', stat: () => '' },
+      { panel: 'naturvand', icon: '💧', label: 'Natur & Ressourcer', stat: () => '' },
+    ],
+    beredskab: [
+      { panel: 'sundhed',    icon: '🏥', label: 'Sundhed',           stat: () => '' },
+      { panel: 'psykiatri',  icon: '🧠', label: 'Psykiatri',         stat: () => '' },
+      { panel: 'ventetider', icon: '⏱', label: 'Ventetider',        stat: () => '' },
+      { panel: 'forsvar',    icon: '🛡', label: 'Forsvar',           stat: () => '' },
+    ],
   };
 
   const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2', skat:'laboratorium', erhverv:'ledighed', uddannelse:'innovation', valgdeltagelse:'demographics', medianalder:'demographics', kriminalitet:'forsvar', middellevetid:'demographics', boligejer:'boligmarked' };

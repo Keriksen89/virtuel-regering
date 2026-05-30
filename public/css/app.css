@@ -3876,6 +3876,180 @@ body {
 }
 .feed-explore:hover { opacity: 0.7; }
 .feed-empty { color: var(--text-3); font-size: 14px; padding: 24px 0; }
+.feed-loading { color: var(--text-3); font-size: 13px; padding: 32px 0; text-align: center; }
+
+/* ── Feed tab switcher ─────────────────────────────────────── */
+.feed-tabs {
+  display: flex; gap: 4px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border); padding-bottom: 0;
+}
+.feed-tab-btn {
+  padding: 8px 16px; font-size: 13px; font-weight: 600;
+  background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--text-2); cursor: pointer; transition: all .12s; margin-bottom: -1px;
+}
+.feed-tab-btn:hover { color: var(--text); }
+.feed-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.feed-tab-count {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  background: var(--surface-2); color: var(--text-3);
+  border-radius: 10px; padding: 1px 6px; margin-left: 4px; vertical-align: middle;
+}
+.feed-tab-content { display: block; }
+.feed-tab-hidden  { display: none; }
+
+/* ── Nyhedsradar ──────────────────────────────────────────── */
+.feed-radar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 16px;
+}
+.feed-radar-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-3); margin-bottom: 10px;
+}
+.feed-radar-bars { display: flex; flex-direction: column; gap: 5px; }
+.feed-radar-item {
+  display: grid; grid-template-columns: 130px 1fr 24px;
+  align-items: center; gap: 8px; cursor: pointer;
+  padding: 3px 4px; border-radius: 4px; transition: background .1s;
+}
+.feed-radar-item:hover { background: var(--surface-2); }
+.feed-radar-label { font-size: 11px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed-radar-bar-wrap { height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.feed-radar-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s ease; }
+.feed-radar-count { font-size: 10px; font-weight: 600; color: var(--text-3); text-align: right; }
+
+/* ── Live news cards ──────────────────────────────────────── */
+.feed-news-grid { display: flex; flex-direction: column; gap: 12px; }
+.feed-news-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 16px 18px;
+  transition: box-shadow .15s;
+}
+.feed-news-card:hover { box-shadow: var(--shadow); }
+.feed-news-meta {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 8px;
+}
+.feed-breaking {
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;
+  background: var(--pos); color: #fff; padding: 2px 6px; border-radius: 3px;
+  animation: feedpulse 1.4s ease-in-out infinite;
+}
+@keyframes feedpulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+.feed-topic-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.feed-topic-label {
+  font-size: 11px; font-weight: 600; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.feed-source-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+  background: var(--surface-2); color: var(--text-3); letter-spacing: 0.3px;
+}
+.feed-news-age { font-size: 11px; color: var(--text-3); margin-left: auto; }
+.feed-news-headline {
+  font-size: 15px; font-weight: 700; color: var(--text);
+  margin: 0 0 6px; line-height: 1.35; letter-spacing: -0.2px;
+}
+.feed-news-desc {
+  font-size: 12px; color: var(--text-2); line-height: 1.55; margin: 0 0 10px;
+}
+.feed-news-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.feed-news-signals { display: flex; align-items: center; gap: 8px; }
+.feed-sent-pos { font-size: 11px; font-weight: 700; color: var(--neg); }
+.feed-sent-neg { font-size: 11px; font-weight: 700; color: var(--pos); }
+.feed-sent-neu { font-size: 11px; color: var(--text-3); }
+.feed-dream-tag {
+  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
+  background: color-mix(in srgb, #60c8ff 12%, transparent);
+  color: #60c8ff; letter-spacing: 0.3px;
+}
+.feed-news-actions { display: flex; align-items: center; gap: 10px; }
+.feed-ext-link {
+  font-size: 12px; font-weight: 600; color: var(--text-3);
+  text-decoration: none; transition: color .1s;
+}
+.feed-ext-link:hover { color: var(--accent); }
+
+/* ── Nyhedsradar (new layout) ─────────────────────────────── */
+.feed-radar-wrap {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 16px;
+}
+.feed-radar-wrap:empty { display: none; }
+.feed-radar-skeleton {
+  height: 60px; background: var(--surface-2); border-radius: 6px;
+  animation: feed-sk-pulse 1.4s ease-in-out infinite;
+}
+@keyframes feed-sk-pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+.feed-skeleton-card {
+  height: 110px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); margin-bottom: 14px;
+  animation: feed-sk-pulse 1.4s ease-in-out infinite;
+}
+.feed-skeleton-card:nth-child(2) { animation-delay: .15s; }
+.feed-skeleton-card:nth-child(3) { animation-delay: .3s; }
+
+.feed-radar-header {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;
+}
+.feed-radar-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--text-3);
+}
+.feed-radar-sub { font-size: 11px; color: var(--text-3); }
+
+.feed-radar-row {
+  display: grid; grid-template-columns: 140px 1fr 28px;
+  align-items: center; gap: 8px; padding: 4px 6px;
+  border-radius: 5px; cursor: pointer; transition: background .12s;
+}
+.feed-radar-row:hover { background: var(--surface-2); }
+.feed-radar-row.active { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.feed-radar-label {
+  font-size: 11px; color: var(--text-2); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.feed-radar-bar-track {
+  height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden;
+}
+.feed-radar-bar-fill {
+  height: 100%; border-radius: 3px; transition: width .35s ease;
+}
+.feed-radar-count {
+  font-size: 10px; font-weight: 700; color: var(--text-3); text-align: right;
+}
+
+/* ── Feed tab bar ─────────────────────────────────────────── */
+.feed-tab-bar {
+  display: flex; gap: 0; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── News card bottom row ─────────────────────────────────── */
+.feed-news-bottom-left {
+  display: flex; align-items: center; gap: 8px;
+}
+.feed-news-bottom-right {
+  display: flex; align-items: center; gap: 10px;
+}
+.feed-read-link {
+  font-size: 12px; font-weight: 600; color: var(--text-3);
+  text-decoration: none; transition: color .1s; flex-shrink: 0;
+}
+.feed-read-link:hover { color: var(--accent); }
+.feed-sent-neutral { font-size: 11px; color: var(--text-3); }
+
+/* ── Filter row with colored dots ─────────────────────────── */
+.feed-filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.feed-filter-btn[data-fcat]:not([data-fcat="all"])::before {
+  content: ''; display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--dot, var(--text-3));
+  margin-right: 5px; vertical-align: middle;
+}
 
 /* ════════════════════════════════════════════════════════════════════
    VOTE BARS — shown on feed cards, news items, tweets

@@ -72,6 +72,33 @@ const TOPICS = [
     keys: ['boligkrise', 'boligmangel', 'ungdomsbolig', 'studieboliger', 'tomme boliger', 'boligpolitik'] },
 ];
 
+/* ── Sentiment scoring ───────────────────────────────────────────────── */
+const POSITIVE_WORDS = [
+  'overskud', 'vækst', 'fremgang', 'forbedring', 'rekordlav', 'historisk lavt',
+  'styrker', 'succes', 'reduceret', 'sænket', 'halveret', 'stiger reallønnen',
+  'overstiger inflationen', 'gevinst', 'mål nået',
+];
+const NEGATIVE_WORDS = [
+  'krise', 'massefyring', 'konkurs', 'advarsel', 'mangel på', 'rekordmange venter',
+  'bandekrig', 'skyderi', 'dræbt', 'anholdt', 'underskud', 'gæld stiger',
+  'stikker', 'angreb', 'ulykke', 'svigt', 'kritisk mangel',
+];
+
+function scoreSentiment(title, desc) {
+  const text = ((title || '') + ' ' + (desc || '')).toLowerCase();
+  const posScore = POSITIVE_WORDS.filter(w => text.includes(w)).length;
+  const negScore = NEGATIVE_WORDS.filter(w => text.includes(w)).length;
+  if (posScore > negScore) return 1;
+  if (negScore > posScore) return -1;
+  return 0;
+}
+
+/* ── Minutes-ago helper ──────────────────────────────────────────────── */
+function minutesAgo(pubMs) {
+  if (!pubMs) return null;
+  return Math.floor((Date.now() - pubMs) / 60000);
+}
+
 /* ── Minimal RSS parser (no deps) ───────────────────────────────────── */
 function parseRSS(xml, src) {
   const items = [];
@@ -229,6 +256,8 @@ router.get('/', async (req, res, next) => {
         age:         relTime(article.pub),
         link:        article.link,
         dream:       estimateDREAMImpact(article.title, article.desc || ''),
+        sentiment:   scoreSentiment(article.title, article.desc),
+        minutesAgo:  minutesAgo(article.pubMs),
       });
     }
 
@@ -239,7 +268,7 @@ router.get('/', async (req, res, next) => {
         if (items.length >= limit) break;
         if (!coveredPanels.has(fb.panel)) {
           coveredPanels.add(fb.panel);
-          items.push(fb);
+          items.push({ ...fb, sentiment: 0, minutesAgo: null });
         }
       }
     }
@@ -247,6 +276,93 @@ router.get('/', async (req, res, next) => {
     _cache = { items, fetchedAt: new Date().toISOString() };
     _cacheAt = Date.now();
     res.json(_cache);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ── GET /trends — topic coverage counts ─────────────────────────────── */
+router.get('/trends', async (req, res, next) => {
+  try {
+    // Re-use warm cache if available
+    if (!(_cache && Date.now() - _cacheAt < TTL)) {
+      const results = await Promise.allSettled(
+        FEEDS.map(f =>
+          fetch(f.url, {
+            signal: AbortSignal.timeout(7000),
+            headers: { 'User-Agent': 'VirtuelRegering/2.0 (+https://virtuel-regering.onrender.com)' }
+          })
+            .then(r => { if (!r.ok) throw new Error(`${r.status} ${f.url}`); return r.text(); })
+            .then(xml => parseRSS(xml, f.src))
+        )
+      );
+
+      const all = results
+        .flatMap(r => r.status === 'fulfilled' ? r.value : [])
+        .sort((a, b) => (b.pubMs || 0) - (a.pubMs || 0));
+
+      const limit = 40;
+      const seen = new Set();
+      const items = [];
+      for (const article of all) {
+        if (items.length >= limit) break;
+        const topic = matchTopic(article);
+        if (!topic) continue;
+        const key = `${topic.panel}:${article.src}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        seen.add(topic.panel + ':_any');
+        items.push({
+          panel:       topic.panel,
+          group:       topic.group,
+          topicLabel:  topic.label,
+          headline:    article.title,
+          description: article.desc,
+          source:      article.src,
+          age:         relTime(article.pub),
+          link:        article.link,
+          dream:       estimateDREAMImpact(article.title, article.desc || ''),
+          sentiment:   scoreSentiment(article.title, article.desc),
+          minutesAgo:  minutesAgo(article.pubMs),
+        });
+      }
+
+      const coveredPanels = new Set(items.map(i => i.panel));
+      for (const fb of FALLBACK) {
+        if (items.length >= limit) break;
+        if (!coveredPanels.has(fb.panel)) {
+          coveredPanels.add(fb.panel);
+          items.push({ ...fb, sentiment: 0, minutesAgo: null });
+        }
+      }
+
+      _cache = { items, fetchedAt: new Date().toISOString() };
+      _cacheAt = Date.now();
+    }
+
+    // Count articles per topic and find latest article age
+    const countMap = new Map();
+    for (const item of _cache.items) {
+      const entry = countMap.get(item.panel);
+      if (!entry) {
+        countMap.set(item.panel, {
+          label:     item.topicLabel,
+          panel:     item.panel,
+          count:     1,
+          latestAge: item.minutesAgo ?? null,
+        });
+      } else {
+        entry.count += 1;
+        if (item.minutesAgo != null) {
+          if (entry.latestAge == null || item.minutesAgo < entry.latestAge) {
+            entry.latestAge = item.minutesAgo;
+          }
+        }
+      }
+    }
+
+    const topics = [...countMap.values()].sort((a, b) => b.count - a.count);
+    res.json({ topics, fetchedAt: _cache.fetchedAt });
   } catch (err) {
     next(err);
   }
