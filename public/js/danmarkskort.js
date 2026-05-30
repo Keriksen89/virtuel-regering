@@ -1717,10 +1717,6 @@ VG.danmarkskort = {};
     </div>
     <div class="dk-legend" id="dk-legend"></div>
     <div class="dk-stats" id="dk-stats"></div>
-    <div class="dk-portal" id="dk-portal">
-      <div class="dk-portal-hdr">◈ DATAPORTAL</div>
-      <div class="dk-portal-items" id="dk-portal-items"></div>
-    </div>
   </div>
 
   <div class="dk-tooltip" id="dk-tooltip"></div>
@@ -1761,7 +1757,6 @@ VG.danmarkskort = {};
           if (!_groundTracks.length) computeGroundTracks();
         }
         applyView();
-        updateDataPortal(_view);
       });
     });
 
@@ -1788,7 +1783,6 @@ VG.danmarkskort = {};
 
     refreshLegend();
     updateStats();
-    updateDataPortal(_view);
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────
