@@ -15,6 +15,7 @@
     demographics: { view: 'kommuner',      metric: 'befolkning' },
     co2:          { view: 'kommuner',      metric: 'co2' },
     laboratorium: { view: 'kommuner',      metric: 'skat' },
+    erhverv:      { view: 'kommuner',      metric: 'erhverv' },
     kommuner:     { view: 'kommuner',      metric: 'ledighed' },
     energi:       { view: 'infrastruktur', metric: null },
     naturvand:    { view: 'infrastruktur', metric: null },

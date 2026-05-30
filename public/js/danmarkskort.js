@@ -1712,6 +1712,8 @@ VG.danmarkskort = {};
       <button class="dk-btn" data-metric="boligpris">BOLIGPRIS</button>
       <button class="dk-btn" data-metric="befolkning">BEFOLKNING</button>
       <button class="dk-btn" data-metric="co2">CO₂</button>
+      <button class="dk-btn" data-metric="skat">SKAT</button>
+      <button class="dk-btn" data-metric="erhverv">ERHVERV</button>
     </div>
     <div class="dk-legend" id="dk-legend"></div>
     <div class="dk-stats" id="dk-stats"></div>
