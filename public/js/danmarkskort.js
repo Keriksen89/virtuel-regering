@@ -1170,9 +1170,11 @@ VG.danmarkskort = {};
   // ── Google Photorealistic 3D Tiles toggle ─────────────────────────────────────
   async function toggleGoogleTiles() {
     if (!_config.googleTilesKey) return;
+    const btn = document.getElementById('dk-google-btn');
     _googleActive = !_googleActive;
     try {
       if (_googleActive) {
+        if (btn) { btn.classList.add('loading'); btn.disabled = true; }
         if (!_googleTileset) {
           _googleTileset = await Cesium.createGooglePhotorealistic3DTileset({ key: _config.googleTilesKey });
           _viewer.scene.primitives.add(_googleTileset);
@@ -1180,6 +1182,17 @@ VG.danmarkskort = {};
         _googleTileset.show = true;
         if (_osmBuildings) _osmBuildings.show = false;
         if (_viewer.imageryLayers.length) _viewer.imageryLayers.get(0).show = false;
+        // Photoreal 3D is only visible from city-level altitude — at the
+        // Denmark-wide framing the tiles read as flat terrain. Drop the camera
+        // down over København so the photorealism is immediately obvious.
+        const h = _viewer.camera.positionCartographic.height;
+        if (h > 30000) {
+          _viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(12.5763, 55.6753, 1800),
+            orientation: { heading: Cesium.Math.toRadians(20), pitch: Cesium.Math.toRadians(-35), roll: 0 },
+            duration: 2.5,
+          });
+        }
       } else {
         if (_googleTileset) _googleTileset.show = false;
         if (_osmBuildings) _osmBuildings.show = true;
@@ -1187,8 +1200,11 @@ VG.danmarkskort = {};
       }
     } catch (e) {
       _googleActive = false;
+      console.warn('[google3d] tileset failed — check key billing/restrictions', e);
+      if (btn) { btn.title = 'Google 3D utilgængelig — tjek API-nøgle/billing'; btn.classList.add('error'); }
+    } finally {
+      if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
     }
-    const btn = document.getElementById('dk-google-btn');
     if (btn) btn.classList.toggle('active', _googleActive);
   }
 
