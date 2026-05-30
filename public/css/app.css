@@ -4906,6 +4906,9 @@ body.dk-immersive.dk-peek .dk-peek-backdrop {
 .dk-btn-tog { border-color: rgba(100,180,255,0.45); color: rgba(130,200,255,0.8); }
 .dk-btn-tog:hover { border-color: #64b4ff; color: #80c8ff; }
 .dk-btn-tog.active { background: rgba(100,180,255,0.18); border-color: #64b4ff; color: #80c8ff; }
+.dk-btn-forsvar { border-color: rgba(180,80,80,0.45); color: rgba(210,120,120,0.8); }
+.dk-btn-forsvar:hover { border-color: #c85050; color: #e07070; }
+.dk-btn-forsvar.active { background: rgba(180,80,80,0.18); border-color: #c85050; color: #e07070; }
 .dk-legend-inner { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px; }
 .dk-leg-step { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .dk-leg-swatch { width: 22px; height: 12px; border-radius: 2px; }

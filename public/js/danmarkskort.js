@@ -87,6 +87,12 @@ VG.danmarkskort = {};
       { panel: 'ventetider', icon: '⏱', label: 'Ventetider',        stat: () => '' },
       { panel: 'forsvar',    icon: '🛡', label: 'Forsvar',           stat: () => '' },
     ],
+    forsvar: [
+      { panel: 'forsvar',       icon: '🛡', label: 'Forsvar & Sikkerhed', stat: () => '' },
+      { panel: 'udenrigshandel',icon: '🌐', label: 'Udenrigshandel',     stat: () => '' },
+      { panel: 'innovation',    icon: '🔬', label: 'Innovation & Tech',   stat: () => '' },
+      { panel: 'medietillid',   icon: '📰', label: 'Medie & Tillid',     stat: () => '' },
+    ],
   };
 
   const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2', skat:'laboratorium', erhverv:'ledighed', uddannelse:'innovation', valgdeltagelse:'demographics', medianalder:'demographics', kriminalitet:'forsvar', middellevetid:'demographics', boligejer:'boligmarked' };
@@ -574,6 +580,52 @@ VG.danmarkskort = {};
     { name: 'Svendborg',    stationId: '8600554', pos: [10.608, 55.059], type: 'regional' },
     { name: 'Frederikshavn',stationId: '8600255', pos: [10.536, 57.432], type: 'regional' },
   ];
+  // ── Danish military installations (all public sources: forsvaret.dk, Wikipedia, NATO) ─
+  const MILITARY_BASES = [
+    // Air Force (Flyvevåbnet)
+    { name: 'Flyvestation Karup',       branch: 'luftvåben', unit: 'Flyvevåbnets Officersskole · P-3C Orion base', pos: [9.1043, 56.2971], country: 'DK' },
+    { name: 'Flyvestation Skrydstrup',  branch: 'luftvåben', unit: 'F-35A Lightning II · 727 Eskadrille',          pos: [9.267,  55.221],  country: 'DK' },
+    { name: 'Flyvestation Aalborg',     branch: 'luftvåben', unit: 'C-130J Hercules · SAR helikoptere',            pos: [9.843,  57.089],  country: 'DK' },
+    { name: 'Bornholms Radarleje',      branch: 'luftvåben', unit: 'NATO Integrated Air Defence System',           pos: [14.883, 55.117],  country: 'DK' },
+    // Navy (Søværnet)
+    { name: 'Søværnets Operative Kommando, Korsør', branch: 'søværnet', unit: 'SOK · Heimdal-klasse fregatter',    pos: [11.134, 55.332],  country: 'DK' },
+    { name: 'Flådestation Frederikshavn', branch: 'søværnet', unit: 'Inspektionsskibe · Thetis-klasse',            pos: [10.539, 57.432],  country: 'DK' },
+    { name: 'Holmen, København',          branch: 'søværnet', unit: 'DALO · Flådens Materieltjeneste',             pos: [12.594, 55.681],  country: 'DK' },
+    // Army (Hæren)
+    { name: 'Holstebro Kaserne',   branch: 'hæren', unit: 'Jydske Dragonregiment · Leopard 2A7',   pos: [8.576,  56.328], country: 'DK' },
+    { name: 'Skive Kaserne',       branch: 'hæren', unit: 'Ingeniørregimentet',                     pos: [9.039,  56.540], country: 'DK' },
+    { name: 'Varde Kaserne',       branch: 'hæren', unit: 'Artilleriregimentet · Efterretningscentret', pos: [8.470, 55.610], country: 'DK' },
+    { name: 'Antvorskov Kaserne',  branch: 'hæren', unit: 'DANCON-stab · Efterforsyningsregimentet', pos: [11.310, 55.380], country: 'DK' },
+    { name: 'Høvelte Kaserne',     branch: 'hæren', unit: 'Livgarden',                              pos: [12.401, 55.856], country: 'DK' },
+    { name: 'Aalborg Kaserne',     branch: 'hæren', unit: 'Jægerkorpset (reserve støtte)',          pos: [9.946,  57.085], country: 'DK' },
+    { name: 'Fredericia Kaserne',  branch: 'hæren', unit: 'Prinsens Livregiment · Panserbataljonen', pos: [9.750,  55.568], country: 'DK' },
+    { name: 'Oksbøl',              branch: 'hæren', unit: 'Jydske Artilleriregiment · skydeområde',  pos: [8.285,  55.646], country: 'DK' },
+    { name: 'Kastellet',           branch: 'hæren', unit: 'Slotsherren · Forsvarets efterretningstjeneste (FE)', pos: [12.592, 55.691], country: 'DK' },
+    { name: 'Almegårds Kaserne',   branch: 'hæren', unit: 'Bornholms Værn',                         pos: [14.718, 55.124], country: 'DK' },
+    // Greenland / Faroe Islands
+    { name: 'Joint Arctic Command (Nuuk)', branch: 'fælles', unit: 'Arktisk Kommando · Knud Rasmussen-klasse', pos: [-51.722, 64.183], country: 'GL' },
+    { name: 'Thule Air Base',             branch: 'fælles', unit: 'US Space Force · NORAD radar (Pituffik)',    pos: [-68.703, 76.531], country: 'GL' },
+    { name: 'Færøernes Landstyre',        branch: 'fælles', unit: 'Danish liaison · coastal surveillance',      pos: [-6.768,  62.008], country: 'FO' },
+  ];
+
+  // MMSI numbers of active Danish naval vessels — highlighted in skibstrafik+forsvar views.
+  const NAVAL_MMSI = new Set([
+    219103000, // HDMS Iver Huitfeldt (F360)
+    219104000, // HDMS Peter Willemoes (F362)
+    219101000, // HDMS Absalon (L16)
+    219102000, // HDMS Esbern Snare (L17)
+    219000127, // Svanen (støtteskib)
+    220432000, // P521 Diana
+    220434000, // P523 Flyvefisken
+    220435000, // P524 Havkatten
+    219002000, // HDMS Triton (P500)
+    219003000, // HDMS Thetis (P550)
+    219004000, // HDMS Vaedderen (P551)
+    219005000, // HDMS Hvidbjørnen (P553)
+    219006000, // HDMS Knud Rasmussen (P570)
+    219007000, // HDMS Ejnar Mikkelsen (P571)
+  ]);
+
   const M_PER_DEG_LAT = 111320;
   function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
@@ -1177,6 +1229,38 @@ VG.danmarkskort = {};
       });
     });
 
+    // Military bases (forsvar)
+    MILITARY_BASES.forEach(b => {
+      const col = b.branch === 'luftvåben' ? [60, 180, 255]   // blue for air
+                : b.branch === 'søværnet'  ? [80, 230, 200]   // teal for navy
+                : b.branch === 'fælles'    ? [230, 180, 60]   // gold for joint
+                :                           [180, 80, 80];    // red for army
+      const outCol = b.branch === 'luftvåben' ? [160, 230, 255]
+                   : b.branch === 'søværnet'  ? [160, 255, 240]
+                   : b.branch === 'fælles'    ? [255, 230, 120]
+                   :                           [255, 160, 160];
+      ents.add({
+        position: deg(b.pos[0], b.pos[1]),
+        point: {
+          pixelSize: 9,
+          color: Cesium.Color.fromBytes(col[0], col[1], col[2], 240),
+          outlineColor: Cesium.Color.fromBytes(outCol[0], outCol[1], outCol[2], 200),
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: b.name.split(',')[0],
+          font: '600 10px "Courier New", monospace',
+          fillColor: Cesium.Color.fromBytes(col[0], col[1], col[2], 210),
+          style: Cesium.LabelStyle.FILL,
+          pixelOffset: new Cesium.Cartesian2(0, -15),
+          scaleByDistance: new Cesium.NearFarScalar(1.5e5, 1.0, 4.0e6, 0.3),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        _layer: 'forsvar', _kind: 'forsvar', _data: b, show: false,
+      });
+    });
+
     // Airports (lufttrafik)
     AIRPORTS.forEach(a => {
       ents.add({
@@ -1316,6 +1400,7 @@ VG.danmarkskort = {};
   }
 
   function shipColor(s) {
+    if (NAVAL_MMSI.has(Number(s.mmsi))) return [80, 230, 200];  // teal for Danish navy
     switch (s.type) {
       case 'tanker':    return [255, 90, 60];
       case 'cargo':     return [255, 160, 40];
@@ -1438,11 +1523,14 @@ VG.danmarkskort = {};
         case 'beredskab': e.show = (v === 'beredskab'); break;
         case 'vejr': e.show = (v === 'vejr'); break;
         case 'tog': e.show = (v === 'tog'); break;
+        case 'forsvar': e.show = (v === 'forsvar'); break;
       }
     });
     // Live entities
     for (const e of _acEnt.values()) e.show = (v === 'lufttrafik');
-    for (const e of _shipEnt.values()) e.show = (v === 'skibstrafik');
+    for (const [mmsi, e] of _shipEnt) {
+      e.show = (v === 'skibstrafik') || (v === 'forsvar' && NAVAL_MMSI.has(Number(mmsi)));
+    }
     for (const e of _satEnt.values()) e.show = (v === 'satellitter') || (v === 'overvågning' && e._data && (e._data.surv || e._data.type === 'recon'));
     for (const e of _weatherEnt.values()) e.show = (v === 'vejr');
     for (const e of _windEnt.values()) e.show = (v === 'vejr');
@@ -1455,9 +1543,9 @@ VG.danmarkskort = {};
     // Grid frequency: visible in infrastruktur + tog views.
     const freqEl = document.getElementById('dk-gridfreq');
     if (freqEl) freqEl.style.display = (v === 'infrastruktur' || v === 'tog') ? '' : 'none';
-    // Metric/legend buttons: also hide in tog view (no kommune metric applies).
+    // Metric/legend buttons: also hide in tog and forsvar views.
     const metricBtns = document.getElementById('dk-metric-btns');
-    if (metricBtns && v === 'tog') metricBtns.style.display = 'none';
+    if (metricBtns && (v === 'tog' || v === 'forsvar')) metricBtns.style.display = 'none';
     // Sync kyst entities visibility.
     for (const e of _kystEnt.values()) e.show = (v === 'vejr');
     // Pre-fetch recent news for beredskab tooltips.
@@ -1486,6 +1574,7 @@ VG.danmarkskort = {};
       case 'city':      tip(x, y, cityHTML(ent._data), pinned); break;
       case 'tog':       tip(x, y, trainStationHTML(ent._data), pinned); break;
       case 'kyst':      tip(x, y, kystHTML(ent._data), pinned); break;
+      case 'forsvar':   tip(x, y, forsvarHTML(ent._data), pinned); break;
     }
   }
   function onHover(pos) {
@@ -1747,6 +1836,21 @@ VG.danmarkskort = {};
       <div class="dkt-row"><span class="dkt-k">Vandstand</span><span class="dkt-v" style="color:${col}">${level > 0 ? '+' : ''}${Math.round(level)} cm (DVR90)</span></div>
       <div class="dkt-row"><span class="dkt-k">Status</span><span class="dkt-v" style="color:${col}">${risk}</span></div>
       <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">Kystdirektoratet · live</span></div>`;
+  }
+
+  function forsvarHTML(b) {
+    const branchLabel = { luftvåben: '✈ Flyvevåbnet', søværnet: '⚓ Søværnet', hæren: '🛡 Hæren', fælles: '★ Fælles kommando' }[b.branch] || b.branch;
+    const col = b.branch === 'luftvåben' ? '#3cb4ff'
+              : b.branch === 'søværnet'  ? '#50e6c8'
+              : b.branch === 'fælles'    ? '#e6b43c'
+              :                           '#b45050';
+    const countryLabel = { DK: 'Danmark', GL: 'Grønland', FO: 'Færøerne' }[b.country] || b.country;
+    return `<div class="dkt-title" style="color:${col}">🛡 ${b.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Afdeling</span><span class="dkt-v" style="color:${col}">${branchLabel}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Enhed / rolle</span><span class="dkt-v">${b.unit}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Land</span><span class="dkt-v">${countryLabel}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Position</span><span class="dkt-v">${b.pos[1].toFixed(3)}°N ${b.pos[0].toFixed(3)}°E</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">forsvaret.dk · offentligt</span></div>`;
   }
 
   function windHTML(w) {
@@ -2324,6 +2428,7 @@ VG.danmarkskort = {};
       <button class="dk-btn dk-btn-vejr" data-view="vejr">☁ VEJR</button>
       <button class="dk-btn dk-btn-beredskab" data-view="beredskab">🚨 BEREDSKAB</button>
       <button class="dk-btn dk-btn-tog" data-view="tog">🚆 TOG</button>
+      <button class="dk-btn dk-btn-forsvar" data-view="forsvar">🛡 FORSVAR</button>
     </div>
     <div class="dk-metric-btns" id="dk-metric-btns">
       <button class="dk-btn active" data-metric="ledighed">LEDIGHED</button>
