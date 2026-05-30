@@ -4662,6 +4662,7 @@ body.dk-immersive.dk-peek .dk-peek-backdrop {
   transition: all 0.15s; backdrop-filter: blur(4px);
 }
 .dk-nav-btn:hover { border-color: #d4af37; color: #d4af37; background: rgba(212,175,55,0.12); }
+.dk-nav-btn.active { border-color: #d4af37; color: #1a1a1a; background: #d4af37; }
 .dk-compass {
   position: relative; width: 40px; height: 40px; border-radius: 50%;
   border: 1px solid rgba(212,175,55,0.4); background: rgba(0,0,0,0.72);

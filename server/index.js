@@ -46,7 +46,7 @@ app.use(helmet({
       imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
       // Cesium ion (tokens + asset CDN), Google Photorealistic 3D Tiles, and
       // token-free OpenStreetMap raster imagery.
-      connectSrc: ["'self'", "data:", "https://www.reddit.com", "https://*.basemaps.cartocdn.com", "https://celestrak.org", "https://celestrak.com", "https://api.cesium.com", "https://assets.ion.cesium.com", "https://*.cesium.com", "https://tile.googleapis.com", "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org", "https://api.open-meteo.com"],
+      connectSrc: ["'self'", "data:", "https://www.reddit.com", "https://*.basemaps.cartocdn.com", "https://celestrak.org", "https://celestrak.com", "https://api.cesium.com", "https://assets.ion.cesium.com", "https://*.cesium.com", "https://tile.googleapis.com", "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org", "https://api.open-meteo.com", "https://air-quality-api.open-meteo.com"],
       fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://unpkg.com"],
       frameSrc: ["'self'", "https://platform.twitter.com", "https://twitter.com"],
       objectSrc: ["'none'"],

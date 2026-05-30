@@ -463,21 +463,31 @@ VG.danmarkskort = {};
   const M_PER_DEG_LAT = 111320;
   function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
+  // Glide linearly from the current rendered position to the latest fix over
+  // the whole update interval (_lerpDur). Linear = constant velocity = fluid;
+  // the previous smoothstep easing made objects accelerate/decelerate between
+  // fixes, which read as a "stepping" motion. Returns true while gliding so
+  // the caller can skip dead-reckoning (no compounding/overshoot).
   function advanceLerp(obj, dur) {
     if (obj._lerpFrom && obj._lerpStart != null) {
-      const t = Math.min((performance.now() - obj._lerpStart) / (dur || LERP_MS), 1);
-      const e = easeInOut(t);
+      const d = obj._lerpDur || dur || LERP_MS;
+      const t = Math.min((performance.now() - obj._lerpStart) / d, 1);
       obj.pos = [
-        obj._lerpFrom[0] + (obj._lerpTo[0] - obj._lerpFrom[0]) * e,
-        obj._lerpFrom[1] + (obj._lerpTo[1] - obj._lerpFrom[1]) * e,
+        obj._lerpFrom[0] + (obj._lerpTo[0] - obj._lerpFrom[0]) * t,
+        obj._lerpFrom[1] + (obj._lerpTo[1] - obj._lerpFrom[1]) * t,
       ];
       if (t >= 1) obj._lerpFrom = null;
+      return true;
     }
+    return false;
   }
 
   function advanceAircraft(ac, dt) {
     ac.forEach(p => {
-      advanceLerp(p);
+      // While gliding to the latest fix, position comes purely from the lerp.
+      if (advanceLerp(p)) return;
+      // Lerp finished and no new fix yet → keep moving at reported velocity so
+      // the aircraft never freezes (constant velocity, still fluid).
       if (!p.pos || !p.speed) return;
       const lat = p.pos[1];
       const distM = p.speed * dt;
@@ -490,7 +500,7 @@ VG.danmarkskort = {};
 
   function advanceShips(ships, dt) {
     ships.forEach(s => {
-      advanceLerp(s);
+      if (advanceLerp(s)) return;
       if (!s.pos || !s.sog) return;
       const lat = s.pos[1];
       const distM = s.sog * 0.514444 * dt;
@@ -648,25 +658,61 @@ VG.danmarkskort = {};
   function makePlaneCanvas(r, g, b) {
     const key = `${r},${g},${b}`;
     if (_planeCanvasCache.has(key)) return _planeCanvasCache.get(key);
-    const sz = 28, c = document.createElement('canvas');
+    // High-res canvas (downscaled by the billboard) → crisp airliner shape.
+    const sz = 44, c = document.createElement('canvas');
     c.width = c.height = sz;
     const ctx = c.getContext('2d');
-    // Plane silhouette pointing UP (North). Simple body + wings + tail.
-    const cx = sz / 2, cy = sz / 2;
-    ctx.fillStyle = `rgba(${r},${g},${b},0.92)`;
-    ctx.strokeStyle = `rgba(255,255,255,0.7)`;
-    ctx.lineWidth = 1;
-    // Body
-    ctx.beginPath(); ctx.ellipse(cx, cy, 3, 9, 0, 0, Math.PI * 2); ctx.fill();
-    // Wings
-    ctx.beginPath(); ctx.moveTo(cx, cy - 1); ctx.lineTo(cx - 11, cy + 5); ctx.lineTo(cx - 6, cy + 5); ctx.lineTo(cx, cy + 1); ctx.lineTo(cx + 6, cy + 5); ctx.lineTo(cx + 11, cy + 5); ctx.closePath(); ctx.fill();
-    // Tail
-    ctx.beginPath(); ctx.moveTo(cx, cy + 6); ctx.lineTo(cx - 5, cy + 10); ctx.lineTo(cx, cy + 8); ctx.lineTo(cx + 5, cy + 10); ctx.closePath(); ctx.fill();
-    // Outline
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.ellipse(cx, cy, 3, 9, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.translate(sz / 2, sz / 2);
+    // Top-down airliner silhouette, nose pointing UP (north). One continuous
+    // outline: nose → swept main wings → rear tailplane → tail cone.
+    const P = [
+      [0, -19],            // nose tip
+      [2.0, -13], [2.4, -4],
+      [16.5, 3.5], [16.5, 6.5],   // right main wing (swept back)
+      [2.6, 2.5], [2.4, 9],
+      [6.6, 14.5], [6.6, 16.5],   // right tailplane
+      [1.5, 12.5], [0, 18],       // tail cone
+      [-1.5, 12.5],
+      [-6.6, 16.5], [-6.6, 14.5], // left tailplane
+      [-2.4, 9], [-2.6, 2.5],
+      [-16.5, 6.5], [-16.5, 3.5], // left main wing
+      [-2.4, -4], [-2.0, -13],
+    ];
+    ctx.beginPath();
+    P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.closePath();
+    ctx.shadowColor = `rgba(${r},${g},${b},0.55)`;
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.96)`;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 1.1;
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.stroke();
     _planeCanvasCache.set(key, c);
+    return c;
+  }
+  // Wind-field arrow: a tapered arrow pointing UP (north). Length & colour
+  // scale with wind speed; cached per integer m/s bucket. Rotated per station.
+  const _windArrowCache = new Map();
+  function makeWindArrow(speed) {
+    const s = Math.max(0, Math.min(25, Math.round(speed || 0)));
+    if (_windArrowCache.has(s)) return _windArrowCache.get(s);
+    const sz = 40, c = document.createElement('canvas');
+    c.width = c.height = sz;
+    const ctx = c.getContext('2d');
+    ctx.translate(sz / 2, sz / 2);
+    const len = 6 + Math.min(15, s * 0.9);          // shaft half-length
+    // colour: calm blue → strong red
+    const t = Math.min(1, s / 22);
+    const r = Math.round(80 + t * 175), g = Math.round(200 - t * 150), b = Math.round(255 - t * 215);
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.95)`;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.95)`;
+    ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, len); ctx.lineTo(0, -len + 2); ctx.stroke();   // shaft
+    ctx.beginPath(); ctx.moveTo(0, -len - 3); ctx.lineTo(-4.5, -len + 4); ctx.lineTo(4.5, -len + 4); ctx.closePath(); ctx.fill(); // head
+    _windArrowCache.set(s, c);
     return c;
   }
   function airlineColor(callsign) {
@@ -717,6 +763,7 @@ VG.danmarkskort = {};
   const _shipEnt     = new Map();   // mmsi   → entity
   const _satEnt      = new Map();   // name   → entity
   const _weatherEnt  = new Map();   // name   → entity
+  const _windEnt     = new Map();   // name   → wind-arrow entity
   const _trackEnt    = [];          // ground-track polyline entities
   let _weather       = [];
   let _staticBuilt   = false;
@@ -1065,7 +1112,7 @@ VG.danmarkskort = {};
           position: new Cesium.CallbackProperty(() => d.pos ? deg(d.pos[0], d.pos[1], (d.altitude || 0)) : undefined, false),
           billboard: {
             image: canvas,
-            width: 28, height: 28,
+            width: 32, height: 32,
             // rotation is CCW in screen-space. Heading is CW from North.
             // rotation = -(heading in radians) makes 0° point up on screen.
             rotation: new Cesium.CallbackProperty(() => -((d.heading || 0) * Math.PI / 180), false),
@@ -1213,6 +1260,7 @@ VG.danmarkskort = {};
     for (const e of _shipEnt.values()) e.show = (v === 'skibstrafik');
     for (const e of _satEnt.values()) e.show = (v === 'satellitter') || (v === 'overvågning' && e._data && (e._data.surv || e._data.type === 'recon'));
     for (const e of _weatherEnt.values()) e.show = (v === 'vejr');
+    for (const e of _windEnt.values()) e.show = (v === 'vejr');
     // Polygon colour alpha + extrusion depend on the active view.
     restyleKommuner();
     syncGroundTracks();
@@ -1294,10 +1342,18 @@ VG.danmarkskort = {};
     const code = w.code ?? 0;
     const icon = code <= 2 ? '☀️' : code <= 3 ? '⛅' : code <= 48 ? '🌫️' : code <= 67 ? '🌧️' : code <= 77 ? '🌨️' : code <= 82 ? '🌦️' : code <= 86 ? '🌨️' : '⛈️';
     const windDir = w.windDir != null ? ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(w.windDir / 22.5) % 16] : '—';
+    let aqiRow = '';
+    if (w.aqi != null) {
+      const a = w.aqi;
+      const lbl = a <= 20 ? 'God' : a <= 40 ? 'Rimelig' : a <= 60 ? 'Moderat' : a <= 80 ? 'Ringe' : a <= 100 ? 'Dårlig' : 'Meget dårlig';
+      const col = a <= 20 ? '#51cf66' : a <= 40 ? '#94d82d' : a <= 60 ? '#fcc419' : a <= 80 ? '#ff922b' : '#ff6b6b';
+      aqiRow = `<div class="dkt-row"><span class="dkt-k">Luftkvalitet</span><span class="dkt-v" style="color:${col}">${Math.round(a)} · ${lbl}</span></div>`;
+    }
     return `<div class="dkt-title" style="color:#60c8ff">${icon} ${w.name}</div>
       <div class="dkt-row"><span class="dkt-k">Temperatur</span><span class="dkt-v">${w.temp != null ? w.temp.toFixed(1) + ' °C' : '—'}</span></div>
-      <div class="dkt-row"><span class="dkt-k">Vind</span><span class="dkt-v">${w.wind != null ? w.wind.toFixed(1) + ' m/s ' + windDir : '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Vind</span><span class="dkt-v">${w.wind != null ? w.wind.toFixed(1) + ' m/s fra ' + windDir : '—'}</span></div>
       <div class="dkt-row"><span class="dkt-k">Nedbør</span><span class="dkt-v">${w.precip != null ? w.precip.toFixed(1) + ' mm' : '—'}</span></div>
+      ${aqiRow}
       <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">Open-Meteo · live</span></div>`;
   }
   function beredskabHTML(b) {
@@ -1422,7 +1478,7 @@ VG.danmarkskort = {};
         heading:  s[10] || 0,
       }));
   }
-  function mergeContacts(current, incoming, key) {
+  function mergeContacts(current, incoming, key, lerpDur) {
     const map = new Map(current.map(c => [c[key], c]));
     const now = performance.now();
     return incoming.map(n => {
@@ -1433,9 +1489,12 @@ VG.danmarkskort = {};
       if (oldPos && n.pos) {
         const dx = n.pos[0] - oldPos[0], dy = n.pos[1] - oldPos[1];
         if (dx*dx + dy*dy > 0.00005 * 0.00005) {
+          // Glide from where it's drawn now to the new fix over the whole
+          // refresh interval, so motion stays continuous between updates.
           prev._lerpFrom  = oldPos;
           prev._lerpTo    = [n.pos[0], n.pos[1]];
           prev._lerpStart = now;
+          prev._lerpDur   = lerpDur || LERP_MS;
         }
       }
       return prev;
@@ -1448,7 +1507,7 @@ VG.danmarkskort = {};
       if (r.ok) {
         const d = await r.json();
         const live = parseStates(d && d.states);
-        _aircraft = mergeContacts(_aircraft, live, 'icao24');
+        _aircraft = mergeContacts(_aircraft, live, 'icao24', AIRCRAFT_REFRESH_MS);
         _aircraftStatus = live.length ? 'live' : (d.source === 'none' ? 'unavailable' : 'empty');
         _aircraftRetryDelay = 0;
         syncAircraftEntities();
@@ -1469,7 +1528,7 @@ VG.danmarkskort = {};
       if (r.ok) {
         const d = await r.json();
         const live = (d.vessels || []).filter(v => v.pos && v.pos.length === 2);
-        _ships = mergeContacts(_ships, live, 'mmsi');
+        _ships = mergeContacts(_ships, live, 'mmsi', SHIP_REFRESH_MS);
         _aisStatus = d.status || (live.length ? 'live' : 'empty');
         _shipRetryDelay = 0;
         syncShipEntities();
@@ -1524,6 +1583,23 @@ VG.danmarkskort = {};
         precip:  list[i]?.current?.precipitation      ?? null,
       }));
       syncWeatherEntities();
+      fetchAirQuality();   // enrich with live European AQI (separate endpoint)
+    } catch {}
+  }
+
+  // Live air quality (European AQI) from Open-Meteo — free, no key. Merged
+  // into _weather so it shows in the weather tooltip.
+  async function fetchAirQuality() {
+    if (!_weather.length) return;
+    const lats = _weather.map(s => s.lat).join(',');
+    const lons = _weather.map(s => s.lon).join(',');
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lats}&longitude=${lons}&current=european_aqi&timezone=auto`;
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) return;
+      const data = await r.json();
+      const list = Array.isArray(data) ? data : [data];
+      _weather.forEach((w, i) => { w.aqi = list[i]?.current?.european_aqi ?? null; });
     } catch {}
   }
 
@@ -1578,6 +1654,35 @@ VG.danmarkskort = {};
       }
     });
     for (const [k, e] of _weatherEnt) if (!seen.has(k)) { ents.remove(e); _weatherEnt.delete(k); }
+
+    // Wind-field arrows: one per station, pointing the way the wind blows TO
+    // (meteorological direction + 180°), length/colour by speed.
+    _weather.forEach(w => {
+      if (w.wind == null || w.windDir == null) return;
+      const blowTo = (w.windDir + 180) % 360;
+      const rot = -(blowTo * Math.PI / 180);
+      if (!_windEnt.has(w.name)) {
+        const e = ents.add({
+          position: deg(w.lon, w.lat, 400),
+          billboard: {
+            image: makeWindArrow(w.wind), width: 30, height: 30,
+            rotation: rot, alignedAxis: Cesium.Cartesian3.ZERO,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            pixelOffset: new Cesium.Cartesian2(0, 16),
+            translucencyByDistance: new Cesium.NearFarScalar(5e5, 1.0, 3e6, 0.0),
+          },
+          _kind: 'vejr', _data: w, _layer: 'vejr',
+        });
+        e.show = showVejr;
+        _windEnt.set(w.name, e);
+      } else {
+        const e = _windEnt.get(w.name);
+        e.show = showVejr;
+        e._data = w;
+        if (e.billboard) { e.billboard.image = makeWindArrow(w.wind); e.billboard.rotation = rot; }
+      }
+    });
+    for (const [k, e] of _windEnt) if (!seen.has(k)) { ents.remove(e); _windEnt.delete(k); }
   }
 
   function buildBeredskabLayer() {
@@ -1711,6 +1816,17 @@ VG.danmarkskort = {};
     if (p) p.textContent = Math.round(-Cesium.Math.toDegrees(_viewer.camera.pitch)) + '°';
   }
   function flyHome() { _viewer.camera.flyTo({ ...HOME(), duration: 1.0 }); }
+  let _lighting = false;
+  function toggleLighting() {
+    if (!_viewer) return;
+    _lighting = !_lighting;
+    const globe = _viewer.scene.globe;
+    globe.enableLighting = _lighting;                 // sun-position day/night
+    globe.dynamicAtmosphereLighting = _lighting;
+    if (_viewer.scene.skyAtmosphere) _viewer.scene.skyAtmosphere.show = true;
+    const btn = document.getElementById('dk-sun-btn');
+    if (btn) btn.classList.toggle('active', _lighting);
+  }
   function flyToEntity(ent) {
     if (!_viewer || !ent) return;
     try {
@@ -1811,6 +1927,7 @@ VG.danmarkskort = {};
       <span class="dk-compass-n">N</span>
     </button>
     <button class="dk-nav-btn" id="dk-topdown" title="Set ovenfra (2D)">⊕</button>
+    <button class="dk-nav-btn" id="dk-sun-btn" title="Dag/nat-lys (solens position)">☀</button>
     ${googleBtn}
     <button class="dk-nav-btn" id="dk-reset" title="Nulstil visning">⟲</button>
     <div class="dk-pitch" title="Hældning">∡ <span id="dk-pitch-val">58°</span></div>
@@ -1886,6 +2003,7 @@ VG.danmarkskort = {};
     bind('dk-zoom-out', () => zoomBy(-0.5));
     bind('dk-compass',  resetNorth);
     bind('dk-topdown',  setTopDown);
+    bind('dk-sun-btn',  toggleLighting);
     bind('dk-reset',    flyHome);
     bind('dk-google-btn', toggleGoogleTiles);
 
@@ -1975,7 +2093,7 @@ VG.danmarkskort = {};
       try { _viewer.destroy(); } catch {}
       _viewer = null;
     }
-    _acEnt.clear(); _shipEnt.clear(); _satEnt.clear(); _weatherEnt.clear(); _trackEnt.length = 0;
+    _acEnt.clear(); _shipEnt.clear(); _satEnt.clear(); _weatherEnt.clear(); _windEnt.clear(); _trackEnt.length = 0;
     _weather = [];
     _staticBuilt = false; _kommuneDS = null; _kommuneEntities = [];
     _initialized = false;
