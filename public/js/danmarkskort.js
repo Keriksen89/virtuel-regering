@@ -105,6 +105,12 @@ VG.danmarkskort = {};
       { panel: 'co2',           icon: '🌿', label: 'Klima & CO₂',        stat: () => '' },
       { panel: 'indkomst',      icon: '💰', label: 'Økonomi & Ulighed',  stat: () => '' },
     ],
+    infra: [
+      { panel: 'innovation',    icon: '🔬', label: 'Innovation & Tech',   stat: () => '' },
+      { panel: 'erhverv',       icon: '📈', label: 'Erhverv & Vækst',     stat: () => '' },
+      { panel: 'energi',        icon: '⚡', label: 'Energi & Strøm',      stat: () => '' },
+      { panel: 'kommuner',      icon: '🗺', label: 'Kommuner (detail)',   stat: () => '' },
+    ],
   };
 
   const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2', skat:'laboratorium', erhverv:'ledighed', uddannelse:'innovation', valgdeltagelse:'demographics', medianalder:'demographics', kriminalitet:'forsvar', middellevetid:'demographics', boligejer:'boligmarked', healthineq:'sundhed', mental:'psykiatri', green:'co2', mobility:'dsb' };
@@ -988,6 +994,10 @@ VG.danmarkskort = {};
   let _satFreshUntil = 0;
   let _groundTracks = [];
   let _groundTracksFreshUntil = 0;
+  let _infraPoints = null;      // cell-mast PointPrimitiveCollection
+  let _infraLoaded = false;
+  let _wifiPoints = null;       // WiFi hotspot PointPrimitiveCollection
+  let _wifiLoaded = false;
   let _container = null;
   let _initialized = false;
   let _aircraftTimer = null;
@@ -1642,7 +1652,7 @@ VG.danmarkskort = {};
     if (freqEl) freqEl.style.display = (v === 'infrastruktur' || v === 'tog') ? '' : 'none';
     // Metric/legend buttons: also hide in tog, forsvar, trafik and politik views.
     const metricBtns = document.getElementById('dk-metric-btns');
-    if (metricBtns && (v === 'tog' || v === 'forsvar' || v === 'politik' || v === 'trafik')) metricBtns.style.display = 'none';
+    if (metricBtns && (v === 'tog' || v === 'forsvar' || v === 'politik' || v === 'trafik' || v === 'infra')) metricBtns.style.display = 'none';
     // Sync kyst entities visibility.
     for (const e of _kystEnt.values()) e.show = (v === 'vejr');
     // Sync trafik event entities.
@@ -1659,6 +1669,13 @@ VG.danmarkskort = {};
     if (v === 'politik') fetchPolitikActivity();
     // Fetch traffic events + train positions for trafik/tog views.
     if (v === 'trafik' || v === 'tog') { fetchTrafikEvents(); fetchTrainPositions(); }
+    // Telecom mast + WiFi hotspot layers (infra view).
+    if (_infraPoints) _infraPoints.show = false;
+    if (_wifiPoints)  _wifiPoints.show  = false;
+    if (v === 'infra') {
+      if (!_infraLoaded) fetchAndBuildInfra(); else if (_infraPoints) _infraPoints.show = true;
+      if (!_wifiLoaded)  fetchAndBuildWifi();  else if (_wifiPoints)  _wifiPoints.show  = true;
+    }
   }
 
   // ── Hover / pin tooltips ─────────────────────────────────────────────────────
@@ -1683,6 +1700,8 @@ VG.danmarkskort = {};
       case 'politik':   tip(x, y, politikHTML(ent._data), pinned); break;
       case 'trafik':    tip(x, y, trafikHTML(ent._data), pinned); break;
       case 'trainpos':  tip(x, y, trainPosHTML(ent._data), pinned); break;
+      case 'telecom':   tip(x, y, infraHTML(ent._data), pinned); break;
+      case 'wifi':      tip(x, y, wifiHTML(ent._data), pinned); break;
     }
   }
   function onHover(pos) {
@@ -1708,6 +1727,23 @@ VG.danmarkskort = {};
     el.style.display = 'block';
     el.style.left = (x + 14) + 'px';
     el.style.top  = (y - 10) + 'px';
+  }
+  function infraHTML(d) {
+    const RADIO_COLOR = { GSM:'#ff5030', UMTS:'#ff9920', LTE:'#3399ff', NR:'#aa44ff' };
+    const RADIO_LABEL = { GSM:'2G GSM', UMTS:'3G UMTS', LTE:'4G LTE', NR:'5G NR' };
+    const col = RADIO_COLOR[d.radio] || '#fff';
+    return `<div class="dkt-title" style="color:${col}">📡 ${RADIO_LABEL[d.radio] || d.radio}</div>
+      <div class="dkt-row"><span class="dkt-k">Operatør</span><span class="dkt-v">${d.operator}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Område</span><span class="dkt-v">${d.area}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Net-ID</span><span class="dkt-v">MCC 238 · MNC ${d.mnc}</span></div>`;
+  }
+  function wifiHTML(d) {
+    const TYPE_COLOR = { EDUROAM:'#4488ff', DSB:'#d4af37', AIRPORT:'#00d4ff', LIBRARY:'#ff8020', YOUSEE:'#50c878', MUNICIPAL:'#aa44ff', HOSPITAL:'#ff5050' };
+    const TYPE_LABEL = { EDUROAM:'Eduroam', DSB:'DSB WiFi', AIRPORT:'Lufthavn WiFi', LIBRARY:'Bibliotek WiFi', YOUSEE:'YouSee Zone', MUNICIPAL:'Kommunalt WiFi', HOSPITAL:'Sygehus WiFi' };
+    const col = TYPE_COLOR[d.type] || '#fff';
+    return `<div class="dkt-title" style="color:${col}">📶 ${TYPE_LABEL[d.type] || d.type}</div>
+      <div class="dkt-row"><span class="dkt-k">Sted</span><span class="dkt-v">${d.name}</span></div>
+      <div class="dkt-row"><span class="dkt-k">SSID</span><span class="dkt-v">${d.ssid}</span></div>`;
   }
   function aircraftHTML(ac) {
     const spdKt = ac.speed ? Math.round(ac.speed * 1.94384) : null;
@@ -2086,6 +2122,76 @@ VG.danmarkskort = {};
       }
     });
     for (const [k, e] of _trainPosEnt) { if (!seen.has(k)) { ents.remove(e); _trainPosEnt.delete(k); } }
+  }
+
+  async function fetchAndBuildInfra() {
+    _infraLoaded = true; // prevent double-fetch
+    if (!_viewer) { _infraLoaded = false; return; }
+    try {
+      const d = await fetch('/api/telecom/masts').then(r => r.json());
+      const towers = d.towers || [];
+      if (_infraPoints) { try { _viewer.scene.primitives.remove(_infraPoints); } catch (_) {} }
+      _infraPoints = new Cesium.PointPrimitiveCollection();
+      const COLORS = {
+        GSM:  Cesium.Color.fromBytes(255, 76, 51, 230),
+        UMTS: Cesium.Color.fromBytes(255, 153, 26, 230),
+        LTE:  Cesium.Color.fromBytes(51, 153, 255, 230),
+        NR:   Cesium.Color.fromBytes(170, 68, 255, 235),
+      };
+      const SIZES = { GSM: 4, UMTS: 4.5, LTE: 5, NR: 7 };
+      for (const t of towers) {
+        _infraPoints.add({
+          position: Cesium.Cartesian3.fromDegrees(t.lon, t.lat, 60),
+          color: COLORS[t.radio] || Cesium.Color.WHITE,
+          pixelSize: SIZES[t.radio] || 5,
+          outlineColor: Cesium.Color.BLACK.withAlpha(0.5),
+          outlineWidth: 1,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          id: { _kind: 'telecom', _data: t },
+        });
+      }
+      _viewer.scene.primitives.add(_infraPoints);
+      _infraPoints.show = (_view === 'infra');
+    } catch (e) {
+      console.warn('[infra] fetch failed', e);
+      _infraLoaded = false;
+    }
+  }
+
+  async function fetchAndBuildWifi() {
+    _wifiLoaded = true;
+    if (!_viewer) { _wifiLoaded = false; return; }
+    try {
+      const d = await fetch('/api/wifi/hotspots').then(r => r.json());
+      const spots = d.hotspots || [];
+      if (_wifiPoints) { try { _viewer.scene.primitives.remove(_wifiPoints); } catch (_) {} }
+      _wifiPoints = new Cesium.PointPrimitiveCollection();
+      const COLORS = {
+        EDUROAM:   Cesium.Color.fromBytes(68, 136, 255, 242),
+        DSB:       Cesium.Color.fromBytes(212, 175, 55, 242),
+        AIRPORT:   Cesium.Color.fromBytes(0, 212, 255, 242),
+        LIBRARY:   Cesium.Color.fromBytes(255, 128, 32, 242),
+        YOUSEE:    Cesium.Color.fromBytes(80, 200, 120, 242),
+        MUNICIPAL: Cesium.Color.fromBytes(170, 68, 255, 242),
+        HOSPITAL:  Cesium.Color.fromBytes(255, 80, 80, 242),
+      };
+      for (const s of spots) {
+        _wifiPoints.add({
+          position: Cesium.Cartesian3.fromDegrees(s.lon, s.lat, 90),
+          color: COLORS[s.type] || Cesium.Color.WHITE,
+          pixelSize: 8,
+          outlineColor: Cesium.Color.WHITE.withAlpha(0.6),
+          outlineWidth: 1.5,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          id: { _kind: 'wifi', _data: s },
+        });
+      }
+      _viewer.scene.primitives.add(_wifiPoints);
+      _wifiPoints.show = (_view === 'infra');
+    } catch (e) {
+      console.warn('[wifi] fetch failed', e);
+      _wifiLoaded = false;
+    }
   }
 
   function trafikHTML(ev) {
@@ -2689,6 +2795,7 @@ VG.danmarkskort = {};
       <button class="dk-btn dk-btn-forsvar" data-view="forsvar">🛡 FORSVAR</button>
       <button class="dk-btn dk-btn-trafik" data-view="trafik">🚦 TRAFIK</button>
       <button class="dk-btn dk-btn-politik" data-view="politik">🏛 POLITIK</button>
+      <button class="dk-btn dk-btn-telecom" data-view="infra">📡 NETVÆRK</button>
     </div>
     <div class="dk-metric-btns" id="dk-metric-btns">
       <button class="dk-btn active" data-metric="ledighed">LEDIGHED</button>
@@ -2893,6 +3000,9 @@ VG.danmarkskort = {};
 
   VG.danmarkskort.destroy = function () {
     stopLoop();
+    if (_viewer && _infraPoints) { try { _viewer.scene.primitives.remove(_infraPoints); } catch (_) {} }
+    if (_viewer && _wifiPoints)  { try { _viewer.scene.primitives.remove(_wifiPoints); } catch (_) {} }
+    _infraPoints = null; _infraLoaded = false; _wifiPoints = null; _wifiLoaded = false;
     if (_viewer) {
       try { if (_viewer._dkHandler) _viewer._dkHandler.destroy(); } catch {}
       try { _viewer.destroy(); } catch {}

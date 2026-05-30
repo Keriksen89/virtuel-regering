@@ -672,11 +672,35 @@ const DASH_WIDGETS = [
     w: 4, h: 6,
     content: 'organdonation',
   },
+  {
+    id: 'wificoverage',
+    icon: '<i class="ph ph-wifi-high"></i>',
+    title: 'WiFi Dækning',
+    panel: 'innovation',
+    w: 4, h: 6,
+    content: 'wificoverage',
+  },
+  {
+    id: 'digitaldivide',
+    icon: '<i class="ph ph-cell-signal-medium"></i>',
+    title: 'Digital Kløft',
+    panel: 'innovation',
+    w: 4, h: 7,
+    content: 'digitaldivide',
+  },
+  {
+    id: 'iotdensity',
+    icon: '<i class="ph ph-plugs-connected"></i>',
+    title: 'IoT Tæthed',
+    panel: 'innovation',
+    w: 4, h: 7,
+    content: 'iotdensity',
+  },
 ];
 
-const DASH_LS_KEY      = 'vg_dashboard_v10';
-const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v10';
-const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'markets', 'danmarkidag', 'nyhedsradar', 'intlnews', 'aiinsights', 'livetv', 'xdeck', 'reddit', 'politik', 'kanylex', 'healthpressure', 'demoproj', 'policysim', 'energyhealth', 'mentalhealth', 'greenreadiness', 'mobilityindex', 'organdonation'];
+const DASH_LS_KEY      = 'vg_dashboard_v11';
+const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v11';
+const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'markets', 'danmarkidag', 'nyhedsradar', 'intlnews', 'aiinsights', 'livetv', 'xdeck', 'reddit', 'politik', 'kanylex', 'healthpressure', 'demoproj', 'policysim', 'energyhealth', 'mentalhealth', 'greenreadiness', 'mobilityindex', 'organdonation', 'wificoverage', 'digitaldivide', 'iotdensity'];
 
 const STATUS_CLS = { ok: 'dw-ok', warn: 'dw-warn', bad: 'dw-bad' };
 const SRC_CLS    = {
@@ -845,6 +869,12 @@ VG.dashboard.renderPanel = function() {
       body = `<div class="dw-derived-body" id="dw-mobilityindex-body"><div class="dw-skeleton"></div></div>`;
     } else if (w.content === 'organdonation') {
       body = `<div class="dw-derived-body" id="dw-organdonation-body"></div>`;
+    } else if (w.content === 'wificoverage') {
+      body = `<div class="dw-derived-body" id="dw-wificoverage-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'digitaldivide') {
+      body = `<div class="dw-derived-body" id="dw-digitaldivide-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'iotdensity') {
+      body = `<div class="dw-derived-body" id="dw-iotdensity-body"><div class="dw-skeleton"></div></div>`;
     } else if (w.render) {
       const sparkHtml = d.spark ? _sparks(d.spark, d.trendCls) : '';
       const gaugeHtml = d.gauge ? `<div class="dw-gauge-wrap"><div class="dw-gauge-track"><div class="dw-gauge-fill" style="width:${Math.max(2, Math.min(100, d.gauge.pct)).toFixed(1)}%;background:${d.gauge.color}"></div></div>${d.gauge.label ? `<span class="dw-gauge-lbl">${d.gauge.label}</span>` : ''}</div>` : '';
@@ -906,6 +936,9 @@ VG.dashboard.renderPanel = function() {
   VG.dashboard._fillGreenReadiness();
   VG.dashboard._fillMobilityIndex();
   VG.dashboard._fillOrganDonation();
+  VG.dashboard._fillWifiCoverage();
+  VG.dashboard._fillDigitalDivide();
+  VG.dashboard._fillIotDensity();
 
   document.getElementById('dw-edit-btn').onclick = () => {
     panel._dashEditMode = !panel._dashEditMode;
@@ -1835,4 +1868,94 @@ VG.dashboard._fillOrganDonation = function() {
       <p class="dv-organ-desc">Det er gratis og tager under 2 minutter via sundhed.dk</p>
     </div>
     ${_derivedNote('Sundhedsstyrelsen · Scandiatransplant statistik 2023')}`;
+};
+
+VG.dashboard._fillWifiCoverage = async function() {
+  const el = document.getElementById('dw-wificoverage-body');
+  if (!el) return;
+  try {
+    const [stats, hotspots] = await Promise.all([
+      fetch('/api/wifi/stats').then(r => r.json()),
+      fetch('/api/wifi/hotspots').then(r => r.json()),
+    ]);
+    const TYPE_COLOR = {
+      EDUROAM: '#4488ff', DSB: '#d4af37', AIRPORT: '#00d4ff',
+      LIBRARY: '#ff8020', YOUSEE: '#50c878', MUNICIPAL: '#aa44ff', HOSPITAL: '#ff5050',
+    };
+    const types = hotspots.types || {};
+    const typeRows = Object.entries(types).map(([k, v]) => {
+      const count = (hotspots.hotspots || []).filter(h => h.type === k).length;
+      return _derivedBar(v.label, count, 30, TYPE_COLOR[k] || '#888');
+    }).join('');
+
+    el.innerHTML = `
+      <div class="dv-kpi-big" style="color:#50c878">${stats.totalHotspots} <span class="dv-kpi-unit">kuraterede hotspots</span></div>
+      <div class="dv-meta-row"><span>YouSee zoner (DK)</span><span style="color:#50c878">${(stats.coverage?.youSeeZones || 18500).toLocaleString('da-DK')}</span></div>
+      <div class="dv-meta-row"><span>DSB stationer m. WiFi</span><span style="color:#d4af37">${stats.coverage?.dsbStations || 86}</span></div>
+      <div class="dv-meta-row"><span>Eduroam campusser</span><span style="color:#4488ff">${stats.coverage?.eduroamCampuses || 28}</span></div>
+      <div class="dv-meta-row"><span>Kommunale WiFi-zoner</span><span style="color:#aa44ff">${stats.coverage?.municipalZones || 12}</span></div>
+      <div class="dv-section">Hotspots i datasæt pr. type</div>
+      ${typeRows}
+      ${_derivedNote(stats.note || 'YouSee · DSB · eduroam.dk · kommunale WiFi-programmer')}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">WiFi-data utilgængeligt</p>'; }
+};
+
+VG.dashboard._fillDigitalDivide = async function() {
+  const el = document.getElementById('dw-digitaldivide-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/wifi/digital-divide').then(r => r.json());
+    const regionRows = (d.regions || []).map(r => {
+      const col = r.score < 25 ? '#50c878' : r.score < 40 ? '#d4af37' : '#ff5020';
+      return `<div class="dv-bar-row">
+        <span class="dv-bar-lbl">${r.name.replace('Region ','')}</span>
+        <div class="dv-bar-track"><div class="dv-bar-fill" style="width:${r.score}%;background:${col}"></div></div>
+        <span class="dv-bar-val" style="color:${col}">${r.score}</span>
+      </div>
+      <div style="font-size:9.5px;color:rgba(255,255,255,0.45);padding:0 0 4px 2px">${r.note}</div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="dv-kpi-big">${d.national?.avgScore || 34} <span class="dv-kpi-unit">/ 100 national kløft-score</span></div>
+      <div class="dv-meta-row"><span>Bredbåndsdækning</span><span style="color:#50c878">${d.national?.broadbandCoverage || 91.4}%</span></div>
+      <div class="dv-meta-row"><span>Husstande med 5G</span><span style="color:#aa44ff">${d.national?.households5g || 38}%</span></div>
+      <div class="dv-meta-row"><span>Mobil data (gns.)</span><span>${d.national?.mobileDataNational || 6.8} GB/md</span></div>
+      <div class="dv-section">Digital kløft-score pr. region (0=bedst, 100=størst kløft)</div>
+      ${regionRows}
+      ${_derivedNote(d.national?.note || 'Erhvervsstyrelsen bredbåndskortlægning 2023')}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">Digital kløft-data utilgængeligt</p>'; }
+};
+
+VG.dashboard._fillIotDensity = async function() {
+  const el = document.getElementById('dw-iotdensity-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/wifi/iot-density').then(r => r.json());
+    const regionRows = (d.regions || []).map(r => {
+      const col = r.smartHomeScore > 60 ? '#50c878' : r.smartHomeScore > 50 ? '#d4af37' : '#ff8020';
+      const trendIcon = r.trend === 'stigende' ? '↑' : r.trend === 'faldende' ? '↓' : '→';
+      const trendCol  = r.trend === 'stigende' ? '#50c878' : r.trend === 'faldende' ? '#ff5020' : '#d4af37';
+      return `<div class="dv-bar-row">
+        <span class="dv-bar-lbl">${r.name.replace('Region ','')}</span>
+        <div class="dv-bar-track"><div class="dv-bar-fill" style="width:${r.smartHomeScore}%;background:${col}"></div></div>
+        <span class="dv-bar-val" style="color:${col}">${r.smartHomeScore} <span style="color:${trendCol};font-size:10px">${trendIcon}</span></span>
+      </div>`;
+    }).join('');
+
+    const natl = d.national || {};
+    const h = d.regions?.[0] || {};
+    el.innerHTML = `
+      <div class="dv-kpi-big" style="color:#50c878">${(natl.totalIoTDevices || 24500000).toLocaleString('da-DK')} <span class="dv-kpi-unit">IoT-enheder i DK</span></div>
+      <div class="dv-meta-row"><span>Smarthjem-penetration</span><span style="color:#d4af37">${natl.smartHomePct || 41}% af husstande</span></div>
+      <div class="dv-meta-row"><span>Enheder pr. husstand (gns.)</span><span>${natl.avgPerHousehold || 5.2}</span></div>
+      <div class="dv-meta-row"><span>Hurtigst voksende</span><span style="color:#50c878;font-size:10.5px">${natl.fastestGrowing || ''}</span></div>
+      <div class="dv-section">Smart hjem-score pr. region (OUI-model)</div>
+      ${regionRows}
+      <div class="dv-section">Populære enheder pr. 100.000 (Hovedstaden)</div>
+      ${_derivedBar('FRITZ!Box rout.', +((h.fritzBoxPer100k||18400)/1000).toFixed(1), 25, '#ff8020')}
+      ${_derivedBar('Philips Hue', +((h.huePer100k||9200)/1000).toFixed(1), 25, '#d4af37')}
+      ${_derivedBar('Smart TV', +((h.smartTVPer100k||54000)/1000).toFixed(1), 70, '#4488ff')}
+      ${_derivedBar('Ring camera', +((h.ringCameraPer100k||4100)/1000).toFixed(1), 25, '#ff5050')}
+      ${_derivedNote(natl.note || 'Danmarks Statistik IT-anvendelse 2023 · OUI model')}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">IoT-data utilgængeligt</p>'; }
 };
