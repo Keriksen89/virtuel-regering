@@ -232,7 +232,7 @@ router.get('/', async (req, res, next) => {
       FEEDS.map(f =>
         fetch(f.url, {
           signal: AbortSignal.timeout(7000),
-          headers: { 'User-Agent': 'VirtuelRegering/2.0 (+https://virtuel-regering.onrender.com)' }
+          headers: { 'User-Agent': 'VirtuelRegering/2.0 (+https://oculusomnividens.dk)' }
         })
           .then(r => { if (!r.ok) throw new Error(`${r.status} ${f.url}`); return r.text(); })
           .then(xml => parseRSS(xml, f.src))
@@ -304,7 +304,7 @@ router.get('/trends', async (req, res, next) => {
         FEEDS.map(f =>
           fetch(f.url, {
             signal: AbortSignal.timeout(7000),
-            headers: { 'User-Agent': 'VirtuelRegering/2.0 (+https://virtuel-regering.onrender.com)' }
+            headers: { 'User-Agent': 'VirtuelRegering/2.0 (+https://oculusomnividens.dk)' }
           })
             .then(r => { if (!r.ok) throw new Error(`${r.status} ${f.url}`); return r.text(); })
             .then(xml => parseRSS(xml, f.src))
