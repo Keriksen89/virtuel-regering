@@ -5,91 +5,99 @@
 ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --bg:            #2a2a2a;
-  --surface:       #353535;
-  --surface-1:     #3a3a3a;
-  --surface-2:     #424242;
-  --surface-3:     #4a4a4a;
+  --bg:            #0e1016;
+  --surface:       #171a22;
+  --surface-1:     #1c2029;
+  --surface-2:     #242935;
+  --surface-3:     #2e3441;
   --text:          #f0f0f0;
   --text-1:        #f0f0f0;
-  --text-2:        #d0d0d0;
-  --text-3:        #999999;
+  --text-2:        #cdd2da;
+  --text-3:        #8b93a0;
   --accent:        #d4af37;
   --accent-2:      #c9a961;
+  --accent-teal:   #2bb8d8;
+  --info:          #2bb8d8;
   --pos:           #ff6b6b;
-  --neg:           #51cf66;
-  --warn:          #ffc107;
-  --border:        #4a4a4a;
-  --border-strong: #5a5a5a;
+  --neg:           #3ddc97;
+  --warn:          #ffc800;
+  --border:        #2a303c;
+  --border-strong: #3a414f;
   --radius:        4px;
   --radius-lg:     8px;
-  --shadow:        0 2px 8px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.3);
-  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --shadow:        0 2px 8px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.45);
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.45);
   --font:          'DM Sans', -apple-system, system-ui, sans-serif;
   --font-display:  'Fraunces', Georgia, serif;
 }
 
 [data-theme="dark"] {
-  --bg:            #2a2a2a;
-  --surface:       #353535;
-  --surface-1:     #3a3a3a;
-  --surface-2:     #424242;
-  --surface-3:     #4a4a4a;
+  --bg:            #0e1016;
+  --surface:       #171a22;
+  --surface-1:     #1c2029;
+  --surface-2:     #242935;
+  --surface-3:     #2e3441;
   --text:          #f0f0f0;
   --text-1:        #f0f0f0;
-  --text-2:        #d0d0d0;
-  --text-3:        #999999;
+  --text-2:        #cdd2da;
+  --text-3:        #8b93a0;
   --accent:        #d4af37;
   --accent-2:      #c9a961;
+  --accent-teal:   #2bb8d8;
+  --info:          #2bb8d8;
   --pos:           #ff6b6b;
-  --neg:           #51cf66;
-  --warn:          #ffc107;
-  --border:        #4a4a4a;
-  --border-strong: #5a5a5a;
-  --shadow:        0 2px 8px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.3);
-  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --neg:           #3ddc97;
+  --warn:          #ffc800;
+  --border:        #2a303c;
+  --border-strong: #3a414f;
+  --shadow:        0 2px 8px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.45);
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.45);
 }
 
 /* Explicit light override — wins over system dark media query */
 [data-theme="light"] {
-  --bg:            #2a2a2a;
-  --surface:       #353535;
-  --surface-1:     #3a3a3a;
-  --surface-2:     #424242;
-  --surface-3:     #4a4a4a;
+  --bg:            #0e1016;
+  --surface:       #171a22;
+  --surface-1:     #1c2029;
+  --surface-2:     #242935;
+  --surface-3:     #2e3441;
   --text:          #f0f0f0;
   --text-1:        #f0f0f0;
-  --text-2:        #d0d0d0;
-  --text-3:        #999999;
+  --text-2:        #cdd2da;
+  --text-3:        #8b93a0;
   --accent:        #d4af37;
   --accent-2:      #c9a961;
+  --accent-teal:   #2bb8d8;
+  --info:          #2bb8d8;
   --pos:           #ff6b6b;
-  --neg:           #51cf66;
-  --warn:          #ffc107;
-  --border:        #4a4a4a;
-  --border-strong: #5a5a5a;
-  --shadow:        0 2px 8px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.3);
-  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --neg:           #3ddc97;
+  --warn:          #ffc800;
+  --border:        #2a303c;
+  --border-strong: #3a414f;
+  --shadow:        0 2px 8px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.45);
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.45);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg:            #2a2a2a;
-    --surface:       #353535;
-    --surface-1:     #3a3a3a;
-    --surface-2:     #424242;
-    --surface-3:     #4a4a4a;
+    --bg:            #0e1016;
+    --surface:       #171a22;
+    --surface-1:     #1c2029;
+    --surface-2:     #242935;
+    --surface-3:     #2e3441;
     --text:          #f0f0f0;
     --text-1:        #f0f0f0;
-    --text-2:        #d0d0d0;
-    --text-3:        #999999;
+    --text-2:        #cdd2da;
+    --text-3:        #8b93a0;
     --accent:        #d4af37;
     --accent-2:      #c9a961;
+    --accent-teal:   #2bb8d8;
+    --info:          #2bb8d8;
     --pos:           #ff6b6b;
-    --neg:           #51cf66;
-    --warn:          #ffc107;
-    --border:        #4a4a4a;
-    --border-strong: #5a5a5a;
+    --neg:           #3ddc97;
+    --warn:          #ffc800;
+    --border:        #2a303c;
+    --border-strong: #3a414f;
     --shadow:        0 2px 8px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.3);
     --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
   }
@@ -104,9 +112,10 @@
 html, body {
   font-family: var(--font);
   background: var(--bg);
+  /* Ambient HUD glow — teal + gold, echoing the Danmarksmaskinen globe. */
   background-image:
-    radial-gradient(ellipse at 15% 0%, rgba(10,110,120,0.05) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 100%, rgba(10,110,120,0.04) 0%, transparent 50%);
+    radial-gradient(ellipse at 12% -5%, rgba(43,184,216,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 88% 105%, rgba(212,175,55,0.05) 0%, transparent 52%);
   background-attachment: fixed;
   color: var(--text);
   font-size: 15px;
@@ -4306,6 +4315,31 @@ body {
 .dw-news-hl   { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
 .dw-news-topic { font-size: 11px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 6px; }
 .dw-news-dream-hint { font-size: 10px; color: var(--text-3); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.dw-news-breaking {
+  font-size: 8px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+  background: var(--pos); color: #fff; padding: 1px 5px; border-radius: 3px;
+  animation: feedpulse 1.4s ease-in-out infinite;
+}
+.dw-news-sent { font-size: 10px; margin-left: auto; }
+.dw-sent-pos { color: var(--neg); }
+.dw-sent-neg { color: var(--pos); }
+
+/* ── Nyhedsradar dashboard widget ─────────────────────────── */
+.dw-trends-body { display: flex; flex-direction: column; gap: 6px; }
+.dw-trend-row {
+  display: grid; grid-template-columns: 1fr 46px 18px;
+  align-items: center; gap: 7px; cursor: pointer;
+  padding: 3px 3px; border-radius: 4px; transition: background .1s;
+}
+.dw-trend-row:hover { background: var(--surface-2); }
+.dw-trend-label {
+  font-size: 11px; color: var(--text-2); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px;
+}
+.dw-trend-fresh { color: var(--accent-teal); font-size: 8px; animation: feedpulse 1.6s ease-in-out infinite; }
+.dw-trend-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.dw-trend-fill { display: block; height: 100%; border-radius: 3px; transition: width .4s ease; }
+.dw-trend-count { font-size: 10px; font-weight: 700; color: var(--text-3); text-align: right; }
 
 /* News article detail modal */
 .vg-modal {

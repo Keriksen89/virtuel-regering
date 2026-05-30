@@ -505,6 +505,14 @@ const DASH_WIDGETS = [
     content: 'insights',
   },
   {
+    id: 'nyhedsradar',
+    icon: '<i class="ph ph-radar"></i>',
+    title: 'Nyhedsradar',
+    panel: 'feed',
+    w: 3, h: 5,
+    content: 'trends',
+  },
+  {
     id: 'reddit',
     icon: '<i class="ph ph-reddit-logo"></i>',
     title: 'Reddit Danmark',
@@ -538,9 +546,9 @@ const DASH_WIDGETS = [
   },
 ];
 
-const DASH_LS_KEY      = 'vg_dashboard_v5';
-const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v5';
-const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'danmarkidag', 'aiinsights', 'xdeck', 'reddit'];
+const DASH_LS_KEY      = 'vg_dashboard_v6';
+const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v6';
+const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'danmarkidag', 'nyhedsradar', 'aiinsights', 'xdeck', 'reddit'];
 
 const STATUS_CLS = { ok: 'dw-ok', warn: 'dw-warn', bad: 'dw-bad' };
 const SRC_CLS    = {
@@ -665,6 +673,10 @@ VG.dashboard.renderPanel = function() {
       </div>`;
     } else if (w.content === 'insights') {
       body = `<div class="dw-insights-body" id="dw-insights-body"></div>`;
+    } else if (w.content === 'trends') {
+      body = `<div class="dw-trends-body" id="dw-trends-body">
+        <div class="dw-skeleton"></div><div class="dw-skeleton"></div><div class="dw-skeleton"></div>
+      </div>`;
     } else if (w.content === 'xdeck') {
       body = `<div class="dw-xdeck-body" id="dw-xdeck-body"></div>`;
     } else if (w.content === 'reddit') {
@@ -712,6 +724,7 @@ VG.dashboard.renderPanel = function() {
   gs.on('change', () => VG.dashboard.saveLayout(gs.save(false)));
 
   VG.dashboard._fillNews();
+  VG.dashboard._fillTrends();
   VG.dashboard._fillInsights();
   VG.dashboard._fillXdeck();
   VG.dashboard._fillReddit();
@@ -757,8 +770,12 @@ VG.dashboard._fillNews = function() {
         const sc = SRC_CLS[n.source] || 'source-dr';
         const hasDream = n.dream && n.dream.category && n.dream.category !== 'Øvrig';
         const catDot = hasDream ? `<span class="dw-news-cat">${n.dream.category}</span>` : '';
+        const breaking = (n.minutesAgo != null && n.minutesAgo < 120)
+          ? '<span class="dw-news-breaking">BREAKING</span>' : '';
+        const sent = n.sentiment > 0 ? '<span class="dw-news-sent dw-sent-pos" title="Positiv tone">▲</span>'
+                   : n.sentiment < 0 ? '<span class="dw-news-sent dw-sent-neg" title="Negativ tone">▼</span>' : '';
         return `<div class="dw-news-item dw-news-item--modal" data-news-idx="${i}">
-          <div class="dw-news-meta"><span class="rygte-source-badge ${sc}">${n.source}</span><span class="dw-news-age">${n.age || ''}</span>${catDot}</div>
+          <div class="dw-news-meta">${breaking}<span class="rygte-source-badge ${sc}">${n.source}</span><span class="dw-news-age">${n.age || ''}</span>${catDot}${sent}</div>
           <div class="dw-news-hl">${n.headline}</div>
           <div class="dw-news-topic">${n.topicLabel}${hasDream ? ' <span class="dw-news-dream-hint">📊 Analyse</span>' : ''}</div>
         </div>`;
@@ -768,6 +785,34 @@ VG.dashboard._fillNews = function() {
       });
     })
     .catch(() => { if (el) el.innerHTML = '<p class="dw-empty">Nyheder utilgængelige</p>'; });
+};
+
+// ── Nyhedsradar widget — topic coverage from /api/news/trends ───────────────
+VG.dashboard._fillTrends = function() {
+  const el = document.getElementById('dw-trends-body');
+  if (!el) return;
+  const color = (VG.feed && VG.feed._topicColor) ? VG.feed._topicColor : () => 'var(--accent)';
+  fetch('/api/news/trends')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(({ topics }) => {
+      if (!topics || !topics.length) { el.innerHTML = '<p class="dw-empty">Ingen data</p>'; return; }
+      const top = topics.slice(0, 9);
+      const max = top[0].count || 1;
+      el.innerHTML = top.map(t => {
+        const pct = Math.max(6, Math.round(t.count / max * 100));
+        const fresh = (t.latestAge != null && t.latestAge < 120)
+          ? '<span class="dw-trend-fresh" title="Frisk historie">●</span>' : '';
+        return `<div class="dw-trend-row" data-goto-topic="${t.panel}" title="${t.label}: ${t.count} artikler">
+          <span class="dw-trend-label">${t.label}${fresh}</span>
+          <span class="dw-trend-track"><span class="dw-trend-fill" style="width:${pct}%;background:${color(t.label)}"></span></span>
+          <span class="dw-trend-count">${t.count}</span>
+        </div>`;
+      }).join('');
+      el.querySelectorAll('[data-goto-topic]').forEach(row => {
+        row.onclick = () => window.__mkClick && window.__mkClick(row.dataset.gotoTopic);
+      });
+    })
+    .catch(() => { if (el) el.innerHTML = '<p class="dw-empty">Radar utilgængelig</p>'; });
 };
 
 VG.dashboard._openNewsModal = function(n) {
