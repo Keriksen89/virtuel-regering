@@ -560,11 +560,43 @@ const DASH_WIDGETS = [
     w: 6, h: 5,
     content: 'polls',
   },
+  {
+    id: 'markets',
+    icon: '<i class="ph ph-trend-up"></i>',
+    title: 'Markeder & Børser',
+    panel: 'erhverv',
+    w: 4, h: 6,
+    content: 'markets',
+  },
+  {
+    id: 'portfolio',
+    icon: '<i class="ph ph-briefcase"></i>',
+    title: 'Min Portefølje',
+    panel: null,
+    w: 4, h: 7,
+    content: 'portfolio',
+  },
+  {
+    id: 'intlnews',
+    icon: '<i class="ph ph-globe"></i>',
+    title: 'Internationale Nyheder',
+    panel: 'feed',
+    w: 6, h: 7,
+    content: 'intlnews',
+  },
+  {
+    id: 'livetv',
+    icon: '<i class="ph ph-television-simple"></i>',
+    title: 'Live TV',
+    panel: null,
+    w: 6, h: 8,
+    content: 'livetv',
+  },
 ];
 
-const DASH_LS_KEY      = 'vg_dashboard_v7';
-const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v7';
-const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'danmarkidag', 'nyhedsradar', 'aiinsights', 'xdeck', 'reddit'];
+const DASH_LS_KEY      = 'vg_dashboard_v8';
+const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v8';
+const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'markets', 'danmarkidag', 'nyhedsradar', 'intlnews', 'aiinsights', 'livetv', 'xdeck', 'reddit'];
 
 const STATUS_CLS = { ok: 'dw-ok', warn: 'dw-warn', bad: 'dw-bad' };
 const SRC_CLS    = {
@@ -705,6 +737,14 @@ VG.dashboard.renderPanel = function() {
       body = `<div class="dw-gridfreq-body" id="dw-gridfreq-body"><div class="dw-skeleton"></div></div>`;
     } else if (w.content === 'valuta') {
       body = `<div class="dw-valuta-body" id="dw-valuta-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'markets') {
+      body = `<div class="dw-markets-body" id="dw-markets-body"><div class="dw-skeleton"></div><div class="dw-skeleton"></div><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'portfolio') {
+      body = `<div class="dw-portfolio-body" id="dw-portfolio-body"></div>`;
+    } else if (w.content === 'intlnews') {
+      body = `<div class="dw-intlnews-body" id="dw-intlnews-body"><div class="dw-skeleton"></div><div class="dw-skeleton"></div><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'livetv') {
+      body = `<div class="dw-livetv-body" id="dw-livetv-body"></div>`;
     } else if (w.render) {
       const sparkHtml = d.spark ? _sparks(d.spark, d.trendCls) : '';
       const gaugeHtml = d.gauge ? `<div class="dw-gauge-wrap"><div class="dw-gauge-track"><div class="dw-gauge-fill" style="width:${Math.max(2, Math.min(100, d.gauge.pct)).toFixed(1)}%;background:${d.gauge.color}"></div></div>${d.gauge.label ? `<span class="dw-gauge-lbl">${d.gauge.label}</span>` : ''}</div>` : '';
@@ -752,6 +792,10 @@ VG.dashboard.renderPanel = function() {
   VG.dashboard._fillPolls();
   VG.dashboard._fillGridFreq();
   VG.dashboard._fillValuta();
+  VG.dashboard._fillMarkets();
+  VG.dashboard._fillPortfolio();
+  VG.dashboard._fillIntlNews();
+  VG.dashboard._fillLiveTV();
 
   document.getElementById('dw-edit-btn').onclick = () => {
     panel._dashEditMode = !panel._dashEditMode;
@@ -889,6 +933,186 @@ VG.dashboard._fillValuta = function() {
       ).join('') + `<div class="dw-valuta-src">Danmarks Nationalbank${d.isFallback ? ' (estimat)' : ''}</div>`;
     })
     .catch(() => { if (el) el.innerHTML = '<p class="dw-empty">Utilgængelig</p>'; });
+};
+
+VG.dashboard._fillMarkets = function() {
+  const el = document.getElementById('dw-markets-body');
+  if (!el) return;
+  fetch('/api/stocks/quotes')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(quotes => {
+      if (!quotes || !quotes.length) { el.innerHTML = '<p class="dw-empty">Ingen data</p>'; return; }
+      const byType = { index: [], stock: [], commodity: [], crypto: [] };
+      quotes.forEach(q => { (byType[q.type] || byType.stock).push(q); });
+      const section = (title, items) => {
+        if (!items.length) return '';
+        return `<div class="dw-mkt-section">${title}</div>` + items.map(q => {
+          const chg = q.changePct;
+          const col = chg == null ? 'var(--text-3)' : chg >= 0 ? 'var(--neg)' : 'var(--pos)';
+          const arrow = chg == null ? '' : chg >= 0 ? '▲' : '▼';
+          const pctStr = chg != null ? `${arrow} ${Math.abs(chg).toFixed(2)}%` : '—';
+          const price = q.price != null ? q.price.toLocaleString('da-DK', { maximumFractionDigits: 2 }) : '—';
+          const fallbackCls = q.isFallback ? ' dw-mkt-fallback' : '';
+          return `<div class="dw-mkt-row${fallbackCls}">
+            <span class="dw-mkt-name" title="${q.symbol}">${q.name}</span>
+            <span class="dw-mkt-price">${price}</span>
+            <span class="dw-mkt-chg" style="color:${col}">${pctStr}</span>
+          </div>`;
+        }).join('');
+      };
+      el.innerHTML =
+        section('Indeks', byType.index) +
+        section('Danske aktier', byType.stock) +
+        section('Råvarer & Krypto', [...byType.commodity, ...byType.crypto]);
+      if (quotes.every(q => q.isFallback)) {
+        el.insertAdjacentHTML('beforeend', '<div class="dw-mkt-src">Yahoo Finance · utilgængelig</div>');
+      } else {
+        el.insertAdjacentHTML('beforeend', '<div class="dw-mkt-src">Yahoo Finance · live</div>');
+      }
+    })
+    .catch(() => { if (el) el.innerHTML = '<p class="dw-empty">Markeder utilgængelig</p>'; });
+};
+
+// Portfolio tracker — holdings stored in localStorage, prices from Yahoo Finance
+VG.dashboard._fillPortfolio = function() {
+  const el = document.getElementById('dw-portfolio-body');
+  if (!el) return;
+  const STORE_KEY = 'vg_portfolio_v1';
+  let holdings = [];
+  try { holdings = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch {}
+
+  const render = async () => {
+    if (!holdings.length) {
+      el.innerHTML = `<p class="dw-portfolio-empty">Ingen beholdninger endnu.</p>
+        <button class="dw-portfolio-add-btn" id="dw-portfolio-add">+ Tilføj aktie</button>`;
+      el.querySelector('#dw-portfolio-add').onclick = addHolding;
+      return;
+    }
+    const symbols = [...new Set(holdings.map(h => h.symbol))].join(',');
+    let quotes = [];
+    try {
+      const r = await fetch(`/api/stocks/quotes?symbols=${encodeURIComponent(symbols)}`);
+      if (r.ok) quotes = await r.json();
+    } catch {}
+    const priceMap = Object.fromEntries(quotes.map(q => [q.symbol, q]));
+    let totalCost = 0, totalValue = 0;
+    const rows = holdings.map((h, i) => {
+      const q = priceMap[h.symbol];
+      const cur = q?.price ?? null;
+      const value = cur != null ? cur * h.shares : null;
+      const cost = h.avgCost * h.shares;
+      const pnl = value != null ? value - cost : null;
+      const pnlPct = pnl != null && cost > 0 ? (pnl / cost) * 100 : null;
+      const col = pnl == null ? 'var(--text-3)' : pnl >= 0 ? 'var(--neg)' : 'var(--pos)';
+      if (value) totalValue += value;
+      totalCost += cost;
+      return `<div class="dw-ph-row">
+        <span class="dw-ph-sym">${h.symbol}</span>
+        <span class="dw-ph-shares">${h.shares}×</span>
+        <span class="dw-ph-price">${cur != null ? cur.toLocaleString('da-DK', {maximumFractionDigits:2}) : '—'}</span>
+        <span class="dw-ph-pnl" style="color:${col}">${pnl != null ? (pnl >= 0 ? '+' : '') + pnl.toFixed(0) + ' (' + (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(1) + '%)' : '—'}</span>
+        <button class="dw-ph-del" data-idx="${i}" title="Fjern">×</button>
+      </div>`;
+    }).join('');
+    const totalPnl = totalValue - totalCost;
+    const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+    const totalCol = totalPnl >= 0 ? 'var(--neg)' : 'var(--pos)';
+    el.innerHTML = `<div class="dw-ph-header">
+        <span>Aktie</span><span>Antal</span><span>Kurs</span><span>P/L</span>
+      </div>
+      ${rows}
+      <div class="dw-ph-total">
+        <span>Total</span><span></span>
+        <span>${totalValue > 0 ? totalValue.toFixed(0) : '—'}</span>
+        <span style="color:${totalCol}">${totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(0)} (${totalPnlPct >= 0 ? '+' : ''}${totalPnlPct.toFixed(1)}%)</span>
+      </div>
+      <button class="dw-portfolio-add-btn" id="dw-portfolio-add">+ Tilføj</button>`;
+    el.querySelector('#dw-portfolio-add').onclick = addHolding;
+    el.querySelectorAll('.dw-ph-del').forEach(b => {
+      b.onclick = () => { holdings.splice(parseInt(b.dataset.idx), 1); save(); render(); };
+    });
+  };
+
+  const save = () => localStorage.setItem(STORE_KEY, JSON.stringify(holdings));
+
+  const addHolding = () => {
+    const sym = prompt('Ticker-symbol (f.eks. NOVO-B.CO, AAPL, BTC-USD):');
+    if (!sym) return;
+    const shares = parseFloat(prompt('Antal aktier / enheder:') || '0');
+    const cost = parseFloat(prompt('Gennemsnitlig indkøbspris (pr. aktie):') || '0');
+    if (!shares || !cost) return;
+    holdings.push({ symbol: sym.toUpperCase().trim(), shares, avgCost: cost });
+    save();
+    render();
+  };
+
+  render();
+};
+
+VG.dashboard._fillIntlNews = function() {
+  const el = document.getElementById('dw-intlnews-body');
+  if (!el) return;
+  const srcColors = {
+    BBC: '#bb1919', Reuters: '#f7840a', Bloomberg: '#6aa', FT: '#f5c33c',
+    AP: '#cc2200', Guardian: '#0f7a6d', DW: '#002d6c', Euronews: '#0a3a7a', SVT: '#006daa',
+  };
+  fetch('/api/news/intl?limit=30')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(({ items }) => {
+      if (!items || !items.length) { el.innerHTML = '<p class="dw-empty">Ingen data</p>'; return; }
+      el.innerHTML = items.map(n => {
+        const sc = srcColors[n.source] || 'var(--accent)';
+        const sent = n.sentiment > 0 ? '<span class="dw-news-sent dw-sent-pos">▲</span>' : n.sentiment < 0 ? '<span class="dw-news-sent dw-sent-neg">▼</span>' : '';
+        const age = n.minutesAgo != null ? (n.minutesAgo < 60 ? `${n.minutesAgo}m` : `${Math.floor(n.minutesAgo/60)}t`) : n.age || '';
+        return `<div class="dw-intl-row" ${n.link ? `onclick="window.open('${n.link}','_blank')" style="cursor:pointer"` : ''}>
+          <span class="dw-intl-src" style="color:${sc}">${n.source}</span>
+          <span class="dw-intl-title">${n.title}${sent}</span>
+          <span class="dw-intl-age">${age}</span>
+        </div>`;
+      }).join('');
+    })
+    .catch(() => { if (el) el.innerHTML = '<p class="dw-empty">Nyheder utilgængelig</p>'; });
+};
+
+const LIVE_TV_CHANNELS = [
+  { id: 'bloomberg',  name: 'Bloomberg TV',     ytId: 'dp8PhLsUcFE',  desc: 'Global finans & økonomi nyheder' },
+  { id: 'euronews',   name: 'Euronews',          ytId: 'GKSRyLdjsPA',  desc: 'Europæiske & globale nyheder' },
+  { id: 'skynews',    name: 'Sky News',           ytId: '9Auq9mYxFEE',  desc: 'Britisk nyheder · live' },
+  { id: 'aljazeera',  name: 'Al Jazeera English', ytId: 'h3MuIUNCRd0',  desc: 'Mellemøst & global dækning' },
+  { id: 'cnbc',       name: 'CNBC International', ytId: 'Ox8sbiImXFo',  desc: 'Finans & markedsnyheder' },
+  { id: 'france24en', name: 'France 24 English',  ytId: 'h5SAlhSjNkk',  desc: 'Franske & europæiske nyheder' },
+  { id: 'dw',         name: 'DW News',            ytId: 'cPMXljUGqpo',  desc: 'Tyske & globale nyheder' },
+  { id: 'wion',       name: 'WION',               ytId: 'Zq28-1rBhCE',  desc: 'Indisk perspektiv på global nyhed' },
+];
+
+VG.dashboard._fillLiveTV = function() {
+  const el = document.getElementById('dw-livetv-body');
+  if (!el) return;
+  const STORE_KEY = 'vg_livetv_channel';
+  let activeId = localStorage.getItem(STORE_KEY) || LIVE_TV_CHANNELS[0].id;
+
+  const render = () => {
+    const ch = LIVE_TV_CHANNELS.find(c => c.id === activeId) || LIVE_TV_CHANNELS[0];
+    el.innerHTML = `
+      <div class="dw-tv-selector">
+        <select id="dw-tv-select" class="dw-tv-select">
+          ${LIVE_TV_CHANNELS.map(c => `<option value="${c.id}"${c.id === activeId ? ' selected' : ''}>${c.name}</option>`).join('')}
+        </select>
+        <span class="dw-tv-desc">${ch.desc}</span>
+      </div>
+      <div class="dw-tv-embed">
+        <iframe src="https://www.youtube-nocookie.com/embed/${ch.ytId}?autoplay=0&rel=0&modestbranding=1"
+          frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen></iframe>
+      </div>
+      <div class="dw-tv-note">YouTube live streams · Klik play for at starte</div>`;
+    el.querySelector('#dw-tv-select').onchange = e => {
+      activeId = e.target.value;
+      localStorage.setItem(STORE_KEY, activeId);
+      render();
+    };
+  };
+  render();
 };
 
 VG.dashboard._openNewsModal = function(n) {

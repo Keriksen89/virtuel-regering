@@ -21,6 +21,17 @@ const FEEDS = [
   { src: 'Altinget',     url: 'https://www.altinget.dk/rss/articles?type=politik' },
   { src: 'Information',  url: 'https://www.information.dk/rss' },
   { src: 'Børsen',       url: 'https://borsen.dk/rss' },
+  // International sources
+  { src: 'BBC',          url: 'https://feeds.bbci.co.uk/news/world/rss.xml',     intl: true },
+  { src: 'BBC',          url: 'https://feeds.bbci.co.uk/news/business/rss.xml',  intl: true },
+  { src: 'Reuters',      url: 'https://feeds.reuters.com/reuters/topNews',        intl: true },
+  { src: 'Bloomberg',    url: 'https://feeds.bloomberg.com/markets/news.rss',     intl: true },
+  { src: 'FT',           url: 'https://www.ft.com/rss/home',                      intl: true },
+  { src: 'AP',           url: 'https://rsshub.app/ap/topics/apf-topnews',         intl: true },
+  { src: 'Guardian',     url: 'https://www.theguardian.com/world/rss',             intl: true },
+  { src: 'DW',           url: 'https://rss.dw.com/rdf/rss-en-all',                intl: true },
+  { src: 'Euronews',     url: 'https://feeds.feedburner.com/euronews/en/home',    intl: true },
+  { src: 'SVT',          url: 'https://www.svt.se/nyheter/rss.xml',               intl: true },
 ];
 
 /* ── Max article age: only show articles ≤ 3 days old ───────────────── */
@@ -246,13 +257,16 @@ router.get('/', async (req, res, next) => {
       if (seen.has(key)) continue;
       seen.add(key);
       seen.add(topic.panel + ':_any');
+      const feedMeta = FEEDS.find(f => f.src === article.src);
       items.push({
         panel:       topic.panel,
         group:       topic.group,
         topicLabel:  topic.label,
         headline:    article.title,
+        title:       article.title,
         description: article.desc,
         source:      article.src,
+        intl:        feedMeta?.intl || false,
         age:         relTime(article.pub),
         link:        article.link,
         dream:       estimateDREAMImpact(article.title, article.desc || ''),
@@ -366,6 +380,33 @@ router.get('/trends', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// GET /intl — raw international headlines (bypasses topic matching, all intl sources)
+router.get('/intl', async (req, res, next) => {
+  try {
+    const intlFeeds = FEEDS.filter(f => f.intl);
+    const results = await Promise.allSettled(
+      intlFeeds.map(f =>
+        fetch(f.url, { signal: AbortSignal.timeout(7000), headers: { 'User-Agent': 'VirtuelRegering/2.0' } })
+          .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.text(); })
+          .then(xml => parseRSS(xml, f.src))
+      )
+    );
+    const all = results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
+      .sort((a, b) => (b.pubMs || 0) - (a.pubMs || 0));
+    const limit = Math.min(parseInt(req.query.limit) || 30, 60);
+    const items = all.slice(0, limit).map(a => ({
+      title:      a.title,
+      source:     a.src,
+      link:       a.link,
+      description:a.desc,
+      age:        relTime(a.pub),
+      minutesAgo: minutesAgo(a.pubMs),
+      sentiment:  scoreSentiment(a.title, a.desc),
+    }));
+    res.json({ items, fetched: new Date().toISOString() });
+  } catch (err) { next(err); }
 });
 
 export default router;

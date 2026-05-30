@@ -27,6 +27,7 @@ import tleRouter from './routes/tle.js';
 import geoconfigRouter from './routes/geoconfig.js';
 import dmiRouter from './routes/dmi.js';
 import kystRouter from './routes/kyst.js';
+import stocksRouter from './routes/stocks.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -53,7 +54,7 @@ app.use(helmet({
       // token-free OpenStreetMap raster imagery.
       connectSrc: ["'self'", "data:", "https://www.reddit.com", "https://*.basemaps.cartocdn.com", "https://celestrak.org", "https://celestrak.com", "https://api.cesium.com", "https://assets.ion.cesium.com", "https://*.cesium.com", "https://tile.googleapis.com", "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org", "https://api.open-meteo.com", "https://air-quality-api.open-meteo.com"],
       fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://unpkg.com"],
-      frameSrc: ["'self'", "https://platform.twitter.com", "https://twitter.com"],
+      frameSrc: ["'self'", "https://platform.twitter.com", "https://twitter.com", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://player.vimeo.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
@@ -93,6 +94,7 @@ app.use('/api/tle', tleRouter);
 app.use('/api/geo', geoconfigRouter);
 app.use('/api/dmi', dmiRouter);
 app.use('/api/kyst', kystRouter);
+app.use('/api/stocks', stocksRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({
