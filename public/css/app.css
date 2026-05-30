@@ -4948,3 +4948,40 @@ body.dk-immersive.dk-peek .dk-peek-backdrop {
   .mk-bar-lbl { flex: 0 0 70px; }
   .mk-bar-val { flex: 0 0 90px; }
 }
+
+/* ── Danmarksmaskinen: search box, live power readout (globe HUD) ─────── */
+.dk-search-wrap { position: relative; margin: 6px 0 8px; }
+.dk-search {
+  width: 100%; box-sizing: border-box; padding: 7px 10px;
+  background: rgba(0,0,0,0.45); border: 1px solid rgba(212,175,55,0.3);
+  border-radius: 4px; color: #f0f0f0; font-size: 12px;
+  font-family: 'Courier New', monospace;
+}
+.dk-search:focus { outline: none; border-color: rgba(212,175,55,0.7); background: rgba(0,0,0,0.65); }
+.dk-search::placeholder { color: rgba(212,175,55,0.55); }
+.dk-search-results {
+  display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+  margin-top: 3px; background: rgba(18,18,18,0.97); border: 1px solid rgba(212,175,55,0.3);
+  border-radius: 4px; overflow: hidden; max-height: 240px; overflow-y: auto;
+}
+.dk-search-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 6px 10px; font-size: 12px; color: #e8e0c8; cursor: pointer;
+  font-family: 'Courier New', monospace;
+}
+.dk-search-item:hover, .dk-search-item.dk-sr-active { background: rgba(212,175,55,0.18); color: #fff; }
+.dk-sr-kind { font-size: 9px; letter-spacing: 1px; color: rgba(212,175,55,0.7); text-transform: uppercase; }
+.dk-power {
+  margin-top: 8px; padding: 6px 9px; border-radius: 4px;
+  background: rgba(0,0,0,0.4); border: 1px solid rgba(123,191,74,0.3);
+  font-family: 'Courier New', monospace; font-size: 10.5px; color: #cfe8c0;
+  letter-spacing: 0.3px; line-height: 1.5;
+}
+.dk-power:empty { display: none; }
+.dk-power b { color: #9be36a; }
+.dk-power-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: #7bbf4a; margin-right: 6px; box-shadow: 0 0 6px #7bbf4a;
+  animation: dkpulse 2s infinite;
+}
+@keyframes dkpulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }

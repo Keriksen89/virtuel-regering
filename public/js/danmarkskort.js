@@ -697,6 +697,8 @@ VG.danmarkskort = {};
   let _aircraftTimer = null;
   let _shipTimer = null;
   let _weatherTimer = null;
+  let _powerTimer = null;
+  let _power = null;
   let _aircraftRetryTimer = null;
   let _shipRetryTimer = null;
   let _aircraftRetryDelay = 0;
@@ -813,6 +815,15 @@ VG.danmarkskort = {};
         if (el) el.style.display = 'none';
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // Double-click any object or municipality → fly the camera to it. Replace
+    // Cesium's default double-click (which locks the camera onto the entity).
+    _viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+    handler.setInputAction((click) => {
+      const picked = _viewer.scene.pick(click.position);
+      const ent = picked && picked.id;
+      if (ent && (ent._kind || ent.polygon)) flyToEntity(ent);
+    }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
     _viewer._dkHandler = handler;
 
     // Compass needle follows camera heading
@@ -1473,6 +1484,28 @@ VG.danmarkskort = {};
     updateStats();
   }
 
+  // Live electricity production (Energinet via /api/energi). Shown as a small
+  // always-on read-out in the HUD — real-time data, no extra menu.
+  async function fetchPower() {
+    try {
+      const r = await fetch('/api/energi/current', { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) return;
+      _power = await r.json();
+      renderPower();
+    } catch { /* non-critical */ }
+  }
+  function renderPower() {
+    const el = document.getElementById('dk-power');
+    if (!el || !_power) return;
+    const mw = (v) => (v >= 1000 ? (v / 1000).toFixed(1) + ' GW' : Math.round(v) + ' MW');
+    const wind = (_power.wind_onshore || 0) + (_power.wind_offshore || 0);
+    const flow = _power.exchange > 0 ? `eksport ${mw(_power.exchange)}` : `import ${mw(Math.abs(_power.exchange || 0))}`;
+    el.innerHTML = `<span class="dk-power-dot"></span>⚡ STRØM NU · `
+      + `<b>${_power.renewablePct ?? '–'}%</b> grøn · `
+      + `🌬 ${mw(wind)} · ☀ ${mw(_power.solar || 0)} · `
+      + `${flow}`;
+  }
+
   async function fetchWeather() {
     const lats = WEATHER_STATIONS.map(s => s.lat).join(',');
     const lons = WEATHER_STATIONS.map(s => s.lon).join(',');
@@ -1624,6 +1657,7 @@ VG.danmarkskort = {};
     if (_aircraftTimer) { clearInterval(_aircraftTimer); _aircraftTimer = null; }
     if (_shipTimer) { clearInterval(_shipTimer); _shipTimer = null; }
     if (_weatherTimer) { clearInterval(_weatherTimer); _weatherTimer = null; }
+    if (_powerTimer) { clearInterval(_powerTimer); _powerTimer = null; }
   }
 
   // ── Legend ───────────────────────────────────────────────────────────────────
@@ -1677,6 +1711,45 @@ VG.danmarkskort = {};
     if (p) p.textContent = Math.round(-Cesium.Math.toDegrees(_viewer.camera.pitch)) + '°';
   }
   function flyHome() { _viewer.camera.flyTo({ ...HOME(), duration: 1.0 }); }
+  function flyToEntity(ent) {
+    if (!_viewer || !ent) return;
+    try {
+      _viewer.flyTo(ent, {
+        duration: 1.2,
+        offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-55), 180000),
+      }).catch(() => {});
+    } catch (e) { /* non-critical */ }
+  }
+  function flyToLonLat(lon, lat, height = 90000) {
+    if (!_viewer) return;
+    _viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(lon, lat, height),
+      orientation: { heading: 0, pitch: Cesium.Math.toRadians(-55), roll: 0 },
+      duration: 1.2,
+    });
+  }
+  // Search index: 25 major cities + all 98 municipalities (resolved live).
+  function searchPlaces(q) {
+    q = (q || '').trim().toLowerCase();
+    if (q.length < 2) return [];
+    const out = [];
+    for (const s of WEATHER_STATIONS) {
+      if (s.name.toLowerCase().includes(q)) out.push({ label: s.name, kind: 'By', lon: s.lon, lat: s.lat });
+    }
+    if (_kommuneEntities) {
+      for (const e of _kommuneEntities) {
+        if (e._name && e._name.toLowerCase().includes(q) && !out.some(o => o.label === e._name)) {
+          out.push({ label: e._name, kind: 'Kommune', ent: e });
+        }
+      }
+    }
+    return out.sort((a, b) => a.label.length - b.label.length).slice(0, 7);
+  }
+  function gotoPlace(p) {
+    if (!p) return;
+    if (p.ent) flyToEntity(p.ent);
+    else if (p.lon != null) flyToLonLat(p.lon, p.lat);
+  }
   function setTopDown() {
     const c = _viewer.camera.positionCartographic;
     _viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, c.height), orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 }, duration: 0.8 });
@@ -1700,6 +1773,10 @@ VG.danmarkskort = {};
 
   <div class="dk-hud">
     <div class="dk-hud-title">DANMARKSMASKINEN</div>
+    <div class="dk-search-wrap">
+      <input type="text" id="dk-search" class="dk-search" placeholder="🔍 Find by eller kommune…" autocomplete="off" spellcheck="false">
+      <div class="dk-search-results" id="dk-search-results"></div>
+    </div>
     <div class="dk-view-btns" id="dk-view-btns">
       <button class="dk-btn active" data-view="kommuner">KOMMUNER</button>
       <button class="dk-btn" data-view="lufttrafik">LUFTTRAFIK</button>
@@ -1721,6 +1798,7 @@ VG.danmarkskort = {};
     </div>
     <div class="dk-legend" id="dk-legend"></div>
     <div class="dk-stats" id="dk-stats"></div>
+    <div class="dk-power" id="dk-power"></div>
   </div>
 
   <div class="dk-tooltip" id="dk-tooltip"></div>
@@ -1738,7 +1816,7 @@ VG.danmarkskort = {};
     <div class="dk-pitch" title="Hældning">∡ <span id="dk-pitch-val">58°</span></div>
   </div>
 
-  <div class="dk-hint" id="dk-hint">Træk for at panorere · scroll for zoom · højreklik-træk (eller ⌘/Ctrl-træk) for at vippe &amp; rotere</div>
+  <div class="dk-hint" id="dk-hint">Træk for at panorere · scroll for zoom · dobbeltklik for at flyve hen til · højreklik-træk (eller ⌘/Ctrl-træk) for at vippe &amp; rotere</div>
 
   <div class="dk-loading" id="dk-loading">
     <div class="dk-loading-text">INDLÆSER DANMARKSMASKINEN</div>
@@ -1774,6 +1852,34 @@ VG.danmarkskort = {};
         if (tt) tt.style.display = 'none';
       });
     });
+
+    // Search-to-fly: type a city or municipality, pick a result, fly there.
+    const searchInput = document.getElementById('dk-search');
+    const searchRes   = document.getElementById('dk-search-results');
+    if (searchInput && searchRes) {
+      let sel = -1, current = [];
+      const renderRes = () => {
+        if (!current.length) { searchRes.style.display = 'none'; searchRes.innerHTML = ''; return; }
+        searchRes.style.display = 'block';
+        searchRes.innerHTML = current.map((p, i) =>
+          `<div class="dk-search-item${i === sel ? ' dk-sr-active' : ''}" data-sr="${i}">${p.label}<span class="dk-sr-kind">${p.kind}</span></div>`).join('');
+      };
+      const choose = (i) => {
+        const p = current[i]; if (!p) return;
+        gotoPlace(p); searchInput.value = p.label; current = []; sel = -1; renderRes(); searchInput.blur();
+      };
+      searchInput.addEventListener('input', () => { current = searchPlaces(searchInput.value); sel = -1; renderRes(); });
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') { sel = Math.min(sel + 1, current.length - 1); renderRes(); e.preventDefault(); }
+        else if (e.key === 'ArrowUp') { sel = Math.max(sel - 1, 0); renderRes(); e.preventDefault(); }
+        else if (e.key === 'Enter') { choose(sel >= 0 ? sel : 0); }
+        else if (e.key === 'Escape') { current = []; renderRes(); searchInput.blur(); }
+      });
+      searchRes.addEventListener('mousedown', (e) => {
+        const it = e.target.closest('[data-sr]'); if (it) { e.preventDefault(); choose(parseInt(it.dataset.sr, 10)); }
+      });
+      searchInput.addEventListener('blur', () => setTimeout(renderRes, 150));
+    }
 
     const bind = (id, fn) => { const e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
     bind('dk-zoom-in',  () => zoomBy(0.35));
@@ -1823,9 +1929,11 @@ VG.danmarkskort = {};
     fetchAircraft();
     fetchShips();
     fetchWeather();
+    fetchPower();
     _aircraftTimer = setInterval(fetchAircraft, AIRCRAFT_REFRESH_MS);
     _shipTimer = setInterval(fetchShips, SHIP_REFRESH_MS);
     _weatherTimer = setInterval(fetchWeather, 10 * 60 * 1000); // refresh weather every 10 min
+    _powerTimer = setInterval(fetchPower, 5 * 60 * 1000);      // refresh power every 5 min
 
     startLoop();
   }
