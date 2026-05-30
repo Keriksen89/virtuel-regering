@@ -1095,10 +1095,16 @@ VG.danmarkskort = {};
     const scene = _viewer.scene;
     scene.backgroundColor = Cesium.Color.BLACK;
     scene.globe.baseColor = Cesium.Color.fromBytes(8, 10, 16);
-    scene.globe.enableLighting = false;
+    scene.globe.enableLighting = true;
+    scene.globe.dynamicAtmosphereLighting = true;
+    scene.globe.dynamicAtmosphereLightingFromSun = false;
     scene.globe.showGroundAtmosphere = true;
     scene.skyAtmosphere.show = true;
+    scene.skyAtmosphere.brightnessShift = 0.1;
+    scene.skyAtmosphere.saturationShift = 0.15;
     scene.fog.enabled = true;
+    scene.fog.density = 0.00012;
+    scene.fog.minimumBrightness = 0.18;
     scene.highDynamicRange = false;
     // Performance: cap the render rate (avoids overdrawing at 120/144 Hz) and
     // load slightly coarser terrain tiles — both ease the load on weaker GPUs
@@ -1192,12 +1198,12 @@ VG.danmarkskort = {};
     return kd ? kd[_metric] : null;
   }
   function kommuneColor(ent) {
+    if (_view !== 'kommuner') return Cesium.Color.TRANSPARENT;
     const v = kommuneValue(ent);
     if (v == null) return Cesium.Color.fromBytes(40, 40, 50, 150);
     const t = normalise(v, _metric);
     const c = colorForValue(t, (METRICS[_metric] || METRICS.ledighed).goodHigh);
-    const alpha = _view === 'kommuner' ? 215 : (_view === 'overvågning' ? 18 : (_view === 'vejr' || _view === 'beredskab') ? 30 : 55);
-    return Cesium.Color.fromBytes(c[0], c[1], c[2], alpha);
+    return Cesium.Color.fromBytes(c[0], c[1], c[2], 215);
   }
   function kommuneHeight(ent) {
     if (_view !== 'kommuner') return 0;
@@ -1224,10 +1230,16 @@ VG.danmarkskort = {};
   // Colour/height are constant between metric or view changes, so set plain
   // values (not per-frame callbacks) — this avoids ~200 property evaluations
   // every single frame across all municipalities.
+  const _VIEWS_HIDE_POLY = new Set(['lufttrafik', 'skibstrafik', 'satellitter', 'infra', 'miljo']);
   function applyKommuneStyle(ent) {
     if (!ent.polygon) return;
+    const inKommune = (_view === 'kommuner');
     ent.polygon.material = new Cesium.ColorMaterialProperty(kommuneColor(ent));
     ent.polygon.extrudedHeight = kommuneHeight(ent);
+    ent.polygon.outlineColor = inKommune
+      ? Cesium.Color.fromBytes(212, 175, 55, 110)
+      : Cesium.Color.fromBytes(200, 210, 220, 22);
+    ent.polygon.outline = inKommune || (!_VIEWS_HIDE_POLY.has(_view));
   }
   function restyleKommuner() {
     if (_kommuneEntities) _kommuneEntities.forEach(applyKommuneStyle);
@@ -1616,8 +1628,10 @@ VG.danmarkskort = {};
   function applyView() {
     if (!_viewer) return;
     const v = _view;
-    // Kommuner polygons: visible (extruded only in kommuner, flat tint elsewhere)
-    if (_kommuneEntities) _kommuneEntities.forEach(e => { if (e.polygon) e.show = true; });
+    // Kommuner polygons: hidden entirely for views where they're just noise; ghostly
+    // borders only in other non-kommuner views; full choropleth in kommuner view.
+    const polyHidden = _VIEWS_HIDE_POLY && _VIEWS_HIDE_POLY.has(v);
+    if (_kommuneEntities) _kommuneEntities.forEach(e => { if (e.polygon) e.show = !polyHidden; });
     // Static layers
     _viewer.entities.values.forEach(e => {
       const layer = e._layer;
