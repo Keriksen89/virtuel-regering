@@ -1647,9 +1647,9 @@ VG.danmarkskort = {};
     // Power readout is only relevant in the infrastructure view.
     const powerEl = document.getElementById('dk-power');
     if (powerEl) powerEl.style.display = (v === 'infrastruktur') ? '' : 'none';
-    // Grid frequency: visible in infrastruktur + tog views.
+    // Grid frequency: visible in infrastruktur view only.
     const freqEl = document.getElementById('dk-gridfreq');
-    if (freqEl) freqEl.style.display = (v === 'infrastruktur' || v === 'tog') ? '' : 'none';
+    if (freqEl) freqEl.style.display = (v === 'infrastruktur') ? '' : 'none';
     // Metric/legend buttons: also hide in tog, forsvar, trafik and politik views.
     const metricBtns = document.getElementById('dk-metric-btns');
     if (metricBtns && (v === 'tog' || v === 'forsvar' || v === 'politik' || v === 'trafik' || v === 'infra')) metricBtns.style.display = 'none';
