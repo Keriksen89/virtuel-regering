@@ -109,6 +109,52 @@ router.get('/activity', async (req, res) => {
   }
 });
 
+// GET /news — news mentions of Danish politicians (proxies to /api/news with politik filter)
+// Returns recent news items mentioning known politicians by name
+router.get('/news', async (req, res) => {
+  const cacheKey = 'politiker:news';
+  const cached = cache.get(cacheKey);
+  if (cached) { res.setHeader('X-Cache', 'HIT'); return res.json(cached); }
+
+  const POLITICIAN_NAMES = [
+    'Mette Frederiksen', 'Lars Løkke', 'Løkke Rasmussen', 'Nicolai Wammen',
+    'Peter Hummelgaard', 'Magnus Heunicke', 'Sophie Løhde', 'Troels Lund',
+    'Mattias Tesfaye', 'Jeppe Bruus', 'Christina Egelund', 'Kaare Dybvad',
+    'Pia Olsen Dyhr', 'Alex Vanopslagh', 'Inger Støjberg', 'Mai Villadsen',
+    'Martin Lidegaard', 'Morten Messerschmidt', 'Torsten Gejl',
+    'regeringsdannelse', 'koalitionsforhandlinger', 'statsminister',
+    'udenrigsminister', 'finansminister', 'forsvarsminister',
+  ];
+
+  try {
+    // Fetch aggregated news from the news endpoint
+    const newsData = await fetchJSON('http://localhost:' + (process.env.PORT || 3000) + '/api/news?limit=100');
+    const items = newsData?.items || newsData || [];
+
+    const politikItems = items
+      .filter(item => {
+        const text = ((item.title || '') + ' ' + (item.description || '')).toLowerCase();
+        return POLITICIAN_NAMES.some(name => text.includes(name.toLowerCase()));
+      })
+      .slice(0, 20)
+      .map(item => ({
+        title: item.title,
+        description: item.description,
+        source: item.source || item.src,
+        url: item.url || item.link,
+        published: item.published || item.pubDate,
+      }));
+
+    const result = { items: politikItems, fetched: new Date().toISOString(), source: 'Dansk presse' };
+    cache.set(cacheKey, result, 15 * 60);
+    res.setHeader('X-Cache', 'MISS');
+    res.json(result);
+  } catch (err) {
+    console.warn('[politiker] news failed:', err.message);
+    res.json({ items: [], fetched: new Date().toISOString(), error: err.message });
+  }
+});
+
 // GET /network — committee co-memberships for network graph
 router.get('/network', async (req, res) => {
   const cacheKey = 'politiker:network';

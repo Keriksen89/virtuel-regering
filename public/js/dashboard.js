@@ -1347,7 +1347,11 @@ VG.dashboard._fillPolitik = async function() {
     <div class="dpk-section-title" style="margin-top:10px">🗣 Seneste talere</div>
     <div id="dpk-speeches"><div class="dw-skeleton"></div></div>
     <div class="dpk-section-title" style="margin-top:10px">📜 Aktive lovforslag</div>
-    <div id="dpk-bills"><div class="dw-skeleton"></div></div>`;
+    <div id="dpk-bills"><div class="dw-skeleton"></div></div>
+    <div class="dpk-section-title" style="margin-top:10px">📰 Politiske nyheder</div>
+    <div id="dpk-news"><div class="dw-skeleton"></div></div>
+    <div class="dpk-section-title" style="margin-top:10px">🐦 Politikere på X</div>
+    <div id="dpk-xfeed"><div class="dw-skeleton"></div></div>`;
 
   // Fetch live Folketing activity
   try {
@@ -1396,5 +1400,48 @@ VG.dashboard._fillPolitik = async function() {
   } catch (e) {
     const actEl = document.getElementById('dpk-activity');
     if (actEl) actEl.innerHTML = `<p class="dw-empty">FT API utilgængeligt</p>`;
+  }
+
+  // Fetch politician news
+  try {
+    const newsData = await fetch('/api/politiker/news').then(r => r.json());
+    const newsEl = document.getElementById('dpk-news');
+    if (newsEl) {
+      if (newsData.items?.length) {
+        newsEl.innerHTML = newsData.items.slice(0, 6).map(n => {
+          const ageH = n.published ? Math.round((Date.now() - new Date(n.published)) / 3600000) : null;
+          const age = ageH != null ? (ageH < 24 ? `${ageH}t` : `${Math.floor(ageH/24)}d`) : '';
+          const src = n.source || '?';
+          return `<div class="dpk-row"><span class="dpk-badge dpk-bill" style="background:rgba(100,160,255,0.1)">${src}</span><span class="dpk-item-title">${(n.title||'').slice(0,70)}</span><span class="dpk-age">${age}</span></div>`;
+        }).join('');
+      } else {
+        newsEl.innerHTML = '<p class="dw-empty">Ingen politiske nyheder (nyhedsfeeds utilgængelige)</p>';
+      }
+    }
+  } catch(e) {
+    const newsEl = document.getElementById('dpk-news');
+    if (newsEl) newsEl.innerHTML = '<p class="dw-empty">Nyheder utilgængelige</p>';
+  }
+
+  // X/Twitter feed for key politicians (requires X_BEARER_TOKEN)
+  try {
+    const POLITICIAN_HANDLES = 'mettefrederiksen,larsloekke,piaolsendyhr,vanopslagh,ingerstojberg';
+    const xData = await fetch(`/api/xfeed?handles=${POLITICIAN_HANDLES}&limit=3`).then(r => r.json());
+    const xEl = document.getElementById('dpk-xfeed');
+    if (xEl) {
+      const allPosts = (xData.accounts || []).flatMap(a => (a.items||[]).map(t => ({ ...t, handle: a.handle, name: a.name })));
+      if (allPosts.length) {
+        const src = xData.configured ? '' : '<p class="dw-empty" style="font-size:9px">Sæt X_BEARER_TOKEN for live tweets</p>';
+        xEl.innerHTML = src + allPosts.slice(0, 5).map(t => {
+          const age = t.created_at ? Math.round((Date.now() - new Date(t.created_at)) / 3600000) : null;
+          return `<div class="dpk-row"><span class="dpk-badge dpk-bill" style="background:rgba(40,160,255,0.12);color:#28a0ff">@${t.handle}</span><span class="dpk-item-title">${(t.text||'').slice(0,80)}</span><span class="dpk-age">${age != null ? (age<24?age+'t':Math.floor(age/24)+'d') : ''}</span></div>`;
+        }).join('');
+      } else {
+        xEl.innerHTML = '<p class="dw-empty">Sæt X_BEARER_TOKEN env-variabel for live tweets fra politikere</p>';
+      }
+    }
+  } catch(e) {
+    const xEl = document.getElementById('dpk-xfeed');
+    if (xEl) xEl.innerHTML = '<p class="dw-empty">X feed utilgængeligt</p>';
   }
 };

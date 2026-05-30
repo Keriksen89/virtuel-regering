@@ -93,6 +93,12 @@ VG.danmarkskort = {};
       { panel: 'innovation',    icon: '🔬', label: 'Innovation & Tech',   stat: () => '' },
       { panel: 'medietillid',   icon: '📰', label: 'Medie & Tillid',     stat: () => '' },
     ],
+    trafik: [
+      { panel: 'dsb',          icon: '🚆', label: 'DSB & Transport',       stat: () => '' },
+      { panel: 'erhverv',      icon: '📈', label: 'Erhverv & Vækst',       stat: () => '' },
+      { panel: 'co2',          icon: '🌿', label: 'Klima & CO₂',           stat: () => '' },
+      { panel: 'infrastruktur',icon: '🛣', label: 'Infrastruktur',         stat: () => '' },
+    ],
     politik: [
       { panel: 'forsvar',       icon: '🛡', label: 'Forsvar & Sikkerhed', stat: () => '' },
       { panel: 'udenrigshandel',icon: '🌐', label: 'Udenrigshandel',     stat: () => '' },
@@ -995,6 +1001,12 @@ VG.danmarkskort = {};
   let _gridFreqTimer      = null;
   let _exchangeRates      = null;
   let _politikActivity    = null; // cached Folketing activity data
+  let _trafikEvents       = [];   // Vejdirektoratet traffic events
+  let _trafikTimer        = null;
+  const _trafikEnt        = new Map(); // id → entity
+  let _trainPositions     = [];   // dead-reckoned IC train positions
+  let _trainPosTimer      = null;
+  const _trainPosEnt      = new Map(); // id → entity
 
   // ── Cesium globe init ────────────────────────────────────────────────────────
   const HOME = () => ({
@@ -1581,6 +1593,7 @@ VG.danmarkskort = {};
         case 'tog': e.show = (v === 'tog'); break;
         case 'forsvar': e.show = (v === 'forsvar'); break;
         case 'politik': e.show = (v === 'politik'); break;
+        case 'trafik': e.show = (v === 'trafik' || v === 'tog'); break;
       }
     });
     // Live entities
@@ -1600,11 +1613,15 @@ VG.danmarkskort = {};
     // Grid frequency: visible in infrastruktur + tog views.
     const freqEl = document.getElementById('dk-gridfreq');
     if (freqEl) freqEl.style.display = (v === 'infrastruktur' || v === 'tog') ? '' : 'none';
-    // Metric/legend buttons: also hide in tog, forsvar and politik views.
+    // Metric/legend buttons: also hide in tog, forsvar, trafik and politik views.
     const metricBtns = document.getElementById('dk-metric-btns');
-    if (metricBtns && (v === 'tog' || v === 'forsvar' || v === 'politik')) metricBtns.style.display = 'none';
+    if (metricBtns && (v === 'tog' || v === 'forsvar' || v === 'politik' || v === 'trafik')) metricBtns.style.display = 'none';
     // Sync kyst entities visibility.
     for (const e of _kystEnt.values()) e.show = (v === 'vejr');
+    // Sync trafik event entities.
+    for (const e of _trafikEnt.values()) e.show = (v === 'trafik' || v === 'tog');
+    // Sync live train position entities.
+    for (const e of _trainPosEnt.values()) e.show = (v === 'trafik' || v === 'tog');
     // Pre-fetch recent news for beredskab tooltips.
     if (v === 'beredskab') fetchBeredskabNews();
     // Pre-fetch train departures when entering tog view.
@@ -1613,6 +1630,8 @@ VG.danmarkskort = {};
     if (v === 'infrastruktur') fetchGridFreq();
     // Fetch Folketing activity when entering politik view.
     if (v === 'politik') fetchPolitikActivity();
+    // Fetch traffic events + train positions for trafik/tog views.
+    if (v === 'trafik' || v === 'tog') { fetchTrafikEvents(); fetchTrainPositions(); }
   }
 
   // ── Hover / pin tooltips ─────────────────────────────────────────────────────
@@ -1635,6 +1654,8 @@ VG.danmarkskort = {};
       case 'kyst':      tip(x, y, kystHTML(ent._data), pinned); break;
       case 'forsvar':   tip(x, y, forsvarHTML(ent._data), pinned); break;
       case 'politik':   tip(x, y, politikHTML(ent._data), pinned); break;
+      case 'trafik':    tip(x, y, trafikHTML(ent._data), pinned); break;
+      case 'trainpos':  tip(x, y, trainPosHTML(ent._data), pinned); break;
     }
   }
   function onHover(pos) {
@@ -1952,6 +1973,111 @@ VG.danmarkskort = {};
       const data = await fetch('/api/politiker/activity').then(r => r.json());
       _politikActivity = data;
     } catch (e) { console.warn('[politik] activity fetch failed', e); }
+  }
+
+  async function fetchTrafikEvents() {
+    try {
+      const data = await fetch('/api/trafik/events').then(r => r.json());
+      _trafikEvents = data.events || [];
+      syncTrafikEntities();
+    } catch (e) { console.warn('[trafik] events fetch failed', e); }
+  }
+
+  function syncTrafikEntities() {
+    if (!_viewer) return;
+    const ents = _viewer.entities;
+    const seen = new Set();
+    const show = _view === 'trafik' || _view === 'tog';
+    _trafikEvents.forEach(ev => {
+      if (!ev.pos) return;
+      seen.add(ev.id);
+      if (!_trafikEnt.has(ev.id)) {
+        const col = ev.type === 'congestion' ? [255, 80, 30] : ev.type === 'accident' ? [255, 40, 40] : [255, 200, 40];
+        const e = ents.add({
+          position: deg(ev.pos[0], ev.pos[1]),
+          point: {
+            pixelSize: 8,
+            color: Cesium.Color.fromBytes(col[0], col[1], col[2], 220),
+            outlineColor: Cesium.Color.fromBytes(255, 255, 255, 160),
+            outlineWidth: 1,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          _layer: 'trafik', _kind: 'trafik', _data: ev, show,
+        });
+        _trafikEnt.set(ev.id, e);
+      } else {
+        _trafikEnt.get(ev.id).show = show;
+      }
+    });
+    for (const [k, e] of _trafikEnt) { if (!seen.has(k)) { ents.remove(e); _trafikEnt.delete(k); } }
+  }
+
+  async function fetchTrainPositions() {
+    try {
+      const data = await fetch('/api/tog/positions').then(r => r.json());
+      _trainPositions = data.trains || [];
+      syncTrainPosEntities();
+    } catch (e) { console.warn('[tog] positions fetch failed', e); }
+  }
+
+  function syncTrainPosEntities() {
+    if (!_viewer) return;
+    const ents = _viewer.entities;
+    const seen = new Set();
+    const show = _view === 'trafik' || _view === 'tog';
+    _trainPositions.forEach(tr => {
+      if (!tr.pos) return;
+      seen.add(tr.id);
+      const isIC = tr.type === 'IC' || tr.type === 'Lyn';
+      const col = tr.cancelled ? [200, 50, 50] : tr.delayMin > 5 ? [255, 160, 30] : isIC ? [60, 200, 255] : [120, 200, 120];
+      if (!_trainPosEnt.has(tr.id)) {
+        const e = ents.add({
+          position: new Cesium.CallbackProperty(() => tr.pos ? deg(tr.pos[0], tr.pos[1], 0) : undefined, false),
+          point: {
+            pixelSize: isIC ? 10 : 7,
+            color: Cesium.Color.fromBytes(col[0], col[1], col[2], 240),
+            outlineColor: Cesium.Color.fromBytes(255, 255, 255, 200),
+            outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: {
+            text: tr.name || '🚄',
+            font: '700 9px "Courier New", monospace',
+            fillColor: Cesium.Color.fromBytes(col[0], col[1], col[2], 220),
+            style: Cesium.LabelStyle.FILL,
+            pixelOffset: new Cesium.Cartesian2(0, -14),
+            scaleByDistance: new Cesium.NearFarScalar(5e4, 1.1, 8e5, 0.3),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          _kind: 'trainpos', _data: tr, show,
+        });
+        _trainPosEnt.set(tr.id, e);
+      } else {
+        const e = _trainPosEnt.get(tr.id);
+        e._data = tr;
+        e.show = show;
+      }
+    });
+    for (const [k, e] of _trainPosEnt) { if (!seen.has(k)) { ents.remove(e); _trainPosEnt.delete(k); } }
+  }
+
+  function trafikHTML(ev) {
+    const typeLabel = { congestion: '🚦 Kø', accident: '💥 Uheld', roadworks: '🚧 Vejarbejde', info: 'ℹ Info' }[ev.type] || ev.type;
+    const col = ev.type === 'congestion' ? '#ff5020' : ev.type === 'accident' ? '#ff2828' : '#ffc828';
+    return `<div class="dkt-title" style="color:${col}">${typeLabel}: ${ev.road || ev.name}</div>
+      ${ev.description ? `<div class="dkt-row"><span class="dkt-k">Info</span><span class="dkt-v">${ev.description}</span></div>` : ''}
+      ${ev.isFallback ? `<div class="dkt-row"><span class="dkt-k">Data</span><span class="dkt-v" style="color:#888">Statisk (sæt VDAPI_KEY for live)</span></div>` : ''}
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">Vejdirektoratet</span></div>`;
+  }
+
+  function trainPosHTML(tr) {
+    const delayCol = tr.delayMin > 10 ? '#ff4040' : tr.delayMin > 2 ? '#ffc820' : '#60e080';
+    const delayStr = tr.cancelled ? '❌ Aflyst' : tr.delayMin > 0 ? `+${tr.delayMin} min forsinket` : 'Til tiden';
+    return `<div class="dkt-title" style="color:#64b4ff">🚄 ${tr.name || 'Tog'}</div>
+      <div class="dkt-row"><span class="dkt-k">Fra</span><span class="dkt-v">${tr.from || '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Mod</span><span class="dkt-v">${tr.to || '—'}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Status</span><span class="dkt-v" style="color:${delayCol}">${delayStr}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">Rejseplanen (estimeret)</span></div>`;
   }
 
   function windHTML(w) {
@@ -2360,6 +2486,10 @@ VG.danmarkskort = {};
     if (_shipTimer) { clearInterval(_shipTimer); _shipTimer = null; }
     if (_weatherTimer) { clearInterval(_weatherTimer); _weatherTimer = null; }
     if (_powerTimer) { clearInterval(_powerTimer); _powerTimer = null; }
+    if (_togTimer) { clearInterval(_togTimer); _togTimer = null; }
+    if (_gridFreqTimer) { clearInterval(_gridFreqTimer); _gridFreqTimer = null; }
+    if (_trafikTimer) { clearInterval(_trafikTimer); _trafikTimer = null; }
+    if (_trainPosTimer) { clearInterval(_trainPosTimer); _trainPosTimer = null; }
   }
 
   // ── Legend ───────────────────────────────────────────────────────────────────
@@ -2530,6 +2660,7 @@ VG.danmarkskort = {};
       <button class="dk-btn dk-btn-beredskab" data-view="beredskab">🚨 BEREDSKAB</button>
       <button class="dk-btn dk-btn-tog" data-view="tog">🚆 TOG</button>
       <button class="dk-btn dk-btn-forsvar" data-view="forsvar">🛡 FORSVAR</button>
+      <button class="dk-btn dk-btn-trafik" data-view="trafik">🚦 TRAFIK</button>
       <button class="dk-btn dk-btn-politik" data-view="politik">🏛 POLITIK</button>
     </div>
     <div class="dk-metric-btns" id="dk-metric-btns">
@@ -2693,6 +2824,8 @@ VG.danmarkskort = {};
     _powerTimer = setInterval(fetchPower, 5 * 60 * 1000);
     _gridFreqTimer = setInterval(fetchGridFreq, 30 * 1000);    // grid freq every 30s
     _togTimer = setInterval(fetchTog, 60 * 1000);              // train departures every 60s
+    _trafikTimer = setInterval(fetchTrafikEvents, 3 * 60 * 1000); // traffic events every 3 min
+    _trainPosTimer = setInterval(fetchTrainPositions, 30 * 1000); // train positions every 30s
 
     startLoop();
   }
@@ -2735,6 +2868,7 @@ VG.danmarkskort = {};
       _viewer = null;
     }
     _acEnt.clear(); _shipEnt.clear(); _satEnt.clear(); _weatherEnt.clear(); _windEnt.clear(); _trackEnt.length = 0;
+    _trafikEnt.clear(); _trainPosEnt.clear(); _kystEnt.clear();
     _weather = [];
     _staticBuilt = false; _kommuneDS = null; _kommuneEntities = [];
     _initialized = false;

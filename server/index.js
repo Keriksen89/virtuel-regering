@@ -29,6 +29,7 @@ import dmiRouter from './routes/dmi.js';
 import kystRouter from './routes/kyst.js';
 import stocksRouter from './routes/stocks.js';
 import politikerRouter from './routes/politiker.js';
+import trafikRouter from './routes/trafik.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -97,6 +98,7 @@ app.use('/api/dmi', dmiRouter);
 app.use('/api/kyst', kystRouter);
 app.use('/api/stocks', stocksRouter);
 app.use('/api/politiker', politikerRouter);
+app.use('/api/trafik', trafikRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({
