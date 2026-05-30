@@ -359,13 +359,13 @@ VG.danmarkskort = {};
   ];
 
   const UNDERSEA_CABLES = [
-    { name: 'Viking Link (DK–UK)',    path: [[8.20,56.60],[6.40,55.80],[3.50,54.50],[0.80,53.50]], color: [60,160,255],  type: 'power' },
-    { name: 'Cobra Cable (DK–NL)',    path: [[8.00,56.00],[6.50,55.50],[5.00,53.50],[4.80,52.80]], color: [60,160,255],  type: 'power' },
-    { name: 'NordLink (DK–NO)',       path: [[8.00,56.00],[8.20,57.50],[7.00,58.50],[6.50,58.80]], color: [60,255,160],  type: 'power' },
-    { name: 'Skagerrak 4 (DK–NO)',    path: [[9.50,57.50],[8.80,58.50],[8.20,59.00]],              color: [60,255,160],  type: 'power' },
-    { name: 'Baltic Pipe (gas DK–NO)',path: [[10.00,57.00],[9.50,57.50],[8.50,58.00],[7.50,58.50]],color: [255,160,40],  type: 'gas'   },
-    { name: 'NordBalt (SE–LT)',       path: [[12.70,55.70],[14.50,56.20],[17.50,57.00],[21.00,56.50]],color:[60,200,255],type:'power'  },
-    { name: 'SwePol Link (SE–PL)',    path: [[14.00,55.50],[15.50,55.00],[16.50,54.50],[18.00,54.20]],color:[120,255,120],type:'power' },
+    { name: 'Viking Link (DK–UK)',    path: [[8.20,56.60],[6.40,55.80],[3.50,54.50],[0.80,53.50]], color: [60,160,255],  type: 'power', capacity: 1400, from: 'Danmark', to: 'UK',      note: 'HVDC · 760 km · idriftsat 2023' },
+    { name: 'Cobra Cable (DK–NL)',    path: [[8.00,56.00],[6.50,55.50],[5.00,53.50],[4.80,52.80]], color: [60,160,255],  type: 'power', capacity: 700,  from: 'Danmark', to: 'Holland',  note: 'HVDC · 325 km · idriftsat 2019' },
+    { name: 'NordLink (DK–NO)',       path: [[8.00,56.00],[8.20,57.50],[7.00,58.50],[6.50,58.80]], color: [60,255,160],  type: 'power', capacity: 1400, from: 'Danmark', to: 'Norge',    note: 'HVDC · 623 km · idriftsat 2021' },
+    { name: 'Skagerrak 4 (DK–NO)',    path: [[9.50,57.50],[8.80,58.50],[8.20,59.00]],              color: [60,255,160],  type: 'power', capacity: 700,  from: 'Danmark', to: 'Norge',    note: 'HVDC · 244 km · idriftsat 2014' },
+    { name: 'Baltic Pipe (gas DK–NO)',path: [[10.00,57.00],[9.50,57.50],[8.50,58.00],[7.50,58.50]],color: [255,160,40],  type: 'gas',   capacity: 10,   from: 'Danmark', to: 'Norge',    note: '10 mia. m³/år · idriftsat 2022' },
+    { name: 'NordBalt (SE–LT)',       path: [[12.70,55.70],[14.50,56.20],[17.50,57.00],[21.00,56.50]],color:[60,200,255],type: 'power', capacity: 700,  from: 'Sverige', to: 'Litauen',  note: 'HVDC · 453 km · idriftsat 2015' },
+    { name: 'SwePol Link (SE–PL)',    path: [[14.00,55.50],[15.50,55.00],[16.50,54.50],[18.00,54.20]],color:[120,255,120],type:'power', capacity: 600,  from: 'Sverige', to: 'Polen',    note: 'HVDC · 254 km · idriftsat 2000' },
   ];
 
   // ── Weather observation stations ───────────────────────────────────────────
@@ -644,15 +644,38 @@ VG.danmarkskort = {};
     UAL:[0,40,130], AAL:[180,30,30], DAL:[0,50,120], SWA:[180,80,0],
   };
   const AIRLINE_NAMES = {
-    SAS:'SAS Scandinavian Airlines', EZY:'easyJet', RYR:'Ryanair',
-    DLH:'Lufthansa', BAW:'British Airways', KLM:'KLM Royal Dutch Airlines',
-    AFR:'Air France', IBE:'Iberia', THY:'Turkish Airlines', UAE:'Emirates',
-    QTR:'Qatar Airways', FIN:'Finnair', NOZ:'Norwegian Air Norway',
-    NAX:'Norwegian Air Shuttle', WZZ:'Wizz Air', VLG:'Vueling Airlines',
-    TAP:'TAP Air Portugal', AUA:'Austrian Airlines', BEL:'Brussels Airlines',
-    LOT:'LOT Polish Airlines', CSN:'China Southern Airlines', CCA:'Air China',
+    // Scandinavian
+    SAS:'SAS Scandinavian Airlines', DAN:'Maersk Air', SJN:'SAS Nordic',
+    BCS:'European Air Charter', SCW:'Malmo Aviation', FLY:'Primera Air Scandinavia',
+    // UK / Ireland
+    EZY:'easyJet', BAW:'British Airways', VIR:'Virgin Atlantic', TOM:'TUI Airways',
+    BEE:'Flybe', LOG:'Loganair', EXS:'Jet2', TCX:'TUI fly UK', DRT:'TUI fly Belgium',
+    // Germany / Central Europe
+    DLH:'Lufthansa', EWG:'Eurowings', CFG:'Condor', TUI:'TUIfly', GWI:'Germanwings',
+    // Benelux
+    KLM:'KLM Royal Dutch Airlines', TRA:'Transavia Netherlands', VLG:'Vueling Airlines',
+    BEL:'Brussels Airlines',
+    // France / Iberia
+    AFR:'Air France', TVF:'Transavia France', IBE:'Iberia', VLG2:'Vueling',
+    TAP:'TAP Air Portugal', RYR:'Ryanair', RKT:'Ryanair UK',
+    // Eastern / Southern Europe
+    WZZ:'Wizz Air', LOT:'LOT Polish Airlines', CSA:'Czech Airlines', AUA:'Austrian Airlines',
+    THY:'Turkish Airlines', THL:'TUI fly Netherlands', OHY:'Onur Air', TKF:'Türkiye Hava Yolları',
+    // Middle East
+    UAE:'Emirates', QTR:'Qatar Airways', ETH:'Ethiopian Airlines', ETD:'Etihad Airways',
+    GFA:'Gulf Air', MEA:'Middle East Airlines', OMA:'Oman Air', SVA:'Saudia',
+    // Nordic budget
+    NOZ:'Norwegian Air Norway', NAX:'Norwegian Air Shuttle', FIN:'Finnair',
+    // North America
     UAL:'United Airlines', AAL:'American Airlines', DAL:'Delta Air Lines',
-    SWA:'Southwest Airlines', DAN:'Maersk Air', SJN:'SAS (Nordic)',
+    SWA:'Southwest Airlines', ACA:'Air Canada', WJA:'WestJet',
+    // Asia / Pacific
+    CSN:'China Southern Airlines', CCA:'Air China', CES:'China Eastern Airlines',
+    ANA:'All Nippon Airways', JAL:'Japan Airlines', KAL:'Korean Air',
+    SIA:'Singapore Airlines', CPA:'Cathay Pacific', THA:'Thai Airways',
+    // Cargo
+    CLX:'Cargolux', FDX:'FedEx', UPS:'UPS Airlines', DHL:'DHL Air',
+    NPT:'Night Air', TFL:'Arke Fly',
   };
   const _planeCanvasCache = new Map();
   function makePlaneCanvas(r, g, b) {
@@ -1264,6 +1287,9 @@ VG.danmarkskort = {};
     // Polygon colour alpha + extrusion depend on the active view.
     restyleKommuner();
     syncGroundTracks();
+    // Power readout is only relevant in the infrastructure view.
+    const powerEl = document.getElementById('dk-power');
+    if (powerEl) powerEl.style.display = (v === 'infrastruktur') ? '' : 'none';
   }
 
   // ── Hover / pin tooltips ─────────────────────────────────────────────────────
@@ -1310,7 +1336,7 @@ VG.danmarkskort = {};
   function aircraftHTML(ac) {
     const spdKt = ac.speed ? Math.round(ac.speed * 1.94384) : null;
     const pfx = (ac.callsign || '').trim().toUpperCase();
-    const airline = AIRLINE_NAMES[pfx.substring(0,3)] || AIRLINE_NAMES[pfx.substring(0,2)] || ac.origin || '—';
+    const airline = AIRLINE_NAMES[pfx.substring(0,3)] || AIRLINE_NAMES[pfx.substring(0,2)] || '—';
     return `<div class="dkt-title">${ac.callsign || ac.icao24 || 'Ukendt fly'}</div>
       <div class="dkt-row"><span class="dkt-k">ICAO24</span><span class="dkt-v">${ac.icao24 || '—'}</span></div>
       <div class="dkt-row"><span class="dkt-k">Flyselskab</span><span class="dkt-v">${airline}</span></div>
@@ -1379,8 +1405,12 @@ VG.danmarkskort = {};
   }
   function cableHTML(c) {
     const typeLabel = { power: 'Elkabel (HVDC)', gas: 'Gasrørledning' }[c.type] || c.type;
+    const cap = c.capacity ? (c.type === 'gas' ? `${c.capacity} mia. m³/år` : `${c.capacity} MW`) : null;
     return `<div class="dkt-title" style="color:rgb(${c.color.join(',')})">▬ ${c.name}</div>
-      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>`;
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>
+      ${c.from ? `<div class="dkt-row"><span class="dkt-k">Forbinder</span><span class="dkt-v">${c.from} ↔ ${c.to}</span></div>` : ''}
+      ${cap ? `<div class="dkt-row"><span class="dkt-k">Kapacitet</span><span class="dkt-v">${cap}</span></div>` : ''}
+      ${c.note ? `<div class="dkt-row"><span class="dkt-k">Info</span><span class="dkt-v">${c.note}</span></div>` : ''}`;
   }
   function jammingHTML(j) {
     return `<div class="dkt-title" style="color:#ff4014">⚠ GPS JAMMING</div>
@@ -1821,8 +1851,15 @@ VG.danmarkskort = {};
     if (!_viewer) return;
     _lighting = !_lighting;
     const globe = _viewer.scene.globe;
-    globe.enableLighting = _lighting;                 // sun-position day/night
+    globe.enableLighting = _lighting;
     globe.dynamicAtmosphereLighting = _lighting;
+    if (_lighting) {
+      // Cesium's default clock starts at J2000 epoch — the sun would be in the
+      // wrong position. Snap to the actual current UTC time so the terminator
+      // and shadow fall correctly for right now.
+      _viewer.clock.currentTime = Cesium.JulianDate.now();
+      _viewer.clock.shouldAnimate = false;
+    }
     if (_viewer.scene.skyAtmosphere) _viewer.scene.skyAtmosphere.show = true;
     const btn = document.getElementById('dk-sun-btn');
     if (btn) btn.classList.toggle('active', _lighting);
@@ -1845,6 +1882,23 @@ VG.danmarkskort = {};
     });
   }
   // Search index: 25 major cities + all 98 municipalities (resolved live).
+  function polygonCentroid(ent) {
+    // Extract the centroid of a GeoJSON polygon entity by averaging its
+    // exterior ring positions (Cartographic). Works for both simple and
+    // complex polygons — good enough for a camera fly-to target.
+    try {
+      const hier = ent.polygon && ent.polygon.hierarchy && ent.polygon.hierarchy.getValue(Cesium.JulianDate.now());
+      const positions = hier ? (hier.positions || hier) : null;
+      if (!positions || !positions.length) return null;
+      let sumLon = 0, sumLat = 0;
+      positions.forEach(p => {
+        const c = Cesium.Cartographic.fromCartesian(p);
+        sumLon += Cesium.Math.toDegrees(c.longitude);
+        sumLat += Cesium.Math.toDegrees(c.latitude);
+      });
+      return { lon: sumLon / positions.length, lat: sumLat / positions.length };
+    } catch { return null; }
+  }
   function searchPlaces(q) {
     q = (q || '').trim().toLowerCase();
     if (q.length < 2) return [];
@@ -1855,7 +1909,8 @@ VG.danmarkskort = {};
     if (_kommuneEntities) {
       for (const e of _kommuneEntities) {
         if (e._name && e._name.toLowerCase().includes(q) && !out.some(o => o.label === e._name)) {
-          out.push({ label: e._name, kind: 'Kommune', ent: e });
+          const c = polygonCentroid(e);
+          out.push({ label: e._name, kind: 'Kommune', lon: c ? c.lon : null, lat: c ? c.lat : null, ent: e });
         }
       }
     }
@@ -1863,8 +1918,12 @@ VG.danmarkskort = {};
   }
   function gotoPlace(p) {
     if (!p) return;
-    if (p.ent) flyToEntity(p.ent);
-    else if (p.lon != null) flyToLonLat(p.lon, p.lat);
+    // Always prefer an explicit centroid lon/lat — flyTo on a polygon entity
+    // uses the bounding-sphere centre which is often offset from the visible
+    // label because of irregular polygon shapes. flyToLonLat aims the camera
+    // exactly at the computed centroid.
+    if (p.lon != null) flyToLonLat(p.lon, p.lat, 120000);
+    else if (p.ent) flyToEntity(p.ent);
   }
   function setTopDown() {
     const c = _viewer.camera.positionCartographic;
