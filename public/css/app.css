@@ -4783,3 +4783,165 @@ body.dk-immersive.dk-peek .dk-peek-backdrop {
 }
 .topbar-bc-kort:hover { background: rgba(212,175,55,0.2); color: #d4af37; }
 
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SPIL & UDFORSK — gamified features (minister, gæt, kommune, skattekrone,
+   skattekrone, tour) + budget sankey. Self-contained block.
+   ═══════════════════════════════════════════════════════════════════════ */
+.ms-wrap, .mk-wrap, .gz-wrap, .sk2-wrap { max-width: 980px; margin: 0 auto; }
+.ms-dim, .mk-dim, .sk2-dim { color: var(--text-2); opacity: 0.85; }
+
+/* ── Bliv Finansminister ─────────────────────────────────────────────── */
+.ms-hero h2 { margin-bottom: 6px; }
+.ms-challenge {
+  margin-top: 12px; padding: 10px 14px; border-radius: var(--radius);
+  background: rgba(212,175,55,0.10); border: 1px solid rgba(212,175,55,0.3);
+  font-size: 13px; color: var(--text);
+}
+.ms-challenge-bonus { float: right; color: var(--accent); font-weight: 700; }
+.ms-values { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0 18px; }
+.ms-value-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 12px 14px; border-radius: var(--radius); cursor: pointer; text-align: left;
+  background: var(--surface-2); border: 2px solid transparent; color: var(--text);
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.ms-value-card:hover { transform: translateY(-2px); }
+.ms-value-card.ms-on { border-color: var(--accent); background: rgba(212,175,55,0.12); }
+.ms-value-icon { font-size: 22px; }
+.ms-value-label { font-weight: 700; font-size: 14px; }
+.ms-value-desc { font-size: 11px; color: var(--text-2); line-height: 1.35; }
+.ms-start { width: 100%; }
+
+/* play */
+.ms-play { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+.ms-play-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.ms-chosen { font-size: 12px; color: var(--accent); }
+.ms-levers { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.ms-lever-head { display: flex; justify-content: space-between; align-items: baseline; }
+.ms-lever-name { font-weight: 600; font-size: 13px; }
+.ms-lever-out { font-family: 'Courier New', monospace; font-weight: 700; color: var(--accent); font-size: 14px; }
+.ms-slider { width: 100%; margin: 6px 0 2px; accent-color: var(--accent); }
+.ms-lever-info { font-size: 11px; color: var(--text-2); line-height: 1.35; }
+.ms-sticky { position: sticky; top: 12px; }
+.ms-live-bal { padding: 10px 12px; border-radius: var(--radius); margin-bottom: 10px; }
+.ms-live-bal.ms-good { background: rgba(81,207,102,0.12); border: 1px solid rgba(81,207,102,0.4); }
+.ms-live-bal.ms-warn { background: rgba(212,175,55,0.12); border: 1px solid rgba(212,175,55,0.4); }
+.ms-live-bal.ms-bad  { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.4); }
+.ms-live-label { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: 1px; }
+.ms-live-val { font-size: 22px; font-weight: 800; }
+.ms-live-pct { display: block; font-size: 12px; font-weight: 500; color: var(--text-2); }
+.ms-live-meters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.ms-meter-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.ms-meter-row > span:first-child { flex: 0 0 110px; }
+.ms-meter { flex: 1; height: 7px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.ms-meter-fill { height: 100%; background: linear-gradient(90deg, #56c4b6, var(--accent)); border-radius: 4px; transition: width .25s; }
+.ms-meter-pct { flex: 0 0 36px; text-align: right; color: var(--text-2); }
+.ms-submit { width: 100%; margin-bottom: 8px; }
+.ms-back { width: 100%; }
+
+/* result */
+.ms-scorecard { text-align: center; }
+.ms-grade-big { font-size: 80px; font-weight: 900; line-height: 1; margin: 4px 0; }
+.ms-score-num { font-size: 28px; font-weight: 800; }
+.ms-score-num span { font-size: 16px; color: var(--text-2); font-weight: 500; }
+.ms-survival { margin: 10px 0 16px; color: var(--text-2); }
+.ms-breakdown { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.ms-bd { background: var(--surface-2); padding: 8px 14px; border-radius: var(--radius); font-size: 12px; }
+.ms-bd strong { display: block; font-size: 16px; margin-top: 2px; }
+.ms-bd-bonus { background: rgba(212,175,55,0.15); }
+.ms-grade-A { color: #51cf66; } .ms-grade-B { color: #74c0fc; }
+.ms-grade-C { color: var(--accent); } .ms-grade-D { color: #ffa94d; } .ms-grade-F { color: #ff6b6b; }
+.ms-meters-result { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+.ms-ch-met { background: rgba(81,207,102,0.12); border: 1px solid rgba(81,207,102,0.4); }
+.ms-ch-miss { background: rgba(255,107,107,0.10); border: 1px solid rgba(255,107,107,0.3); }
+.ms-warnings ul { margin: 6px 0 0 18px; font-size: 13px; line-height: 1.5; }
+.ms-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+.ms-disclaimer, .mk-disclaimer, .sk2-disclaimer { font-size: 11px; color: var(--text-2); margin-top: 12px; line-height: 1.4; }
+.ms-lb, .gz-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.ms-lb th, .ms-lb td, .gz-table th, .gz-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.ms-grade { font-weight: 800; padding: 1px 7px; border-radius: 3px; background: var(--surface-2); }
+
+/* ── Din Kommune ─────────────────────────────────────────────────────── */
+.mk-form { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.mk-input, .sk2-input {
+  flex: 0 0 140px; padding: 10px 12px; font-size: 18px; letter-spacing: 2px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-2); color: var(--text); font-family: 'Courier New', monospace;
+}
+.sk2-input { flex: 0 0 180px; }
+.mk-komm-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.mk-komm-name { font-size: 26px; font-weight: 800; color: var(--accent); }
+.mk-rows { display: flex; flex-direction: column; gap: 16px; }
+.mk-row-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.mk-row-diff { font-weight: 600; font-size: 12px; }
+.mk-better { color: #51cf66; } .mk-worse { color: #ff6b6b; } .mk-neutral { color: var(--text-2); }
+.mk-bars { display: flex; flex-direction: column; gap: 4px; }
+.mk-bar-line { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.mk-bar-lbl { flex: 0 0 90px; }
+.mk-bar { flex: 1; height: 14px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.mk-bar-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+.mk-bar-fill.mk-better { background: #51cf66; } .mk-bar-fill.mk-worse { background: #ff6b6b; }
+.mk-bar-fill.mk-neutral { background: var(--accent); } .mk-bar-nat { background: #888; }
+.mk-bar-val { flex: 0 0 110px; text-align: right; font-family: 'Courier New', monospace; }
+
+/* ── Gæt Danmark ─────────────────────────────────────────────────────── */
+.gz-q, .gz-result, .gz-hero { text-align: center; }
+.gz-progress { font-size: 12px; color: var(--text-2); letter-spacing: 1px; text-transform: uppercase; }
+.gz-question { margin: 8px 0 18px; }
+.gz-guess-val { font-size: 38px; font-weight: 900; color: var(--accent); font-family: 'Courier New', monospace; }
+.gz-slider { width: 100%; max-width: 520px; margin: 14px 0 4px; accent-color: var(--accent); }
+.gz-scale { display: flex; justify-content: space-between; max-width: 520px; margin: 0 auto; font-size: 11px; color: var(--text-2); }
+.gz-reveal-btn { margin-top: 18px; }
+.gz-reveal { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 16px; }
+.gz-reveal-line { display: flex; justify-content: space-between; max-width: 320px; margin: 4px auto; font-size: 15px; }
+.gz-actual strong { color: var(--accent); }
+.gz-closeness { margin: 12px 0; font-size: 15px; }
+.gz-explain { font-size: 13px; color: var(--text-2); max-width: 520px; margin: 0 auto 16px; line-height: 1.5; }
+.gz-explain a { color: var(--accent); cursor: pointer; }
+.gz-score { font-size: 40px; font-weight: 900; color: var(--accent); margin: 6px 0 14px; }
+.gz-score span { font-size: 16px; color: var(--text-2); font-weight: 500; }
+.gz-table { text-align: left; }
+.gz-actions { margin-top: 16px; }
+
+/* ── Din Skattekrone ─────────────────────────────────────────────────── */
+.sk2-form { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.sk2-big { display: flex; gap: 28px; flex-wrap: wrap; }
+.sk2-big-num { font-size: 30px; font-weight: 800; color: var(--accent); }
+.sk2-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.sk2-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.sk2-cat { flex: 0 0 200px; }
+.sk2-bar { flex: 1; height: 16px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.sk2-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #e8b34f); border-radius: 3px; }
+.sk2-kr { flex: 0 0 100px; text-align: right; font-family: 'Courier New', monospace; }
+
+/* ── Budget Sankey ───────────────────────────────────────────────────── */
+.sankey-svg { display: block; }
+.sankey-balance { text-align: center; font-weight: 700; font-size: 14px; margin-bottom: 6px; padding: 6px; border-radius: var(--radius); }
+.sankey-balance.sk-surplus { color: #51cf66; } .sankey-balance.sk-deficit { color: #ff6b6b; }
+.sk-head { font-size: 11px; font-weight: 700; letter-spacing: 1px; fill: var(--text-2); }
+.sk-lbl { font-size: 10.5px; fill: var(--text); } .sk-val { fill: var(--text-2); font-family: 'Courier New', monospace; }
+.sk-mid-label { font-size: 10px; fill: var(--text-2); letter-spacing: 1px; }
+.sk-treasury { fill: var(--accent); opacity: 0.85; }
+
+/* ── Danmark på 2 minutter (scrollytelling) ──────────────────────────── */
+#panel-tour.active { overflow: hidden; }
+.tour-wrap { max-height: calc(100vh - 120px); overflow-y: auto; scroll-snap-type: y proximity; }
+.tour-intro { height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; scroll-snap-align: start; }
+.tour-kicker { font-size: 13px; letter-spacing: 4px; color: var(--accent); margin-bottom: 12px; }
+.tour-beat { min-height: 80vh; display: flex; align-items: center; justify-content: center; scroll-snap-align: center; padding: 20px; }
+.tour-beat-inner { max-width: 600px; text-align: center; opacity: 0; transform: translateY(30px); transition: opacity .6s, transform .6s; }
+.tour-beat.tour-in .tour-beat-inner { opacity: 1; transform: none; }
+.tour-icon { font-size: 56px; margin-bottom: 14px; }
+.tour-title { font-size: 30px; line-height: 1.2; margin-bottom: 12px; }
+.tour-body { font-size: 16px; color: var(--text-2); line-height: 1.6; margin-bottom: 20px; }
+.tour-end { height: 40vh; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-2); }
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ms-play { grid-template-columns: 1fr; }
+  .ms-sticky { position: static; }
+  .sk2-cat { flex: 0 0 130px; }
+  .mk-bar-lbl { flex: 0 0 70px; }
+  .mk-bar-val { flex: 0 0 90px; }
+}

@@ -310,6 +310,11 @@ VG.render.projection = function() {
   }
 
   return `<div class="card">
+    <h2>Budgettets pengestrøm</h2>
+    <p class="intro">Hvor pengene kommer fra (venstre) og hvor de bruges (højre). Bredden følger kronerne — og opdateres med dine ændringer.</p>
+    <div id="budget-sankey"></div>
+  </div>
+  <div class="card">
     <h2>Statsgæld 2026–2034</h2>
     <p class="intro">Hvis dit nuværende budget fastholdes hvert år. Starter på 30% af BNP. BNP-vækst 2%/år.</p>
     <div class="chart-container"><canvas id="debt-chart"></canvas></div>
@@ -602,7 +607,7 @@ VG.render.fast = function() {
     spending:   () => VG.render.safePanel('panel-spending',   () => VG.render.sliders('expense')),
     revenue:    () => VG.render.safePanel('panel-revenue',    () => VG.render.sliders('revenue')),
     policy:     () => VG.render.safePanel('panel-policy',     () => VG.render.policy()),
-    projection: () => { VG.render.safePanel('panel-projection', () => VG.render.projection()); setTimeout(() => VG.chart.drawDebt(), 0); },
+    projection: () => { VG.render.safePanel('panel-projection', () => VG.render.projection()); setTimeout(() => { VG.chart.drawDebt(); if (VG.sankey) try { VG.sankey.render(document.getElementById('budget-sankey')); } catch(e){} }, 0); },
     scenarios:  () => VG.render.safePanel('panel-scenarios',  () => VG.render.scenarios()),
     folketing:  () => VG.render.safePanel('panel-folketing',  () => VG.render.folketing()),
     historik:   () => VG.render.historik(),
@@ -612,6 +617,11 @@ VG.render.fast = function() {
   } else {
     try {
       if (tab === 'laboratorium') VG.lab.renderPanel();
+      if (tab === 'minister')     VG.minister && VG.minister.renderPanel();
+      if (tab === 'minkommune')   VG.minkommune && VG.minkommune.renderPanel();
+      if (tab === 'guess')        VG.guess && VG.guess.renderPanel();
+      if (tab === 'skattekrone')  VG.skattekrone && VG.skattekrone.renderPanel();
+      if (tab === 'tour')         VG.tour && VG.tour.renderPanel();
       if (tab === 'party')        VG.party.renderPanel();
       if (tab === 'demographics') VG.demo.renderPanel();
       if (tab === 'platform')     VG.platform.renderPanel();
@@ -680,7 +690,7 @@ VG.render.all = function() {
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + VG.state.activeTab));
 
   if (VG.state.activeTab === 'projection') {
-    setTimeout(() => VG.chart.drawDebt(), 0);
+    setTimeout(() => { VG.chart.drawDebt(); if (VG.sankey) try { VG.sankey.render(document.getElementById('budget-sankey')); } catch(e){} }, 0);
   }
 
   try {

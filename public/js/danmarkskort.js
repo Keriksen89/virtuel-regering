@@ -176,6 +176,10 @@ VG.danmarkskort = {};
     'Århus':                   { ledighed: 4.8,  indkomst: 380000, boligpris: 28000, befolkning: 360000, co2: 4.2, skat: 24.5, erhverv: 77 },
   };
 
+  // Expose the municipality metric table so other modules (e.g. "Din Kommune"
+  // personalisation) can reuse it without duplicating all 98 rows.
+  VG.danmarkskort.kommuneData = KD;
+
   const METRICS = {
     ledighed:   { label: 'Ledighed',       unit: '%',     goodHigh: false, format: v => v.toFixed(1) + '%' },
     indkomst:   { label: 'Indkomst',       unit: 'kr/år', goodHigh: true,  format: v => (v / 1000).toFixed(0) + 'k kr' },

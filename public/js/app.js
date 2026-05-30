@@ -263,6 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
   VG.bootstrap();
 
   const GROUPS = {
+    spil: { label: 'Spil & Udforsk', tabs: [
+      { id: 'minister',    label: 'Bliv Finansminister' },
+      { id: 'guess',       label: 'Gæt Danmark' },
+      { id: 'minkommune',  label: 'Din Kommune' },
+      { id: 'skattekrone', label: 'Din Skattekrone' },
+      { id: 'tour',        label: 'Danmark på 2 min' },
+    ]},
     personligt: { label: 'Personligt', tabs: [
       { id: 'borger',              label: 'Skatteberegner' },
       { id: 'bolig',               label: 'Boligberegner' },
@@ -324,6 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Pinned sub-tabs shown in the secondary bar (others go in "Alle ▾" dropdown)
   const PINNED_TABS = {
+    spil:       ['minister', 'guess', 'minkommune', 'skattekrone'],
     personligt: ['borger', 'bolig', 'pension', 'elpris'],
     samfund:    ['demographics', 'sundhed', 'ledighed', 'co2', 'boligmarked', 'uddannelse'],
     politik:    ['platform', 'party', 'partier', 'regering', 'folketing', 'meningsmaalinger', 'laboratorium'],
@@ -339,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!nav) return;
 
     const GROUP_ICONS = {
+      spil:       '<i class="ph ph-game-controller"></i>',
       personligt: '<i class="ph ph-user-circle"></i>',
       samfund:    '<i class="ph ph-globe-hemisphere-west"></i>',
       politik:    '<i class="ph ph-buildings"></i>',
@@ -375,6 +384,9 @@ document.addEventListener('DOMContentLoaded', () => {
       scenarios:'<i class="ph ph-funnel"></i>',         statsgaeld:'<i class="ph ph-bank"></i>',
       erhverv:'<i class="ph ph-briefcase"></i>',        innovation:'<i class="ph ph-flask"></i>',
       reddit:'<i class="ph ph-reddit-logo"></i>',
+      minister:'<i class="ph ph-bank"></i>',        guess:'<i class="ph ph-target"></i>',
+      minkommune:'<i class="ph ph-map-pin"></i>',   skattekrone:'<i class="ph ph-coins"></i>',
+      tour:'<i class="ph ph-flag-banner"></i>',
     };
     const stripLabel = s => s.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}🏛🌍]+\s*/gu, '').trim();
 
@@ -450,6 +462,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (panelId === 'feed')         VG.feed         && VG.feed.load();
     if (panelId === 'reddit')       VG.reddit       && VG.reddit.load();
     if (panelId === 'danmarkskort') VG.danmarkskort && VG.danmarkskort.render(document.getElementById('panel-danmarkskort'));
+    if (panelId === 'minister')     VG.minister     && VG.minister.renderPanel();
+    if (panelId === 'minkommune')   VG.minkommune   && VG.minkommune.renderPanel();
+    if (panelId === 'guess')        VG.guess        && VG.guess.renderPanel();
+    if (panelId === 'skattekrone')  VG.skattekrone  && VG.skattekrone.renderPanel();
+    if (panelId === 'tour')         VG.tour         && VG.tour.renderPanel();
 
     // Determine owning group
     let owningGroup = null;
@@ -525,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function _updateMobileNav(panelId, owningGroup) {
     const nav = document.getElementById('mobile-nav');
     if (!nav) return;
-    const GROUP_MAP = { personligt: null, samfund: 'demographics', politik: 'meningsmaalinger', oekonomi: 'laboratorium' };
+    const GROUP_MAP = { spil: 'minister', personligt: null, samfund: 'demographics', politik: 'meningsmaalinger', oekonomi: 'laboratorium' };
     nav.querySelectorAll('.mnav-item').forEach(btn => {
       const target = btn.dataset.mnav;
       const isActive = target === panelId ||
@@ -675,6 +692,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.addEventListener('resize', () => {
-    if (VG.state.activeTab === 'projection') VG.chart.drawDebt();
+    if (VG.state.activeTab === 'projection') {
+      VG.chart.drawDebt();
+      if (VG.sankey) { try { VG.sankey.render(document.getElementById('budget-sankey')); } catch (e) {} }
+    }
   });
 });
