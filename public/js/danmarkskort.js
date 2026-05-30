@@ -75,6 +75,12 @@ VG.danmarkskort = {};
       { panel: 'landbrug',  icon: '🌾', label: 'Landbrug & Fiskeri', stat: () => '' },
       { panel: 'naturvand', icon: '💧', label: 'Natur & Ressourcer', stat: () => '' },
     ],
+    tog: [
+      { panel: 'dsb',          icon: '🚆', label: 'DSB & Transport',   stat: () => '' },
+      { panel: 'erhverv',      icon: '📈', label: 'Erhverv & Vækst',   stat: () => '' },
+      { panel: 'co2',          icon: '🌿', label: 'Klima & CO₂',       stat: () => '' },
+      { panel: 'innovation',   icon: '🔬', label: 'Innovation',         stat: () => '' },
+    ],
     beredskab: [
       { panel: 'sundhed',    icon: '🏥', label: 'Sundhed',           stat: () => '' },
       { panel: 'psykiatri',  icon: '🧠', label: 'Psykiatri',         stat: () => '' },
@@ -530,7 +536,44 @@ VG.danmarkskort = {};
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
 
-  // ── Dead-reckoning helpers ───────────────────────────────────────────────────
+  // ── Danish rail network ──────────────────────────────────────────────────────
+  const TRAIN_ROUTES = [
+    { name: 'Fredericia–Vejle–Horsens–Aarhus',   path: [[9.75,55.56],[9.54,55.71],[9.85,55.86],[9.93,56.03],[10.20,56.16]], type: 'ic' },
+    { name: 'Aarhus–Randers–Hobro–Aalborg',       path: [[10.20,56.16],[10.04,56.46],[9.80,56.64],[9.92,57.05]], type: 'ic' },
+    { name: 'København–Ringsted–Odense–Fredericia',path: [[12.57,55.67],[12.09,55.64],[11.79,55.45],[10.39,55.40],[9.75,55.56]], type: 'ic' },
+    { name: 'Fredericia–Kolding–Esbjerg',          path: [[9.75,55.56],[9.47,55.49],[9.24,55.85],[8.76,55.96],[8.45,55.47]], type: 'ic' },
+    { name: 'Aarhus–Silkeborg–Herning',            path: [[10.20,56.16],[9.93,56.03],[9.55,56.17],[8.97,56.13]], type: 'regional' },
+    { name: 'Aarhus–Viborg (Langå)',               path: [[10.20,56.16],[10.04,56.46],[9.80,56.64],[9.40,56.45]], type: 'regional' },
+    { name: 'København–Hillerød–Helsingør',        path: [[12.57,55.67],[12.31,55.93],[12.62,56.04]], type: 'regional' },
+    { name: 'Roskilde–Næstved–Nykøbing F',         path: [[12.09,55.64],[11.76,55.23],[11.87,54.77]], type: 'regional' },
+    { name: 'Kolding–Tinglev–Sønderborg',          path: [[9.47,55.49],[9.25,55.05],[9.79,54.91]], type: 'regional' },
+    { name: 'Odense–Svendborg',                    path: [[10.39,55.40],[10.60,55.06]], type: 'regional' },
+    { name: 'Aalborg–Frederikshavn–Skagen',        path: [[9.92,57.05],[10.54,57.43],[10.58,57.72]], type: 'regional' },
+  ];
+
+  const TRAIN_STATIONS = [
+    { name: 'København H',  stationId: '8600626', pos: [12.565, 55.673], type: 'ic' },
+    { name: 'Aarhus H',     stationId: '8600053', pos: [10.204, 56.150], type: 'ic' },
+    { name: 'Odense',       stationId: '8600396', pos: [10.383, 55.400], type: 'ic' },
+    { name: 'Aalborg',      stationId: '8600020', pos: [9.921,  57.049], type: 'ic' },
+    { name: 'Vejle',        stationId: '8600615', pos: [9.537,  55.710], type: 'ic' },
+    { name: 'Esbjerg',      stationId: '8600244', pos: [8.460,  55.476], type: 'ic' },
+    { name: 'Kolding',      stationId: '8600341', pos: [9.474,  55.490], type: 'ic' },
+    { name: 'Horsens',      stationId: '8600278', pos: [9.850,  55.862], type: 'ic' },
+    { name: 'Fredericia',   stationId: '8600250', pos: [9.750,  55.566], type: 'ic' },
+    { name: 'Randers',      stationId: '8600441', pos: [10.038, 56.462], type: 'regional' },
+    { name: 'Herning',      stationId: '8600261', pos: [8.975,  56.135], type: 'regional' },
+    { name: 'Silkeborg',    stationId: '8600502', pos: [9.553,  56.170], type: 'regional' },
+    { name: 'Viborg',       stationId: '8600627', pos: [9.401,  56.453], type: 'regional' },
+    { name: 'Roskilde',     stationId: '8600453', pos: [12.083, 55.641], type: 'ic' },
+    { name: 'Hillerød',     stationId: '8600272', pos: [12.308, 55.929], type: 'regional' },
+    { name: 'Helsingør',    stationId: '8600267', pos: [12.614, 56.036], type: 'regional' },
+    { name: 'Sønderborg',   stationId: '8600553', pos: [9.792,  54.909], type: 'regional' },
+    { name: 'Næstved',      stationId: '8600376', pos: [11.762, 55.230], type: 'regional' },
+    { name: 'Nykøbing F',   stationId: '8600386', pos: [11.872, 54.769], type: 'regional' },
+    { name: 'Svendborg',    stationId: '8600554', pos: [10.608, 55.059], type: 'regional' },
+    { name: 'Frederikshavn',stationId: '8600255', pos: [10.536, 57.432], type: 'regional' },
+  ];
   const M_PER_DEG_LAT = 111320;
   function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
@@ -863,6 +906,14 @@ VG.danmarkskort = {};
   let _staticBuilt   = false;
   let _beredskabNews      = [];
   let _beredskabNewsFetch = 0;
+  let _kystStations       = [];
+  const _kystEnt          = new Map();  // id → entity
+  let _togDepartures      = {};  // stationId → departures[]
+  let _togFetched         = 0;
+  let _togTimer           = null;
+  let _gridFreq           = null;
+  let _gridFreqTimer      = null;
+  let _exchangeRates      = null;
 
   // ── Cesium globe init ────────────────────────────────────────────────────────
   const HOME = () => ({
@@ -1086,6 +1137,43 @@ VG.danmarkskort = {};
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         _layer: 'cities', _kind: 'city', _data: c,
+      });
+    });
+
+    // Train routes (tog)
+    TRAIN_ROUTES.forEach(r => {
+      ents.add({
+        polyline: {
+          positions: degArr(r.path, 0),
+          width: r.type === 'ic' ? 2.5 : 1.5,
+          material: r.type === 'ic'
+            ? Cesium.Color.fromBytes(100, 180, 255, 210)
+            : Cesium.Color.fromBytes(80, 140, 210, 160),
+          clampToGround: true,
+        },
+        _layer: 'tog', show: false,
+      });
+    });
+    // Train stations (tog)
+    TRAIN_STATIONS.forEach(s => {
+      ents.add({
+        position: deg(s.pos[0], s.pos[1]),
+        point: {
+          pixelSize: s.type === 'ic' ? 10 : 7,
+          color: Cesium.Color.fromBytes(100, 180, 255, 240),
+          outlineColor: Cesium.Color.fromBytes(200, 230, 255, 200),
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: s.name, font: '600 10px "Courier New", monospace',
+          fillColor: Cesium.Color.fromBytes(160, 210, 255, 210),
+          style: Cesium.LabelStyle.FILL,
+          pixelOffset: new Cesium.Cartesian2(0, -14),
+          scaleByDistance: new Cesium.NearFarScalar(1.5e5, 1.0, 2.0e6, 0.3),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        _layer: 'tog', _kind: 'tog', _data: s, show: false,
       });
     });
 
@@ -1349,6 +1437,7 @@ VG.danmarkskort = {};
         case 'overvågning': e.show = (v === 'overvågning'); break;
         case 'beredskab': e.show = (v === 'beredskab'); break;
         case 'vejr': e.show = (v === 'vejr'); break;
+        case 'tog': e.show = (v === 'tog'); break;
       }
     });
     // Live entities
@@ -1363,8 +1452,20 @@ VG.danmarkskort = {};
     // Power readout is only relevant in the infrastructure view.
     const powerEl = document.getElementById('dk-power');
     if (powerEl) powerEl.style.display = (v === 'infrastruktur') ? '' : 'none';
+    // Grid frequency: visible in infrastruktur + tog views.
+    const freqEl = document.getElementById('dk-gridfreq');
+    if (freqEl) freqEl.style.display = (v === 'infrastruktur' || v === 'tog') ? '' : 'none';
+    // Metric/legend buttons: also hide in tog view (no kommune metric applies).
+    const metricBtns = document.getElementById('dk-metric-btns');
+    if (metricBtns && v === 'tog') metricBtns.style.display = 'none';
+    // Sync kyst entities visibility.
+    for (const e of _kystEnt.values()) e.show = (v === 'vejr');
     // Pre-fetch recent news for beredskab tooltips.
     if (v === 'beredskab') fetchBeredskabNews();
+    // Pre-fetch train departures when entering tog view.
+    if (v === 'tog') { fetchTog(); fetchGridFreq(); }
+    // Keep grid frequency refreshed in infrastruktur view too.
+    if (v === 'infrastruktur') fetchGridFreq();
   }
 
   // ── Hover / pin tooltips ─────────────────────────────────────────────────────
@@ -1383,6 +1484,8 @@ VG.danmarkskort = {};
       case 'vejr':      tip(x, y, weatherHTML(ent._data), pinned); break;
       case 'beredskab': tip(x, y, beredskabHTML(ent._data), pinned); break;
       case 'city':      tip(x, y, cityHTML(ent._data), pinned); break;
+      case 'tog':       tip(x, y, trainStationHTML(ent._data), pinned); break;
+      case 'kyst':      tip(x, y, kystHTML(ent._data), pinned); break;
     }
   }
   function onHover(pos) {
@@ -1521,6 +1624,131 @@ VG.danmarkskort = {};
       _beredskabNews = (data.items || data || []).filter(n => n.minutesAgo != null && n.minutesAgo < 60);
     } catch (_) {}
   }
+  function trainStationHTML(s) {
+    const deps = _togDepartures[s.stationId] || [];
+    const typeLabel = s.type === 'ic' ? 'IC / Intercity' : 'Regionaltog / S-Tog';
+    const depRows = deps.length
+      ? deps.slice(0, 5).map(d => {
+          const delay = d.delayMin > 0 ? ` <span style="color:#ff8060">+${d.delayMin}m</span>` : '';
+          const cancelled = d.cancelled ? ' <span style="color:#ff4040">AFLYST</span>' : '';
+          return `<div class="dkt-row">
+            <span class="dkt-k">${d.time}${delay}${cancelled}</span>
+            <span class="dkt-v">${d.direction} <em style="color:rgba(255,255,255,0.45)">${d.name}</em></span>
+          </div>`;
+        }).join('')
+      : `<div class="dkt-row"><span class="dkt-k" style="color:rgba(255,255,255,0.4)">Ingen live-data</span></div>`;
+    return `<div class="dkt-title" style="color:#64b4ff">🚆 ${s.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Type</span><span class="dkt-v">${typeLabel}</span></div>
+      <div class="dkt-section">Næste afgange</div>
+      ${depRows}`;
+  }
+
+  async function fetchTog() {
+    try {
+      const r = await fetch('/api/tog/departures', { signal: AbortSignal.timeout(12000) });
+      if (!r.ok) return;
+      const data = await r.json();
+      _togDepartures = {};
+      (data.stations || []).forEach(s => { _togDepartures[s.stationId] = s.departures || []; });
+      _togFetched = Date.now();
+    } catch {}
+  }
+
+  async function fetchGridFreq() {
+    try {
+      const r = await fetch('/api/energi/frequency', { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) return;
+      _gridFreq = await r.json();
+      renderGridFreq();
+    } catch {}
+  }
+
+  function renderGridFreq() {
+    const el = document.getElementById('dk-gridfreq');
+    if (!el || !_gridFreq) return;
+    const hz = _gridFreq.frequency;
+    const imb = _gridFreq.imbalance;
+    if (hz == null) { el.style.display = 'none'; return; }
+    const dev = Math.abs(hz - 50.0);
+    const col = dev < 0.05 ? '#3ddc97' : dev < 0.1 ? '#ffc800' : '#ff6060';
+    const imbStr = imb != null ? (imb > 0 ? `+${Math.round(imb)}` : `${Math.round(imb)}`) + ' MW' : '';
+    el.style.display = '';
+    el.innerHTML = `<span class="dk-power-dot" style="background:${col}"></span>⚡ FREKVENS · `
+      + `<b style="color:${col}">${hz.toFixed(3)} Hz</b>`
+      + (imbStr ? ` · ⇅ ${imbStr}` : '');
+  }
+
+  async function fetchExchangeRates() {
+    try {
+      const r = await fetch('/api/nationalbank/rates', { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) return;
+      _exchangeRates = await r.json();
+    } catch {}
+  }
+
+  async function fetchKystData() {
+    try {
+      const r = await fetch('/api/kyst/vandstand', { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) return;
+      const data = await r.json();
+      _kystStations = data.stations || [];
+      syncKystEntities();
+    } catch {}
+  }
+
+  function syncKystEntities() {
+    if (!_viewer) return;
+    const showKyst = _view === 'vejr';
+    const seen = new Set();
+    _kystStations.forEach(s => {
+      const key = s.id || s.name;
+      seen.add(key);
+      const level = s.level ?? 0;
+      const storm = level > 100 ? '#ff4040' : level > 60 ? '#ffc800' : level > 20 ? '#60c8ff' : '#80e0ff';
+      const label = `${level > 0 ? '+' : ''}${Math.round(level)} cm`;
+      if (!_kystEnt.has(key)) {
+        const e = _viewer.entities.add({
+          position: deg(s.lon, s.lat, 500),
+          point: {
+            pixelSize: 9, color: Cesium.Color.fromCssColorString(storm),
+            outlineColor: Cesium.Color.WHITE.withAlpha(0.5), outlineWidth: 1.5,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: {
+            text: label, font: 'bold 10px "Courier New", monospace',
+            fillColor: Cesium.Color.fromCssColorString(storm),
+            outlineColor: Cesium.Color.BLACK, outlineWidth: 2,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(0, -16),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            translucencyByDistance: new Cesium.NearFarScalar(4e5, 1.0, 2e6, 0.0),
+          },
+          _layer: 'vejr', _kind: 'kyst', _data: s, show: showKyst,
+        });
+        _kystEnt.set(key, e);
+      } else {
+        const e = _kystEnt.get(key);
+        e.show = showKyst;
+        e._data = s;
+        if (e.label) e.label.text = label;
+        if (e.point) e.point.color = Cesium.Color.fromCssColorString(storm);
+      }
+    });
+    for (const [k, e] of _kystEnt) {
+      if (!seen.has(k)) { _viewer.entities.remove(e); _kystEnt.delete(k); }
+    }
+  }
+
+  function kystHTML(s) {
+    const level = s.level ?? 0;
+    const risk = level > 100 ? '⚠ Stormflod' : level > 60 ? '⚠ Forhøjet' : '✓ Normal';
+    const col = level > 100 ? '#ff4040' : level > 60 ? '#ffc800' : '#60c8ff';
+    return `<div class="dkt-title" style="color:${col}">〜 ${s.name}</div>
+      <div class="dkt-row"><span class="dkt-k">Vandstand</span><span class="dkt-v" style="color:${col}">${level > 0 ? '+' : ''}${Math.round(level)} cm (DVR90)</span></div>
+      <div class="dkt-row"><span class="dkt-k">Status</span><span class="dkt-v" style="color:${col}">${risk}</span></div>
+      <div class="dkt-row"><span class="dkt-k">Kilde</span><span class="dkt-v">Kystdirektoratet · live</span></div>`;
+  }
+
   function windHTML(w) {
     return `<div class="dkt-title" style="color:#60dc80">⚡ ${w.name}</div>
       <div class="dkt-row"><span class="dkt-k">Kapacitet</span><span class="dkt-v">${w.mw} MW</span></div>
@@ -2095,6 +2323,7 @@ VG.danmarkskort = {};
       <button class="dk-btn dk-btn-infra" data-view="infrastruktur">⚡ INFRASTRUKTUR</button>
       <button class="dk-btn dk-btn-vejr" data-view="vejr">☁ VEJR</button>
       <button class="dk-btn dk-btn-beredskab" data-view="beredskab">🚨 BEREDSKAB</button>
+      <button class="dk-btn dk-btn-tog" data-view="tog">🚆 TOG</button>
     </div>
     <div class="dk-metric-btns" id="dk-metric-btns">
       <button class="dk-btn active" data-metric="ledighed">LEDIGHED</button>
@@ -2114,6 +2343,7 @@ VG.danmarkskort = {};
     <div class="dk-legend" id="dk-legend"></div>
     <div class="dk-stats" id="dk-stats"></div>
     <div class="dk-power" id="dk-power"></div>
+    <div class="dk-power" id="dk-gridfreq" style="display:none"></div>
   </div>
 
   <div class="dk-tooltip" id="dk-tooltip"></div>
@@ -2247,10 +2477,15 @@ VG.danmarkskort = {};
     fetchShips();
     fetchWeather();
     fetchPower();
+    fetchGridFreq();
+    fetchExchangeRates();
+    fetchKystData();
     _aircraftTimer = setInterval(fetchAircraft, AIRCRAFT_REFRESH_MS);
     _shipTimer = setInterval(fetchShips, SHIP_REFRESH_MS);
-    _weatherTimer = setInterval(fetchWeather, 10 * 60 * 1000); // refresh weather every 10 min
-    _powerTimer = setInterval(fetchPower, 5 * 60 * 1000);      // refresh power every 5 min
+    _weatherTimer = setInterval(fetchWeather, 10 * 60 * 1000);
+    _powerTimer = setInterval(fetchPower, 5 * 60 * 1000);
+    _gridFreqTimer = setInterval(fetchGridFreq, 30 * 1000);    // grid freq every 30s
+    _togTimer = setInterval(fetchTog, 60 * 1000);              // train departures every 60s
 
     startLoop();
   }

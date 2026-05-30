@@ -14,6 +14,9 @@ import governmentRouter from './routes/government.js';
 import livedataRouter from './routes/livedata.js';
 import borgerforslagRouter from './routes/borgerforslag.js';
 import energiRouter from './routes/energi.js';
+import gridfreqRouter from './routes/gridfreq.js';
+import togRouter from './routes/tog.js';
+import nationalbankRouter from './routes/nationalbank.js';
 import kommunerRouter from './routes/kommuner.js';
 import rygterRouter from './routes/rygter.js';
 import newsRouter from './routes/news.js';
@@ -22,6 +25,8 @@ import openskyRouter from './routes/opensky.js';
 import aisRouter from './routes/ais.js';
 import tleRouter from './routes/tle.js';
 import geoconfigRouter from './routes/geoconfig.js';
+import dmiRouter from './routes/dmi.js';
+import kystRouter from './routes/kyst.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -74,7 +79,10 @@ app.use('/api/demographics', demoRouter);
 app.use('/api/government', governmentRouter);
 app.use('/api/livedata', livedataRouter);
 app.use('/api/borgerforslag', borgerforslagRouter);
+app.use('/api/energi', gridfreqRouter);
 app.use('/api/energi', energiRouter);
+app.use('/api/tog', togRouter);
+app.use('/api/nationalbank', nationalbankRouter);
 app.use('/api/kommuner', kommunerRouter);
 app.use('/api/rygter', rygterRouter);
 app.use('/api/news', newsRouter);
@@ -83,6 +91,8 @@ app.use('/api/opensky', openskyRouter);
 app.use('/api/ais', aisRouter);
 app.use('/api/tle', tleRouter);
 app.use('/api/geo', geoconfigRouter);
+app.use('/api/dmi', dmiRouter);
+app.use('/api/kyst', kystRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({

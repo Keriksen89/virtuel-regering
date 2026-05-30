@@ -513,6 +513,22 @@ const DASH_WIDGETS = [
     content: 'trends',
   },
   {
+    id: 'gridfreq',
+    icon: '<i class="ph ph-lightning"></i>',
+    title: 'Elnetfrekvens',
+    panel: 'energi',
+    w: 3, h: 4,
+    content: 'gridfreq',
+  },
+  {
+    id: 'valuta',
+    icon: '<i class="ph ph-currency-circle-dollar"></i>',
+    title: 'Valutakurser',
+    panel: 'udenrigshandel',
+    w: 3, h: 4,
+    content: 'valuta',
+  },
+  {
     id: 'reddit',
     icon: '<i class="ph ph-reddit-logo"></i>',
     title: 'Reddit Danmark',
@@ -546,9 +562,9 @@ const DASH_WIDGETS = [
   },
 ];
 
-const DASH_LS_KEY      = 'vg_dashboard_v6';
-const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v6';
-const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'danmarkidag', 'nyhedsradar', 'aiinsights', 'xdeck', 'reddit'];
+const DASH_LS_KEY      = 'vg_dashboard_v7';
+const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v7';
+const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'danmarkidag', 'nyhedsradar', 'aiinsights', 'xdeck', 'reddit'];
 
 const STATUS_CLS = { ok: 'dw-ok', warn: 'dw-warn', bad: 'dw-bad' };
 const SRC_CLS    = {
@@ -685,6 +701,10 @@ VG.dashboard.renderPanel = function() {
       body = `<div class="dw-folketing-body" id="dw-folketing-body"><div class="dw-skeleton"></div><div class="dw-skeleton"></div></div>`;
     } else if (w.content === 'polls') {
       body = `<div class="dw-polls-body" id="dw-polls-body"><div class="dw-skeleton"></div><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'gridfreq') {
+      body = `<div class="dw-gridfreq-body" id="dw-gridfreq-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'valuta') {
+      body = `<div class="dw-valuta-body" id="dw-valuta-body"><div class="dw-skeleton"></div></div>`;
     } else if (w.render) {
       const sparkHtml = d.spark ? _sparks(d.spark, d.trendCls) : '';
       const gaugeHtml = d.gauge ? `<div class="dw-gauge-wrap"><div class="dw-gauge-track"><div class="dw-gauge-fill" style="width:${Math.max(2, Math.min(100, d.gauge.pct)).toFixed(1)}%;background:${d.gauge.color}"></div></div>${d.gauge.label ? `<span class="dw-gauge-lbl">${d.gauge.label}</span>` : ''}</div>` : '';
@@ -730,6 +750,8 @@ VG.dashboard.renderPanel = function() {
   VG.dashboard._fillReddit();
   VG.dashboard._fillFolketing();
   VG.dashboard._fillPolls();
+  VG.dashboard._fillGridFreq();
+  VG.dashboard._fillValuta();
 
   document.getElementById('dw-edit-btn').onclick = () => {
     panel._dashEditMode = !panel._dashEditMode;
@@ -813,6 +835,60 @@ VG.dashboard._fillTrends = function() {
       });
     })
     .catch(() => { if (el) el.innerHTML = '<p class="dw-empty">Radar utilgængelig</p>'; });
+};
+
+VG.dashboard._fillGridFreq = function() {
+  const el = document.getElementById('dw-gridfreq-body');
+  if (!el) return;
+  fetch('/api/energi/frequency')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(d => {
+      const hz = d.frequency ?? 50.0;
+      const imb = d.imbalance;
+      const dev = Math.abs(hz - 50.0);
+      const col = dev < 0.05 ? 'var(--neg)' : dev < 0.1 ? 'var(--warn)' : 'var(--pos)';
+      const status = dev < 0.05 ? 'Stabil' : dev < 0.1 ? 'Svag afvigelse' : 'Afvigelse';
+      const imbStr = imb != null ? (imb > 0 ? `+${Math.round(imb)}` : `${Math.round(imb)}`) + ' MW ubalance' : '';
+      const pct = Math.min(100, Math.max(0, (hz - 49.8) / 0.4 * 100)).toFixed(1);
+      el.innerHTML = `
+        <div class="dw-freq-hz" style="color:${col}">${hz.toFixed(3)} Hz</div>
+        <div class="dw-gauge-wrap" style="margin:6px 0">
+          <div class="dw-gauge-track">
+            <div class="dw-gauge-fill" style="width:${pct}%;background:${col}"></div>
+          </div>
+          <span class="dw-gauge-lbl">${status}</span>
+        </div>
+        ${imbStr ? `<div class="dw-freq-imb">${imbStr}</div>` : ''}
+        <div class="dw-freq-target">Mål: 50.000 Hz · ${d.isFallback ? 'Estimat' : 'Energidata.dk'}</div>`;
+    })
+    .catch(() => { if (el) el.innerHTML = '<p class="dw-empty">Utilgængelig</p>'; });
+};
+
+VG.dashboard._fillValuta = function() {
+  const el = document.getElementById('dw-valuta-body');
+  if (!el) return;
+  fetch('/api/nationalbank/rates')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(d => {
+      const rates = d.rates || {};
+      const pairs = [
+        { code: 'EUR', flag: '🇪🇺', name: 'Euro' },
+        { code: 'USD', flag: '🇺🇸', name: 'US Dollar' },
+        { code: 'GBP', flag: '🇬🇧', name: 'Pund sterling' },
+        { code: 'SEK', flag: '🇸🇪', name: 'Svensk krone' },
+        { code: 'NOK', flag: '🇳🇴', name: 'Norsk krone' },
+      ].filter(p => rates[p.code] != null);
+      if (!pairs.length) { el.innerHTML = '<p class="dw-empty">Ingen data</p>'; return; }
+      el.innerHTML = pairs.map(p =>
+        `<div class="dw-valuta-row">
+          <span class="dw-valuta-flag">${p.flag}</span>
+          <span class="dw-valuta-code">${p.code}</span>
+          <span class="dw-valuta-rate">${rates[p.code].toFixed(3)}</span>
+          <span class="dw-valuta-dkk">DKK</span>
+        </div>`
+      ).join('') + `<div class="dw-valuta-src">Danmarks Nationalbank${d.isFallback ? ' (estimat)' : ''}</div>`;
+    })
+    .catch(() => { if (el) el.innerHTML = '<p class="dw-empty">Utilgængelig</p>'; });
 };
 
 VG.dashboard._openNewsModal = function(n) {
