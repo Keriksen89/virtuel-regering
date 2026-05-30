@@ -600,11 +600,83 @@ const DASH_WIDGETS = [
     w: 6, h: 9,
     content: 'politik',
   },
+  {
+    id: 'kanylex',
+    icon: '<i class="ph ph-heartbeat"></i>',
+    title: 'Kanyle-indeks',
+    panel: 'sundhed',
+    w: 4, h: 6,
+    content: 'kanylex',
+  },
+  {
+    id: 'healthpressure',
+    icon: '<i class="ph ph-hospital"></i>',
+    title: 'Ventelistepres',
+    panel: 'sundhed',
+    w: 4, h: 7,
+    content: 'healthpressure',
+  },
+  {
+    id: 'demoproj',
+    icon: '<i class="ph ph-users-three"></i>',
+    title: 'Demografifremskrivning',
+    panel: 'demographics',
+    w: 6, h: 7,
+    content: 'demoproj',
+  },
+  {
+    id: 'policysim',
+    icon: '<i class="ph ph-scales"></i>',
+    title: 'Politiksimulator',
+    panel: 'folketing',
+    w: 6, h: 8,
+    content: 'policysim',
+  },
+  {
+    id: 'energyhealth',
+    icon: '<i class="ph ph-plug-charging"></i>',
+    title: 'Energi × Sygehuse',
+    panel: 'energi',
+    w: 4, h: 6,
+    content: 'energyhealth',
+  },
+  {
+    id: 'mentalhealth',
+    icon: '<i class="ph ph-brain"></i>',
+    title: 'Psykisk Sundhed',
+    panel: 'psykiatri',
+    w: 4, h: 6,
+    content: 'mentalhealth',
+  },
+  {
+    id: 'greenreadiness',
+    icon: '<i class="ph ph-leaf"></i>',
+    title: 'Grøn Omstilling',
+    panel: 'co2',
+    w: 4, h: 7,
+    content: 'greenreadiness',
+  },
+  {
+    id: 'mobilityindex',
+    icon: '<i class="ph ph-train"></i>',
+    title: 'Mobilitetsscore',
+    panel: 'dsb',
+    w: 4, h: 6,
+    content: 'mobilityindex',
+  },
+  {
+    id: 'organdonation',
+    icon: '<i class="ph ph-heart"></i>',
+    title: 'Organdonation',
+    panel: 'sundhed',
+    w: 4, h: 6,
+    content: 'organdonation',
+  },
 ];
 
-const DASH_LS_KEY      = 'vg_dashboard_v9';
-const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v9';
-const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'markets', 'danmarkidag', 'nyhedsradar', 'intlnews', 'aiinsights', 'livetv', 'xdeck', 'reddit', 'politik'];
+const DASH_LS_KEY      = 'vg_dashboard_v10';
+const DASH_LAYOUT_KEY  = 'vg_dashboard_layout_v10';
+const DASH_DEFAULTS    = ['budget', 'ledighed', 'inflation', 'rente', 'boligpris', 'co2', 'polls', 'forsvarandel', 'vedvarende', 'elpris', 'gridfreq', 'valuta', 'markets', 'danmarkidag', 'nyhedsradar', 'intlnews', 'aiinsights', 'livetv', 'xdeck', 'reddit', 'politik', 'kanylex', 'healthpressure', 'demoproj', 'policysim', 'energyhealth', 'mentalhealth', 'greenreadiness', 'mobilityindex', 'organdonation'];
 
 const STATUS_CLS = { ok: 'dw-ok', warn: 'dw-warn', bad: 'dw-bad' };
 const SRC_CLS    = {
@@ -755,6 +827,24 @@ VG.dashboard.renderPanel = function() {
       body = `<div class="dw-livetv-body" id="dw-livetv-body"></div>`;
     } else if (w.content === 'politik') {
       body = `<div class="dw-politik-body" id="dw-politik-body"><div class="dw-skeleton"></div><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'kanylex') {
+      body = `<div class="dw-derived-body" id="dw-kanylex-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'healthpressure') {
+      body = `<div class="dw-derived-body" id="dw-healthpressure-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'demoproj') {
+      body = `<div class="dw-derived-body" id="dw-demoproj-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'policysim') {
+      body = `<div class="dw-derived-body" id="dw-policysim-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'energyhealth') {
+      body = `<div class="dw-derived-body" id="dw-energyhealth-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'mentalhealth') {
+      body = `<div class="dw-derived-body" id="dw-mentalhealth-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'greenreadiness') {
+      body = `<div class="dw-derived-body" id="dw-greenreadiness-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'mobilityindex') {
+      body = `<div class="dw-derived-body" id="dw-mobilityindex-body"><div class="dw-skeleton"></div></div>`;
+    } else if (w.content === 'organdonation') {
+      body = `<div class="dw-derived-body" id="dw-organdonation-body"></div>`;
     } else if (w.render) {
       const sparkHtml = d.spark ? _sparks(d.spark, d.trendCls) : '';
       const gaugeHtml = d.gauge ? `<div class="dw-gauge-wrap"><div class="dw-gauge-track"><div class="dw-gauge-fill" style="width:${Math.max(2, Math.min(100, d.gauge.pct)).toFixed(1)}%;background:${d.gauge.color}"></div></div>${d.gauge.label ? `<span class="dw-gauge-lbl">${d.gauge.label}</span>` : ''}</div>` : '';
@@ -807,6 +897,15 @@ VG.dashboard.renderPanel = function() {
   VG.dashboard._fillIntlNews();
   VG.dashboard._fillLiveTV();
   VG.dashboard._fillPolitik();
+  VG.dashboard._fillKanylex();
+  VG.dashboard._fillHealthPressure();
+  VG.dashboard._fillDemoProj();
+  VG.dashboard._fillPolicySim();
+  VG.dashboard._fillEnergyHealth();
+  VG.dashboard._fillMentalHealth();
+  VG.dashboard._fillGreenReadiness();
+  VG.dashboard._fillMobilityIndex();
+  VG.dashboard._fillOrganDonation();
 
   document.getElementById('dw-edit-btn').onclick = () => {
     panel._dashEditMode = !panel._dashEditMode;
@@ -1444,4 +1543,296 @@ VG.dashboard._fillPolitik = async function() {
     const xEl = document.getElementById('dpk-xfeed');
     if (xEl) xEl.innerHTML = '<p class="dw-empty">X feed utilgængeligt</p>';
   }
+};
+
+// ── Derived insight widgets ───────────────────────────────────────────────────
+
+function _derivedBar(label, value, max, color) {
+  const pct = Math.max(2, Math.min(100, value / max * 100));
+  return `<div class="dv-bar-row"><span class="dv-bar-lbl">${label}</span><div class="dv-bar-track"><div class="dv-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div><span class="dv-bar-val">${value}</span></div>`;
+}
+
+function _derivedNote(text) {
+  return `<p class="dv-note">${text}</p>`;
+}
+
+VG.dashboard._fillKanylex = async function() {
+  const el = document.getElementById('dw-kanylex-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/derived/kanyle-index').then(r => r.json());
+    const occ = d.occupancy || 85;
+    const pct = Math.min(occ, 148);
+    const gaugePct = Math.min(pct / 1.5, 100); // 150% max → 100% of gauge
+    const arcStyle = `background: conic-gradient(${d.statusColor} ${gaugePct.toFixed(0)}%, rgba(255,255,255,0.08) 0)`;
+
+    const regionRows = (d.regions || []).map(r =>
+      _derivedBar(r.name.replace('Region ',''), r.occupancyPct, 140,
+        r.occupancyPct < 85 ? '#50c878' : r.occupancyPct < 100 ? '#d4af37' : '#ff5020')
+    ).join('');
+
+    const trendSpark = (d.trend || []).map(t => {
+      const h = Math.round((t.pct - 75) / 55 * 28);
+      const c = t.pct < 90 ? '#50c878' : t.pct < 100 ? '#d4af37' : '#ff5020';
+      return `<div class="dv-spark-bar" style="height:${Math.max(2,h)}px;background:${c}" title="${t.month}: ${t.pct}%"></div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="dv-gauge-wrap">
+        <div class="dv-gauge-arc" style="${arcStyle}">
+          <div class="dv-gauge-inner">
+            <div class="dv-gauge-val" style="color:${d.statusColor}">${occ}%</div>
+            <div class="dv-gauge-lbl">${d.status}</div>
+          </div>
+        </div>
+      </div>
+      <div class="dv-meta-row"><span>Sengekapacitet (estimat)</span><span>${(d.totalBeds||22000).toLocaleString('da-DK')} senge</span></div>
+      ${d.gridStress > 1 ? `<div class="dv-meta-row" style="color:#ff8020"><span>Elnetstress</span><span>+${d.gridStress}% extra belastning</span></div>` : ''}
+      <div class="dv-section">Regioner</div>${regionRows}
+      <div class="dv-section">Sæsonprofil</div>
+      <div class="dv-spark-row">${trendSpark}</div>
+      <div class="dv-spark-months">Jan Feb Mar Apr Maj Jun Jul Aug Sep Okt Nov Dec</div>
+      ${_derivedNote(d.note)}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">Kanyle-indeks utilgængeligt</p>'; }
+};
+
+VG.dashboard._fillHealthPressure = async function() {
+  const el = document.getElementById('dw-healthpressure-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/derived/health-pressure').then(r => r.json());
+    const regionRows = (d.regions || []).map(r => {
+      const col = r.pressure < 60 ? '#50c878' : r.pressure < 90 ? '#d4af37' : '#ff5020';
+      return _derivedBar(r.name, r.avgWaitDays, 120, col);
+    }).join('');
+
+    const procRows = (d.procedures || []).map(p => {
+      const trendCol = p.trendDir === 'up' ? '#ff8020' : p.trendDir === 'down' ? '#50c878' : '#d4af37';
+      return `<div class="dv-proc-row"><span class="dv-proc-name">${p.name}</span><span class="dv-proc-wait">${p.waitDays} dage</span><span class="dv-proc-trend" style="color:${trendCol}">${p.trend}</span></div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="dv-kpi-big">${d.nationalAvgWait} <span class="dv-kpi-unit">dages gns. ventetid</span></div>
+      <div class="dv-section">Ventetid pr. region</div>${regionRows}
+      <div class="dv-section">Indgreb</div>
+      <div class="dv-proc-table">${procRows}</div>
+      ${_derivedNote(d.note)}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">Ventelistepres utilgængeligt</p>'; }
+};
+
+VG.dashboard._fillDemoProj = async function() {
+  const el = document.getElementById('dw-demoproj-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/derived/demography-projection').then(r => r.json());
+    const yearRows = (d.projections || []).map(p => {
+      const gapCol = p.bedGap > 0 ? '#ff5020' : '#50c878';
+      const gapStr = p.bedGap > 0 ? `+${p.bedGap.toLocaleString('da-DK')} sengeunderskud` : `${Math.abs(p.bedGap).toLocaleString('da-DK')} senge overskud`;
+      return `<div class="dv-proj-row ${p.year === 2024 ? 'dv-proj-now' : ''}">
+        <span class="dv-proj-year">${p.year}</span>
+        <span class="dv-proj-pop">${(p.population/1e6).toFixed(2)}M</span>
+        <span class="dv-proj-elderly">${p.elderlyPct}% 60+</span>
+        <span class="dv-proj-gap" style="color:${gapCol}">${gapStr}</span>
+      </div>`;
+    }).join('');
+
+    // Cohort sparkline for 2036 vs 2024
+    const lastProj = d.projections?.[d.projections.length - 1];
+    const cohortCmp = lastProj ? lastProj.cohorts.map((c, i) => {
+      const base = d.projections[0].cohorts[i].pct;
+      const diff = c.pct - base;
+      const col = i >= 4 ? '#ff8020' : i <= 1 ? '#64a0ff' : '#d4af37';
+      return `<div class="dv-cohort-bar"><div class="dv-cohort-fill" style="height:${Math.max(4, c.pct * 3)}px;background:${col}"></div><span class="dv-cohort-lbl">${c.label}</span><span class="dv-cohort-pct">${c.pct.toFixed(1)}%<br><span style="color:${diff>0?'#ff8020':'#50c878'}">${diff>0?'+':''}${diff.toFixed(1)}%</span></span></div>`;
+    }).join('') : '';
+
+    el.innerHTML = `
+      <div class="dv-section">Fremskrivning</div>
+      ${yearRows}
+      ${lastProj ? `<div class="dv-section">Aldersfordeling 2036 (vs 2024)</div><div class="dv-cohort-row">${cohortCmp}</div>` : ''}
+      ${_derivedNote(d.note)}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">Demografifremskrivning utilgængelig</p>'; }
+};
+
+VG.dashboard._fillPolicySim = async function() {
+  const el = document.getElementById('dw-policysim-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/derived/policy-simulation').then(r => r.json());
+    const impactCol = d.totalBudgetImpact > 10 ? '#ff5020' : d.totalBudgetImpact < -10 ? '#50c878' : '#d4af37';
+    const sign = d.totalBudgetImpact >= 0 ? '+' : '';
+
+    const quintRows = (d.quintileImpact || []).map(q => {
+      const col = q.perPersonKr > 1000 ? '#50c878' : q.perPersonKr < -1000 ? '#ff5020' : '#d4af37';
+      const barPct = Math.min(100, Math.abs(q.perPersonKr) / 5000 * 100);
+      const barDir = q.perPersonKr >= 0 ? 'right' : 'left';
+      return `<div class="dv-q-row"><span class="dv-q-label">${q.label}</span><div class="dv-q-bar-wrap"><div class="dv-q-bar" style="width:${barPct.toFixed(0)}%;float:${barDir};background:${col}"></div></div><span class="dv-q-val" style="color:${col}">${q.perPersonKr >= 0 ? '+' : ''}${q.perPersonKr.toLocaleString('da-DK')} kr</span></div>`;
+    }).join('');
+
+    const adoptedRows = (d.adopted || []).slice(0, 5).map(p =>
+      `<div class="dv-policy-row"><span class="dv-policy-cat">${p.category}</span><span class="dv-policy-title">${(p.title||'').slice(0,50)}</span><span class="dv-policy-impact" style="color:${(p.budgetImpact?.value||0)>0?'#ff8020':'#50c878'}">${(p.budgetImpact?.value||0)>0?'+':''}${p.budgetImpact?.value||0} mia</span></div>`
+    ).join('');
+
+    el.innerHTML = `
+      <div class="dv-kpi-big" style="color:${impactCol}">${sign}${d.totalBudgetImpact} mia kr <span class="dv-kpi-unit">${d.fiscalLabel}</span></div>
+      <div class="dv-meta-row"><span>Vedtagne forslag</span><span>${d.adoptedCount} / 22</span></div>
+      <div class="dv-section">Fordeling pr. indkomstkvintil (kr/person/år)</div>
+      ${quintRows}
+      <div class="dv-section">Vedtagne forslag</div>
+      ${adoptedRows || '<p class="dw-empty">Stem på forslag i Virtuelt Folketing</p>'}
+      ${_derivedNote(d.note)}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">Politiksimulator utilgængelig</p>'; }
+};
+
+VG.dashboard._fillEnergyHealth = async function() {
+  const el = document.getElementById('dw-energyhealth-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/derived/energy-hospital').then(r => r.json());
+    const eventRows = (d.historicalEvents || []).map(e =>
+      `<div class="dv-event-row"><span class="dv-event-date">${e.date.slice(0,7)}</span><span class="dv-event-text">${e.event}</span><span class="dv-event-effect">${e.hospitalEffect}</span></div>`
+    ).join('');
+
+    const riskBar = Math.min(100, d.deviation * 500); // 0.2Hz deviation = 100%
+
+    el.innerHTML = `
+      <div class="dv-meta-row"><span>Frekvens</span><span style="color:${d.riskColor}">${d.currentFreq?.toFixed(3) || '50.000'} Hz</span></div>
+      <div class="dv-meta-row"><span>Risikoniveau</span><span style="color:${d.riskColor}">● ${d.riskLabel}</span></div>
+      <div class="dv-meta-row"><span>Imbalance</span><span>${d.imbalanceMW > 0 ? '+' : ''}${d.imbalanceMW || 0} MW</span></div>
+      <div class="dv-bar-row"><span class="dv-bar-lbl">Afvigelse</span><div class="dv-bar-track"><div class="dv-bar-fill" style="width:${riskBar.toFixed(1)}%;background:${d.riskColor}"></div></div><span class="dv-bar-val">${d.deviation} Hz</span></div>
+      ${d.hospitalsAtRisk > 0 ? `<div class="dv-alert-box">⚠ ${d.hospitalsAtRisk} sygehuse muligvis på nødstrøm</div>` : ''}
+      <div class="dv-meta-row"><span>Planlagte operationer</span><span>${d.cancelRisk} risiko for aflysning</span></div>
+      <div class="dv-section">Historiske hændelser</div>
+      ${eventRows}
+      ${_derivedNote(d.note)}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">Energi-sygehus data utilgængeligt</p>'; }
+};
+
+VG.dashboard._fillMentalHealth = async function() {
+  const el = document.getElementById('dw-mentalhealth-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/derived/mental-health-index').then(r => r.json());
+    const regionRows = (d.regions || []).map(r => {
+      const col = r.netPressure < 20 ? '#50c878' : r.netPressure < 35 ? '#d4af37' : '#ff5020';
+      return `<div class="dv-mh-row"><span class="dv-mh-name">${r.name}</span><div class="dv-mh-bars"><div class="dv-mh-pressure" style="width:${Math.min(100,r.pressureScore)}%;background:#ff5020"></div><div class="dv-mh-capacity" style="width:${Math.min(100,r.capacityScore)}%;background:#50c878"></div></div><span class="dv-mh-net" style="color:${col}">+${r.netPressure}</span></div>`;
+    }).join('');
+
+    const factorRows = (d.riskFactors || []).map(f =>
+      `<div class="dv-meta-row"><span>${f.label}</span><span>${typeof f.val === 'number' && f.val < 1 ? (f.val*100).toFixed(0)+'%' : f.val?.toLocaleString?.('da-DK') || f.val}</span></div>`
+    ).join('');
+
+    el.innerHTML = `
+      <div class="dv-section">Pres vs. kapacitet pr. region</div>
+      <div class="dv-mh-legend"><span style="color:#ff5020">■ Pres</span> <span style="color:#50c878">■ Kapacitet</span> <span>→ nettopres</span></div>
+      ${regionRows}
+      <div class="dv-section">Nøgletal</div>
+      ${factorRows}
+      ${_derivedNote(d.note)}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">Psykisk sundhedsdata utilgængeligt</p>'; }
+};
+
+VG.dashboard._fillGreenReadiness = async function() {
+  const el = document.getElementById('dw-greenreadiness-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/derived/green-readiness').then(r => r.json());
+    const regionRows = (d.regions || []).map(r => {
+      const col = r.readinessScore > 60 ? '#50c878' : r.readinessScore > 40 ? '#d4af37' : '#ff8020';
+      return `<div class="dv-gr-row">
+        <span class="dv-gr-name">${r.name}</span>
+        <div class="dv-gr-stats">
+          <span title="Vindkraft">💨 ${r.windGW}GW</span>
+          <span title="Sol">☀ ${r.solarMW}MW</span>
+          <span title="Elbiler">🚗 ${r.evPct}%</span>
+        </div>
+        <div class="dv-bar-track" style="flex:1"><div class="dv-bar-fill" style="width:${r.readinessScore}%;background:${col}"></div></div>
+        <span class="dv-gr-score" style="color:${col}">${r.readinessScore}</span>
+      </div>`;
+    }).join('');
+
+    const off = d.offshore;
+    el.innerHTML = `
+      <div class="dv-kpi-big" style="color:#50c878">${d.nationalRenewPct}% <span class="dv-kpi-unit">vedvarende el 2023</span></div>
+      <div class="dv-meta-row"><span>Mål 2030</span><span style="color:#d4af37">${d.target2030Pct}% (eksport-overskud)</span></div>
+      <div class="dv-meta-row"><span>Havvind i dag</span><span>${off?.totalGW || 2.7} GW</span></div>
+      <div class="dv-meta-row"><span>Havvind planlagt 2030</span><span style="color:#50c878">${off?.planned2030GW || 8.5} GW</span></div>
+      <div class="dv-section">Omstillingsparathed pr. region</div>
+      ${regionRows}
+      ${_derivedNote(d.note)}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">Grøn omstilling data utilgængeligt</p>'; }
+};
+
+VG.dashboard._fillMobilityIndex = async function() {
+  const el = document.getElementById('dw-mobilityindex-body');
+  if (!el) return;
+  try {
+    const d = await fetch('/api/derived/mobility-score').then(r => r.json());
+    const regionRows = (d.regions || []).map(r => {
+      const col = r.mobilityScore > 60 ? '#50c878' : r.mobilityScore > 40 ? '#d4af37' : '#ff8020';
+      return `<div class="dv-mob-row">
+        <span class="dv-mob-name">${r.name}</span>
+        <div class="dv-mob-stats">
+          <span title="Offentlig transport">🚌 ${r.transitPct}%</span>
+          <span title="Cykel">🚲 ${r.bikeCommutePct}%</span>
+          <span title="IC-stationer">🚂 ${r.icStations}</span>
+        </div>
+        <div class="dv-bar-track" style="flex:1"><div class="dv-bar-fill" style="width:${r.mobilityScore}%;background:${col}"></div></div>
+        <span class="dv-mob-score" style="color:${col}">${r.mobilityScore}</span>
+      </div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="dv-meta-row"><span>National kollektiv trafik</span><span>${d.nationalTransitPct}% af pendlere</span></div>
+      <div class="dv-meta-row"><span>National cykeltrafikandel</span><span>${d.nationalBikePct}%</span></div>
+      <div class="dv-meta-row"><span>Mål 2035 (offentlig)</span><span style="color:#d4af37">${d.target2035TransitPct}%</span></div>
+      <div class="dv-section">Mobilitetsscore pr. region</div>
+      ${regionRows}
+      ${_derivedNote(d.note)}`;
+  } catch(e) { el.innerHTML = '<p class="dw-empty">Mobilitetsdata utilgængeligt</p>'; }
+};
+
+VG.dashboard._fillOrganDonation = function() {
+  const el = document.getElementById('dw-organdonation-body');
+  if (!el) return;
+
+  // Sundhedsstyrelsen organdonationsstatistik 2023
+  const STATS = [
+    { label: 'Aktive donorer (register)', value: '2.890.000', pct: 49, col: '#50c878' },
+    { label: 'Venter på nyt organ',        value: '483',      pct: null, col: '#ff8020' },
+    { label: 'Transplantationer i 2023',   value: '512',      pct: null, col: '#d4af37' },
+    { label: 'Nyrer (mest ventede)',        value: '281 i kø', pct: null, col: '#64a0ff' },
+    { label: 'Hjerte',                      value: '42 i kø',  pct: null, col: '#ff5050' },
+  ];
+
+  const WAIT_TIMES = [
+    { organ: 'Nyre',    avgYears: 3.2 },
+    { organ: 'Lever',   avgYears: 0.5 },
+    { organ: 'Hjerte',  avgYears: 0.4 },
+    { organ: 'Lunge',   avgYears: 1.8 },
+    { organ: 'Bugspyt', avgYears: 2.1 },
+  ];
+
+  const statRows = STATS.map(s => `
+    <div class="dv-meta-row">
+      <span>${s.label}</span>
+      <span style="color:${s.col}"><strong>${s.value}</strong>${s.pct ? ` (${s.pct}% af voksne)` : ''}</span>
+    </div>`).join('');
+
+  const waitRows = WAIT_TIMES.map(w =>
+    _derivedBar(w.organ, w.avgYears, 4, w.avgYears > 2 ? '#ff8020' : '#d4af37')
+  ).join('');
+
+  el.innerHTML = `
+    <div class="dv-kpi-big" style="color:#50c878">49% <span class="dv-kpi-unit">danskere er donorer</span></div>
+    <div class="dv-section">Nøgletal 2023 (Sundhedsstyrelsen)</div>
+    ${statRows}
+    <div class="dv-section">Gns. ventetid i år</div>
+    ${waitRows}
+    <div class="dv-organ-cta">
+      <a href="https://www.sundhed.dk/borger/patienthaandbogen/organdonation/patientinformation/bliv-organdonor/" target="_blank" rel="noopener" class="dv-organ-btn">
+        💚 Tilmeld dig som organdonor
+      </a>
+      <p class="dv-organ-desc">Det er gratis og tager under 2 minutter via sundhed.dk</p>
+    </div>
+    ${_derivedNote('Sundhedsstyrelsen · Scandiatransplant statistik 2023')}`;
 };

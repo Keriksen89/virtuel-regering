@@ -107,7 +107,7 @@ VG.danmarkskort = {};
     ],
   };
 
-  const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2', skat:'laboratorium', erhverv:'ledighed', uddannelse:'innovation', valgdeltagelse:'demographics', medianalder:'demographics', kriminalitet:'forsvar', middellevetid:'demographics', boligejer:'boligmarked' };
+  const METRIC_PANELS = { ledighed:'ledighed', indkomst:'indkomst', boligpris:'boligmarked', befolkning:'demographics', co2:'co2', skat:'laboratorium', erhverv:'ledighed', uddannelse:'innovation', valgdeltagelse:'demographics', medianalder:'demographics', kriminalitet:'forsvar', middellevetid:'demographics', boligejer:'boligmarked', healthineq:'sundhed', mental:'psykiatri', green:'co2', mobility:'dsb' };
 
   // ── Municipality data (keys match label_dk in the GeoJSON) ──────────────────
   const KD = {
@@ -234,6 +234,8 @@ VG.danmarkskort = {};
       const incN = clamp((k.indkomst - 245000) / (650000 - 245000), 0, 1);   // 0 poor → 1 rich
       const unN  = clamp((k.ledighed - 1) / (10.2 - 1), 0, 1);               // 0 low → 1 high unemployment
       const popN = clamp((Math.log(Math.max(k.befolkning, 100)) - LN_LO) / (LN_HI - LN_LO), 0, 1); // 0 tiny → 1 big city
+      const co2N = clamp((k.co2 - 1.8) / (6.8 - 1.8), 0, 1);               // 0 clean → 1 high CO2
+      const erhN = clamp((k.erhverv - 65) / (82 - 65), 0, 1);               // 0 low employment → 1 high
       const j = (s) => (_hash01(name, s) - 0.5) * 2;                         // deterministic jitter [-1,1]
 
       // Videregående uddannelse (% of adults) — tracks income & urbanity.
@@ -248,6 +250,23 @@ VG.danmarkskort = {};
       k.middellevetid = +clamp(79.4 + incN * 3.2 - unN * 0.8 + j(67) * 0.4, 78.5, 83.5).toFixed(1);
       // Boligejere (% owner-occupied) — falls sharply in the big rental cities.
       k.boligejer     = +clamp(80 - popN * 46 - incN * -4 + j(83) * 4, 30, 84).toFixed(0);
+
+      // ── Derived composite indices ───────────────────────────────────────────
+      // Health inequality score (0 = equal/healthy, 100 = deprived):
+      //   low income + high unemployment + low employment = more deprived
+      k.healthineq    = +clamp((1 - incN) * 45 + unN * 35 + (1 - erhN) * 20 + j(91) * 4, 0, 100).toFixed(0);
+
+      // Mental health pressure index (0 = low, 100 = high):
+      //   unemployment stress + income anxiety + social exclusion (1-employment)
+      k.mental        = +clamp(unN * 42 + (1 - incN) * 33 + (1 - erhN) * 25 + j(97) * 5, 0, 100).toFixed(0);
+
+      // Green transition readiness (0 = not ready, 100 = very ready):
+      //   low CO2 + income (EV/solar adoption proxy) + high employment capacity
+      k.green         = +clamp((1 - co2N) * 50 + incN * 30 + erhN * 20 + j(103) * 4, 0, 100).toFixed(0);
+
+      // Smart mobility score (0 = car-dependent, 100 = transit-rich):
+      //   urban density + income (can invest in transit) + employment rate
+      k.mobility      = +clamp(popN * 48 + incN * 28 + erhN * 24 + j(109) * 4, 0, 100).toFixed(0);
     }
   })();
 
@@ -269,6 +288,10 @@ VG.danmarkskort = {};
     kriminalitet:  { label: 'Kriminalitet',      unit: 'pr. 1.000', goodHigh: false, format: v => v.toFixed(0) + ' / 1.000' },
     middellevetid: { label: 'Middellevetid',     unit: 'år',        goodHigh: true,  format: v => v.toFixed(1) + ' år' },
     boligejer:     { label: 'Boligejere',        unit: '%',         goodHigh: true,  format: v => v.toFixed(0) + '%' },
+    healthineq:    { label: 'Sundhedsulighed',   unit: 'indeks',    goodHigh: false, format: v => v.toFixed(0) + ' / 100' },
+    mental:        { label: 'Psykisk pres',      unit: 'indeks',    goodHigh: false, format: v => v.toFixed(0) + ' / 100' },
+    green:         { label: 'Grøn omstilling',   unit: 'indeks',    goodHigh: true,  format: v => v.toFixed(0) + ' / 100' },
+    mobility:      { label: 'Mobilitet',         unit: 'indeks',    goodHigh: true,  format: v => v.toFixed(0) + ' / 100' },
   };
 
   const METRIC_RANGES = {
@@ -285,6 +308,10 @@ VG.danmarkskort = {};
     kriminalitet:  { min: 38,   max: 135 },
     middellevetid: { min: 78.5, max: 83.5 },
     boligejer:     { min: 30,   max: 84 },
+    healthineq:    { min: 0,    max: 100 },
+    mental:        { min: 0,    max: 100 },
+    green:         { min: 0,    max: 100 },
+    mobility:      { min: 0,    max: 100 },
   };
 
   const CITIES = [
@@ -2677,6 +2704,10 @@ VG.danmarkskort = {};
       <button class="dk-btn" data-metric="kriminalitet">KRIMINALITET</button>
       <button class="dk-btn" data-metric="middellevetid">MIDDELLEVETID</button>
       <button class="dk-btn" data-metric="boligejer">BOLIGEJERE</button>
+      <button class="dk-btn" data-metric="healthineq">SUNDHEDSULIGHED</button>
+      <button class="dk-btn" data-metric="mental">PSYKISK PRES</button>
+      <button class="dk-btn" data-metric="green">GRØN OMSTILLING</button>
+      <button class="dk-btn" data-metric="mobility">MOBILITET</button>
     </div>
     <div class="dk-legend" id="dk-legend"></div>
     <div class="dk-stats" id="dk-stats"></div>
