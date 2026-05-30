@@ -1224,9 +1224,12 @@ VG.danmarkskort = {};
   function kommuneHeight(ent) {
     if (_view !== 'kommuner') return 0;
     const v = kommuneValue(ent);
-    if (v == null) return 2000;
+    if (v == null) return 800;
     const t = normalise(v, _metric);
-    return 2000 + t * 78000;
+    // Keep the extrusion modest (max ~12 km). The old 80 km scale turned
+    // municipalities into giant vertical "curtains" that smeared across the
+    // whole view from any low camera angle.
+    return 800 + t * 11200;
   }
 
   function styleKommune(ent) {
@@ -1236,6 +1239,10 @@ VG.danmarkskort = {};
     ent._kd = name && KD[name] ? KD[name] : null;
     ent._kind = 'kommune';
     if (!ent.polygon) return;
+    // Flat base at ground level. perPositionHeight must be false or Cesium
+    // ignores `height` and warns ("cannot have both height and
+    // perPositionHeight"); it also caused faint vertical striping.
+    ent.polygon.perPositionHeight = false;
     ent.polygon.height = 0;
     ent.polygon.outline = true;
     ent.polygon.outlineColor = Cesium.Color.fromBytes(212, 175, 55, 90);
